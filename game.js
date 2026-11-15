@@ -1916,7 +1916,9 @@ $('quit').onclick = () => {
 $('stopWatch').onclick = () => { Net.send({ t: 'unspectate' }); endSession(); go('online'); };
 
 // ================================================================ animation
-const matchClipsEnabled = new URLSearchParams(location.search).get('matchClips') === '1';
+// Authored match clips are ON by default (verified 2026-11-15: all venues, low gfx, phones, online, spectate, 2v2);
+// add ?matchClips=0 to the address to fall back to the old procedural swing.
+const matchClipsEnabled = new URLSearchParams(location.search).get('matchClips') !== '0';
 // Selection uses court-facing coordinates, not the old swing's racket-alignment yaw.
 function selectMatchStroke(a, h, e) {
   const facing = a.team === 0 ? Math.PI : 0;
