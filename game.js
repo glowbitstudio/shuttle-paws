@@ -2297,7 +2297,10 @@ function animateAthlete(a, md, dt, t, m) {
   }
   const fat = S.fatigue(a);
   if (fat > 0 && a.diveT < 0 && a.recoverT <= 0) { tiltX += 0.16 * fat; by += Math.sin(t * 7) * 0.02 * fat; }   // hunched, panting
-  by -= md.crouch || 0; tiltX += (md.crouch || 0) * 0.9 + Math.max(0, md.lunge || 0) * 0.5;   // low reach / lunge lean
+  // low reach / lunge lean - but not on top of the dive pose: lying flat is already as low as the body goes (a crouch
+  // left over from the reach used to push the chest and shoulders 0.3 m under the floor during dives)
+  const lying = matchClipsEnabled && (a.diveT >= 0 || a.recoverT > 0) ? (a.diveT >= 0 ? Math.min(1, a.diveT / 0.12) : Math.min(1, a.recoverT / 0.2)) : 0;
+  by -= (md.crouch || 0) * (1 - lying); tiltX += ((md.crouch || 0) * 0.9 + Math.max(0, md.lunge || 0) * 0.5) * (1 - lying);
   mdl.body.position.y = by;
   mdl.body.rotation.x = damp(mdl.body.rotation.x, tiltX, 14, dt);
   mdl.body.rotation.z = damp(mdl.body.rotation.z, tiltZ, 10, dt);
