@@ -2562,34 +2562,23 @@ function animateAthlete(a, md, dt, t, m) {
       if (u >= 1) md.armFade = null;
     }
   }
-  if (matchClipsEnabled && !debugPose && mdl.rig && a.diveT < 0 && a.recoverT <= 0) {
-
-    // Continuous guard: blend the racket arm toward the ready pose (always clear of the floor) by the smallest amount
-
-    // that lifts the racket clear. The wrist-bending guard below stays as the safety net (and for dives).
-
+  if (matchClipsEnabled && !debugPose && mdl.rig) {
+    // Continuous guard: blend the racket arm toward a pose that is clear of the floor (ready; lying in a dive: racket
+    // held up) by the smallest amount that lifts the racket clear. The wrist-bending guard below is the safety net.
     mdl.root.updateMatrixWorld(true);
-
     const low = () => { let mn = 9; for (const y of [-0.4, -0.6, -0.71, -0.86]) mn = Math.min(mn, mdl.wrist.localToWorld(guardV.set(0, y, 0)).y); return mn; };
-
     if (low() < 0.06) {
-
-      const nodes = [mdl.arm, mdl.armEl, mdl.wrist], from = nodes.map(n => n.quaternion.clone()), p = POSE.ready;
-
+      const nodes = [mdl.arm, mdl.armEl, mdl.wrist], from = nodes.map(n => n.quaternion.clone());
+      for (const p of [POSE.ready, POSE.cockHi, POSE.hitHi]) {
       const safe = [new THREE.Quaternion().setFromEuler(new THREE.Euler(p.s[0], 0, p.s[1] * mdl.h, 'XYZ')), new THREE.Quaternion().setFromEuler(new THREE.Euler(p.e[0], 0, p.e[1] * mdl.h, 'XYZ')), new THREE.Quaternion().setFromEuler(new THREE.Euler(p.w, 0, 0, 'XYZ'))];
-
       const set = (u) => { nodes.forEach((n, i) => n.quaternion.copy(from[i]).slerp(safe[i], u)); mdl.arm.updateMatrixWorld(true); return low(); };
-
       let lo = 0, hi = 1;
-
-      if (set(1) >= 0.06) { for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (set(mid) >= 0.06) hi = mid; else lo = mid; } set(hi); }
-
+      if (set(1) >= 0.06) { for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (set(mid) >= 0.06) hi = mid; else lo = mid; } set(hi); break; }
+      set(0);
+      }
     }
-
   }
-
   floorGuard(mdl);
-
   if (matchClipsEnabled && md.checkAt && md.clipMeasurement) {
     mdl.root.updateMatrixWorld(true);
     const hp = mdl.wrist.localToWorld(new THREE.Vector3(0,-0.71,0));
