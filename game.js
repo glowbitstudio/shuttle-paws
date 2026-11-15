@@ -1985,11 +1985,49 @@ function predictedShots(m, a, at, y) {
 // Clips the hit can select at the predicted contact, through the same selector the hit path uses.
 function prepClips(m, a, h, pred) {
   const at = pred.ax === undefined ? a : { ...a, x: pred.ax, z: pred.az }, clips = [];
-  for (const shot of predictedShots(m, a, at, pred.y)) {
+  for (const shot of predictedShots(m, a, at, pred.shotY === undefined ? pred.y : pred.shotY)) {
     const c = selectMatchStroke(at, h, { x: pred.x, y: pred.y, z: pred.z, shot });
     if (c && !clips.includes(c)) clips.push(c);
   }
   return clips;
+}
+// Where and when will this athlete actually hit the incoming shuttle? Walks the sim's own hit conditions forward
+// (mirrors of tickBot / tickHuman; presentation only, the simulation is untouched).
+function predictMatchContact(m, a) {
+  const s = m.shuttle, sg = S.sgn(a.team), DT = S.DT, local = !!session && session.kind === 'local';
+  const bot = local && a.ctrl === 'bot' && !!S.DIFF[a.diff], inp = a.input || {};
+  if (bot && a.plan && a.plan.leave) return null;                     // it has judged the shuttle out
+  const mode = !local ? 'first' : bot ? 'bot' : a.hitQueue > 0 ? 'first' : inp.hold && a.assist >= 1 ? 'hold'
+    : a.assist >= 2 && !(m.opts && m.opts.autoSave === false) ? 'auto' : 'first';
+  const p = { x: s.p.x, y: s.p.y, z: s.p.z }, v = { x: s.v.x, y: s.v.y, z: s.v.z }, at = { ...a };
+  if (bot) at._extra = a.plan && a.plan.p && a.plan.p.desperate && a.diff > 0 ? 0.35 : 0;
+  const speed = Math.hypot(a.vx, a.vz);
+  // a bot runs to (tx, tz) and stops there; anyone else is assumed to keep their velocity
+  const toTarget = bot && a.tx !== undefined ? Math.hypot(a.tx - a.x, a.tz - a.z) : Infinity;
+  let jy = a.jumpY || 0, vy = a.vy || 0;
+  for (let k = 0; k < 70; k++) {
+    const travel = Math.min(speed * k * DT, toTarget), ux = speed > 1e-6 ? a.vx / speed : 0, uz = speed > 1e-6 ? a.vz / speed : 0;
+    at.x = a.x + ux * travel; at.z = a.z + uz * travel;
+    if (bot && a.jumpAt > 0 && m.clock + k * DT >= a.jumpAt && jy === 0 && vy === 0) { vy = a.st.jumpVy * (1 - 0.15 * S.fatigue(a)); jy = 0.001; }
+    at.jumpY = jy;
+    const r = S.inReachAt(at, p);
+    const ok = r.ok && (!local || p.z * sg > 0.05) && (mode === 'first'
+      || (mode === 'bot' && (v.y < 0 || r.dh < 0.55 || p.y < 1.2))
+      || (mode === 'hold' && v.y < 0 && (r.dh < 0.65 || p.y < 1.25))
+      || (mode === 'auto' && v.y < 0 && (p.y < 0.55 || r.dh < 0.7 || p.y < 1.3)));
+    if (ok) {
+      const pred = { t: k * DT, x: p.x, y: p.y, z: p.z, ax: at.x, az: at.z, jy };
+      if (local && !bot && a.assist && a.sta >= 0.15) {
+        // assisted smash: the sim takes the contact up to this height on the hit tick and starts the jump there
+        const shots = predictedShots(m, a, at, p.y), lifted = 2.05 + (a.st.jumpVy - 4.94) * 0.2 + 0.30 * (1 - 0.15 * S.fatigue(a));
+        if (shots.length === 1 && shots[0] === 'smash' && p.y < lifted) { pred.shotY = p.y; pred.y = lifted; pred.lift = true; }
+      }
+      return pred;
+    }
+    S.stepShuttle(p, v, DT, m.wind); if (p.y <= 0) return null;
+    if (jy > 0 || vy > 0) { vy -= 13 * DT; jy += vy * DT; if (jy <= 0) { jy = 0; vy = 0; } }
+  }
+  return null;
 }
 // Bounded joint fitting: no teleporting the body/racket, no changing the simulation.
 const matchFitJoints = mdl => [[mdl.arm.rotation,'x',-3.2,1.5], [mdl.arm.rotation,'z',-1.6,1.6],
@@ -2067,6 +2105,23 @@ function fitMatchClean(mdl, target) {
   nodes.forEach((n, i) => n.quaternion.copy(posed[i]));
   return posedError;
 }
+// Preparation aim. `store[key]` holds the last SOLVED correction (relative to `aimBase`, the contact pose being aimed):
+// the next solve warm-starts from it, so the solution stays in one branch while the target and the body move. Another
+// branch is taken only when it is better by 3 cm and there is still time to travel there (or the kept one misses by
+// 10 cm). Returns the correction to SHOW: `shown` moved toward the solution so that it gets there by the predicted
+// contact time `tLeft` (never slower than 8 rad/s).
+function trackMatchAim(store, key, mdl, nodes, aimBase, target, shown, tLeft, dt) {
+  const cleanError = fitMatchClean(mdl, target), cleanSolved = nodes.map(n => n.quaternion.clone());
+  if (store[key]) {
+    nodes.forEach((n, i) => n.quaternion.copy(aimBase[i]).multiply(store[key][i]));
+    const keptError = fitMatchRacket(mdl, target, 1);
+    const switchBranch = keptError > 0.10 || (tLeft > 0.12 && keptError > cleanError + 0.03);
+    if (switchBranch && cleanError < keptError) nodes.forEach((n, i) => n.quaternion.copy(cleanSolved[i]));
+  }
+  store[key] = nodes.map((n, i) => aimBase[i].clone().invert().multiply(n.quaternion));
+  const frames = Math.max(1, Math.round(tLeft / dt));
+  return store[key].map((q, i) => { const angle = shown[i].angleTo(q); return shown[i].clone().slerp(q, angle ? Math.min(1, Math.max(8 * dt, angle / frames) / angle) : 1); });
+}
 // Racket-head position in the model's own frame (neutral stance) at a clip's authored contact pose.
 // Joint Euler values are restored exactly: later code reads them component-wise.
 function clipHeadLocal(md, clip) {
@@ -2087,6 +2142,7 @@ function animateAthlete(a, md, dt, t, m) {
   const mdl = md.model, facing = a.team === 0 ? Math.PI : 0;
   const previousFacing = mdl.root.rotation.y;
   const previousSolved=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest].map(n=>n.quaternion.clone());
+  md.frameNo = (md.frameNo || 0) + 1;
   mdl.root.position.set(a.x, a.jumpY, a.z);
   // Restore clip-owned joints before the procedural path; clips never own simulation travel.
   if (md.matchClip && mdl.rig) {
@@ -2114,18 +2170,16 @@ function animateAthlete(a, md, dt, t, m) {
     const p = { x: s.p.x, y: s.p.y, z: s.p.z }, v = { x: s.v.x, y: s.v.y, z: s.v.z };
     // Opt-in clips: the athlete keeps travelling until contact, so test reach from where it will be.
     // Presentation only; the simulation's own reach test and positions are untouched.
-    const at = matchClipsEnabled ? { ...a } : a;
-    for (let k = 0; k < 70; k++) {
-      if (at !== a) { at.x = a.x + a.vx * k * S.DT; at.z = a.z + a.vz * k * S.DT; }
-      if (S.inReachAt(at, p).ok) { md.pred = { t: k * S.DT, x: p.x, y: p.y, z: p.z, type: swingType(p.y) }; if (at !== a) { md.pred.ax = at.x; md.pred.az = at.z; } break; }
+    if (matchClipsEnabled && !debugPose) { md.pred = predictMatchContact(m, a); if (md.pred) md.pred.type = swingType(md.pred.y); }
+    else for (let k = 0; k < 70; k++) {
+      if (S.inReachAt(a, p).ok) { md.pred = { t: k * S.DT, x: p.x, y: p.y, z: p.z, type: swingType(p.y) }; break; }
       S.stepShuttle(p, v, S.DT, m.wind); if (p.y <= 0) break;
     }
   }
   if (md.pred && matchClipsEnabled && !debugPose) {
     // Swing family by contact height relative to the athlete at contact: a jump moves the body, not the swing
     // (a bot can leap 1 m and meet the shuttle at waist height; the overhead pose cannot reach down there).
-    const tj = md.pred.t, vy = a.vy || 0, jy = a.jumpY > 0 || vy > 0 ? Math.max(0, a.jumpY + vy * tj - 6.5 * tj * tj) : 0;
-    md.pred.type = swingType(md.pred.y - jy);
+    md.pred.type = swingType(md.pred.y - md.pred.jy);
     md.pred.clips = prepClips(m, a, mdl.h, md.pred);
     md.pred.clip = md.pred.clips.length === 1 ? md.pred.clips[0]
       : md.prepClip && md.pred.clips.includes(md.prepClip) ? md.prepClip   // already preparing it and it is still possible: keep it
@@ -2161,9 +2215,11 @@ function animateAthlete(a, md, dt, t, m) {
     }
     yaw = Math.atan2(dx, dz) - hl.ang;                         // turn so the racket head lines up with the shuttle
     lungeT = clamp(dist - hl.r, -0.2, 0.55);                    // step / lean in to close the gap
-    const dh = cp.y - (hl.y + a.jumpY);
+    // while the prediction is live the body is placed for the jump height it will have AT contact (a constant target);
+    // an assisted smash is met by rising early: the sim only starts that jump on the hit tick
+    const dh = cp.y - (hl.y + (stance && cp.jy !== undefined ? cp.jy : a.jumpY));
     crouch = clamp(-dh * 0.8, 0, 0.34);                         // bend down for low shuttles
-    rise = clamp(dh, 0, 0.6);                                   // go up on the toes / hop for high ones
+    rise = clamp(dh, 0, cp.lift ? 0.95 : 0.6);                  // go up on the toes / hop for high ones
     md.lungeDir = dist > 0.01 ? { x: dx / dist, z: dz / dist } : md.lungeDir;
     if (matchClipsEnabled && !debugPose) {
       // The racket head lines up with the target only once the body has finished turning, and the turn is rate
@@ -2333,14 +2389,7 @@ function animateAthlete(a, md, dt, t, m) {
       setBase(hit);
       const hitBase=layerNodes.map(n=>n.quaternion.clone());
       if(!md.neutralCorrection) md.neutralCorrection=layerNodes.map(()=>new THREE.Quaternion());   // enter from no correction, slewed like every later frame
-      const cleanError=fitMatchClean(mdl,fitTarget), cleanSolved=layerNodes.map(n=>n.quaternion.clone());
-      layerNodes.forEach((n,i)=>n.quaternion.copy(hitBase[i]).multiply(md.neutralCorrection[i]));
-      const warmError=fitMatchRacket(mdl,fitTarget,1);
-      if(!(warmError<=cleanError+0.02)) layerNodes.forEach((n,i)=>n.quaternion.copy(cleanSolved[i]));   // warm keeps unless beaten by more than the finest solver step
-      const correction=layerNodes.map((n,i)=>{
-        const q=hitBase[i].clone().invert().multiply(n.quaternion), prev=md.neutralCorrection[i], angle=prev.angleTo(q);
-        return prev.clone().slerp(q,angle?Math.min(1,8*dt/angle):1);
-      });
+      const correction=trackMatchAim(md,'neutralAim',mdl,layerNodes,hitBase,fitTarget,md.neutralCorrection,md.pred.t,dt);
       md.neutralCorrection=correction.map(q=>q.clone());
       // 2. Show: the neutral swing, carrying the aim in as the shuttle arrives; at contact it is the fitted contact
       //    pose, which the hit frame then starts from. A low swing goes from ready straight to its contact pose:
@@ -2350,7 +2399,7 @@ function animateAthlete(a, md, dt, t, m) {
       const base=layerNodes.map(n=>n.quaternion.clone()), w=clamp(1-md.pred.t/0.2,0,1), weight=w*w*(3-2*w);
       layerNodes.forEach((n,i)=>n.quaternion.copy(base[i]).multiply(new THREE.Quaternion().slerp(correction[i],weight)));
       md.matchClip='neutralPrep';   // owner label: crossfades in and out, chest restored before the next frame
-    } else md.neutralCorrection=null;
+    } else { md.neutralCorrection=null; md.neutralAim=null; }
     if (clip) {
       const contact = SPAnim.CLIPS[clip].contact, length = SPAnim.clipLength(clip);
       const q = SPAnim.sample(clip, ct);
@@ -2406,8 +2455,13 @@ function animateAthlete(a, md, dt, t, m) {
         // Solver warm start is a separate pose, not next frame's authored data.
         const fitTarget=new THREE.Vector3(target.x,target.y,target.z);
         if(stroke && stroke.elapsed===0) mdl.rig.chest.quaternion.copy(previousSolved[3]);   // clips do not author the chest: start it where it was rendered
-        let fitError=fitMatchClean(mdl,fitTarget), fitStart='clean';
-        if(md.armLayer.correction){
+        let fitError=0, fitStart='clean', tracked=null;
+        if(!stroke){
+          // preparation: branch-stable aim, shown correction arrives by the predicted contact time
+          if(!md.armLayer.correction) md.armLayer.correction=layerNodes.map(()=>new THREE.Quaternion());
+          tracked=trackMatchAim(md.armLayer,'aim',mdl,layerNodes,aim,fitTarget,md.armLayer.correction,md.pred.t,dt);
+        } else fitError=fitMatchClean(mdl,fitTarget);
+        if(stroke && md.armLayer.correction){
           // Lower contact error wins; an exact tie keeps the warm start (continuity).
           const cleanSolved=layerNodes.map(n=>n.quaternion.clone());
           layerNodes.forEach((n,i)=>n.quaternion.copy(aim[i]).multiply(md.armLayer.correction[i]));
@@ -2416,8 +2470,8 @@ function animateAthlete(a, md, dt, t, m) {
           if(warmError<=fitError+0.02){fitError=warmError;fitStart='warm';}   // warm keeps unless beaten by more than the finest solver step
           else layerNodes.forEach((n,i)=>n.quaternion.copy(cleanSolved[i]));
         }
-        let correction=layerNodes.map((n,i)=>aim[i].clone().invert().multiply(n.quaternion));
-        if(md.armLayer.correction && !(stroke && stroke.elapsed===0)) correction=correction.map((q,i)=>{
+        let correction=tracked || layerNodes.map((n,i)=>aim[i].clone().invert().multiply(n.quaternion));
+        if(!tracked && md.armLayer.correction && !(stroke && stroke.elapsed===0)) correction=correction.map((q,i)=>{
           const prev=md.armLayer.correction[i],angle=prev.angleTo(q);
           return prev.clone().slerp(q,angle?Math.min(1,8*dt/angle):1);
         });
@@ -2475,6 +2529,9 @@ function animateAthlete(a, md, dt, t, m) {
       !md.stroke && !cp && !(hold.on && session && a.i === session.me) && !debugPose) {
     const name = a.splitT > 0 ? 'splitStep' : 'ready';
     const clipTime = name === 'splitStep' ? clamp((0.28 - a.splitT) / 0.28, 0, 1) * 0.6 : t;
+    if (!md.readyHandoff && md.readyFrame !== md.frameNo - 1)   // fresh entry: blend in from the pose it has now
+      md.readyHandoff={elapsed:0,nodes:[mdl.body,mdl.rig.hips,mdl.rig.chest,mdl.head,...mdl.rig.legs.flatMap(l=>[l.thigh,l.knee,l.ankle])].map(node=>({node,p:node.position.clone(),q:node.quaternion.clone()}))};
+    md.readyFrame = md.frameNo;
     mdl.body.position.y = 0;
     mdl.body.rotation.x = 0; mdl.body.rotation.z = 0;
     SPAnim.apply(mdl, SPAnim.sample(name, clipTime), { noJump: true });
@@ -2505,7 +2562,34 @@ function animateAthlete(a, md, dt, t, m) {
       if (u >= 1) md.armFade = null;
     }
   }
+  if (matchClipsEnabled && !debugPose && mdl.rig && a.diveT < 0 && a.recoverT <= 0) {
+
+    // Continuous guard: blend the racket arm toward the ready pose (always clear of the floor) by the smallest amount
+
+    // that lifts the racket clear. The wrist-bending guard below stays as the safety net (and for dives).
+
+    mdl.root.updateMatrixWorld(true);
+
+    const low = () => { let mn = 9; for (const y of [-0.4, -0.6, -0.71, -0.86]) mn = Math.min(mn, mdl.wrist.localToWorld(guardV.set(0, y, 0)).y); return mn; };
+
+    if (low() < 0.06) {
+
+      const nodes = [mdl.arm, mdl.armEl, mdl.wrist], from = nodes.map(n => n.quaternion.clone()), p = POSE.ready;
+
+      const safe = [new THREE.Quaternion().setFromEuler(new THREE.Euler(p.s[0], 0, p.s[1] * mdl.h, 'XYZ')), new THREE.Quaternion().setFromEuler(new THREE.Euler(p.e[0], 0, p.e[1] * mdl.h, 'XYZ')), new THREE.Quaternion().setFromEuler(new THREE.Euler(p.w, 0, 0, 'XYZ'))];
+
+      const set = (u) => { nodes.forEach((n, i) => n.quaternion.copy(from[i]).slerp(safe[i], u)); mdl.arm.updateMatrixWorld(true); return low(); };
+
+      let lo = 0, hi = 1;
+
+      if (set(1) >= 0.06) { for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (set(mid) >= 0.06) hi = mid; else lo = mid; } set(hi); }
+
+    }
+
+  }
+
   floorGuard(mdl);
+
   if (matchClipsEnabled && md.checkAt && md.clipMeasurement) {
     mdl.root.updateMatrixWorld(true);
     const hp = mdl.wrist.localToWorld(new THREE.Vector3(0,-0.71,0));
