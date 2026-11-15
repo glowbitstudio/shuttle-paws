@@ -8,6 +8,9 @@ Trạng thái lúc dừng: bản `combined-14` đã áp dụng vào `game.js` (b
 2. Nối động tác chân và toàn thân cho các cú đã có (đứng yên dùng trọn động tác, đang chạy giữ kiểu chạy; chân không trượt, không lún).
 3. Nối dần các động tác còn lại: di chuyển, cứu cầu, lao người, giao/nhận giao, ăn mừng. Ghi danh sách vào `CLIPS-IN-MATCH.md`.
 4. Khi ổn thì bật mặc định, bỏ đuôi `?matchClips=1` (hỏi người dùng trước khi đổi; thử online 2 máy, xem trận, mọi sân, đồ họa thấp).
+Việc còn mở (đo 2026-11-15, chưa sửa vì cần đổi luật mô phỏng):
+- **Đập có hỗ trợ bấm sát lúc chạm cầu:** mô phỏng nâng điểm chạm lên độ cao bật nhảy ngay tại tick đánh rồi mới cho nhảy, nên vợt không thể ở đó: lệch 27–70 cm đúng tại tick đánh (đo bằng `tests/live-contact-check.py`: 1/34 và 1/29 cú; mọi cú khác ≤ 8,7 cm kể cả ở 15 khung hình/giây). Bấm sớm (có đệm) thì đã dự đoán được (< 8 cm). Muốn hết hẳn phải cho nhân vật bật nhảy trước khi đánh (đổi luật).
+- **Online:** cú đánh với tới kiểu "liều" của bot (tầm với +0,35 m) và cú đánh bù trễ mạng của người chơi (server lấy lại vị trí cầu trong quá khứ) có điểm chạm ngoài tầm tay, vợt lệch 20–90 cm (5/67 cú trong trận mẫu). Cũng là luật mô phỏng/bù trễ, không sửa ở phía hiển thị được.
 Quy tắc CPU khi làm tiếp: một trình duyệt ẩn, ghim 2 nhân, không chạy song song (xem script cpu-guard).
 
 ## 0b. Nâng cấp GAMEPLAY trong trận cho thật cuốn (người dùng nhắc lại 2026-11-15: mục này bị ghi thiếu)

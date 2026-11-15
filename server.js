@@ -137,21 +137,23 @@ function startMatch(players, opts, room) {
 }
 function startMsg(m, you) {
   return { t: 'start', id: m.id, mode: m.sim.opts.mode, points: m.sim.opts.points, games: m.sim.opts.games, venue: m.sim.opts.venue, you,
-    slots: m.sim.athletes.map((a) => ({ name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl })), room: m.room };
+    // diff (bots only) lets clients predict when a server bot will hit; optional field, older clients ignore it
+    slots: m.sim.athletes.map((a) => (a.ctrl === 'bot' ? { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl, diff: a.diff } : { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl })), room: m.room };
 }
 function tickMatch(m) {
   if (m.ended) return;
   Sim.step(m.sim); Sim.step(m.sim);
   m.tick++;
   if (m.tick % 2 === 0 || m.sim.events.length) {
-    const msg = JSON.stringify({ t: 'snap', id: m.id, s: Sim.snapshot(m.sim), ev: m.sim.events.map(stripEv) });
+    const msg = JSON.stringify({ t: 'snap', id: m.id, s: Sim.snapshot(m.sim), ev: m.sim.events.map(stripEv, m.sim.clock) });
     m.sim.events.length = 0;
     for (const c of m.players) if (c && c.ws.readyState === 1 && c.match === m.id) c.ws.send(msg);
     for (const c of m.spectators) if (c.ws.readyState === 1) c.ws.send(msg);
   }
   if (m.sim.state === 'over') endMatch(m);
 }
-function stripEv(e) { return e; }
+// hit events carry the sim clock (optional field `c`) so clients can line the stroke up with the snapshot stream
+function stripEv(e) { return e.type === 'hit' ? Object.assign({ c: Math.round(this * 1000) / 1000 }, e) : e; }
 function endMatch(m) {
   m.ended = true; clearInterval(m.timer);
   const w = m.sim.winner;

@@ -1463,7 +1463,9 @@ function makeView(start) {
   return {
     opts: { mode: start.mode, points: start.points, games: start.games || 1, venue: start.venue }, doubles, games: [0, 0], gameNo: 1, halfW: doubles ? S.DBL_W : S.HALF_W,
     athletes: start.slots.map((s, i) => ({
-      i, team: doubles ? (i < 2 ? 0 : 1) : (i < 1 ? 0 : 1), name: s.name, char: s.char, hand: s.hand, ctrl: s.ctrl, st: S.charStats(s.char), assist: 0,
+      i, team: doubles ? (i < 2 ? 0 : 1) : (i < 1 ? 0 : 1), name: s.name, char: s.char, hand: s.hand, ctrl: s.ctrl, st: S.charStats(s.char),
+      assist: s.ctrl === 'human' ? 1 : 0,                                            // the server plays every human with the same hit help
+      diff: s.ctrl === 'bot' && Number.isInteger(s.diff) ? s.diff : undefined,       // server bots: difficulty (newer servers send it)
       x: 0, z: 0, jumpY: 0, vx: 0, vz: 0, swingT: -1, swingHigh: true, diveT: -1, recoverT: 0, diveDx: 0, diveDz: 0, mood: 0, emote: 0, splitT: 0,
       stats: {},
     })),
@@ -1768,6 +1770,7 @@ function handleEvent(e) {
         const md = session.models[e.i];
         md.checkAt = { x: e.x, y: e.y, z: e.z };
         if (matchClipsEnabled) md.strokeEvent = { ...e, receivedClock: m.clock, athleteX: m.athletes[e.i].x, athleteZ: m.athletes[e.i].z };
+        if (matchClipsEnabled && session.kind !== 'local') md.evSwingStart = e.c !== undefined && session.simNow !== undefined ? clamp(session.simNow - e.c, 0, 0.1) : 0;
       }
       const p = clamp(e.speed / 30, 0, 1);
       if (e.shot === 'smash') { Sound.smash(); excite = Math.min(1, excite + 0.4); camShake = Math.max(camShake, e.i === me ? 0.22 : 0.12) * (0.6 + 0.4 * clamp(e.q, 0, 1)); } else Sound.hit(p);
@@ -1976,8 +1979,9 @@ function genericShots(y) {
 }
 // </shot-prediction>
 function predictedShots(m, a, at, y) {
-  if (!session || session.kind !== 'local') return genericShots(y);
+  if (!session) return genericShots(y);
   if (a.ctrl === 'bot') return S.DIFF[a.diff] ? botShotOptions(at, y, S.DIFF) : genericShots(y);
+  if (session.kind !== 'local') return genericShots(y);
   const inp = a.input || {}, iy = +inp.y || 0;
   if (a.hitQueue > 0) return [humanShotAt(at, y, iy, a.hitPower)];                                   // buffered press
   if (inp.hold && a.assist >= 1) return [humanShotAt(at, y, iy, clamp(inp.holdPower || 0, 0, 1))];   // held button
@@ -1997,9 +2001,9 @@ function prepClips(m, a, h, pred) {
 // (mirrors of tickBot / tickHuman; presentation only, the simulation is untouched).
 function predictMatchContact(m, a) {
   const s = m.shuttle, sg = S.sgn(a.team), DT = S.DT, local = !!session && session.kind === 'local';
-  const bot = local && a.ctrl === 'bot' && !!S.DIFF[a.diff], inp = a.input || {};
+  const bot = a.ctrl === 'bot' && !!S.DIFF[a.diff], inp = a.input || {};
   if (bot && a.plan && a.plan.leave) return null;                     // it has judged the shuttle out
-  const mode = !local ? 'first' : bot ? 'bot' : a.hitQueue > 0 ? 'first' : inp.hold && a.assist >= 1 ? 'hold'
+  const mode = bot ? 'bot' : !local ? 'first' : a.hitQueue > 0 ? 'first' : inp.hold && a.assist >= 1 ? 'hold'
     : a.assist >= 2 && !(m.opts && m.opts.autoSave === false) ? 'auto' : 'first';
   const p = { x: s.p.x, y: s.p.y, z: s.p.z }, v = { x: s.v.x, y: s.v.y, z: s.v.z }, at = { ...a };
   if (bot) at._extra = a.plan && a.plan.p && a.plan.p.desperate && a.diff > 0 ? 0.35 : 0;
@@ -2013,7 +2017,7 @@ function predictMatchContact(m, a) {
     if (bot && a.jumpAt > 0 && m.clock + k * DT >= a.jumpAt && jy === 0 && vy === 0) { vy = a.st.jumpVy * (1 - 0.15 * S.fatigue(a)); jy = 0.001; }
     at.jumpY = jy;
     const r = S.inReachAt(at, p);
-    const ok = r.ok && (!local || p.z * sg > 0.05) && (mode === 'first'
+    const ok = r.ok && (!(local || bot) || p.z * sg > 0.05) && (mode === 'first'
       || (mode === 'bot' && (v.y < 0 || r.dh < 0.55 || p.y < 1.2))
       || (mode === 'hold' && v.y < 0 && (r.dh < 0.65 || p.y < 1.25))
       || (mode === 'auto' && v.y < 0 && (p.y < 0.55 || r.dh < 0.7 || p.y < 1.3)));
@@ -2154,6 +2158,15 @@ function animateAthlete(a, md, dt, t, m) {
   const previousFacing = mdl.root.rotation.y;
   const previousSolved=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest].map(n=>n.quaternion.clone());
   md.frameNo = (md.frameNo || 0) + 1;
+  if (matchClipsEnabled && session && session.kind !== 'local') {
+    if (md.evSwingStart !== undefined) { md.evSwingT = md.evSwingStart; md.evSwingStart = undefined; }
+    else if (md.evSwingT >= 0) { md.evSwingT += dt; if (md.evSwingT > 0.45) md.evSwingT = -1; }
+    md.rawSwingAge = a.swingT >= 0 ? (md.rawSwingAge || 0) + dt : 0;
+    // no hit event 0.25 s after the snapshots say "swinging": a miss - play that swing from its start (not from the middle)
+    a.swingT = md.evSwingT >= 0 ? md.evSwingT : (md.rawSwingAge > 0.25 ? md.rawSwingAge - 0.25 : -1);
+    if (dt > 0) a.vy = md.prevJumpY === undefined ? 0 : (a.jumpY - md.prevJumpY) / dt;        // snapshots carry no vertical speed
+    md.prevJumpY = a.jumpY;
+  }
   mdl.root.position.set(a.x, a.jumpY, a.z);
   // Restore clip-owned joints before the procedural path; clips never own simulation travel.
   if (md.matchClip && mdl.rig) {
@@ -2198,6 +2211,8 @@ function animateAthlete(a, md, dt, t, m) {
   }
   md.prepClip = md.pred ? md.pred.clip || null : null;
   if (md.pred && md.pred.t < 0.6) md.lastPred = Object.assign({ at: t }, md.pred);
+  if (matchClipsEnabled && session && session.kind === 'online' && a.i === session.me)
+    session.meSyncWant = (md.pred && md.pred.t < 0.35) || (md.stroke && md.stroke.elapsed < 0.2) || md.strokeEvent ? 1 : 0;
   // turn so the racket side faces the contact point (overhead: almost square on; side-arm: well turned)
   const cp = md.pred && md.pred.t < 0.6 ? md.pred : (a.swingT >= 0 && a.swingT < 0.25 && md.lastPred && t - md.lastPred.at < 0.5 ? md.lastPred : null);
   // where this model's racket head sits (in its own frame) at the contact frame of each swing type
@@ -3154,23 +3169,40 @@ function frameOnline(rdt, now) {
   const A = snaps[0], B = snaps[1] || snaps[0];
   const k = B === A ? 1 : clamp((rt - A.at) / (B.at - A.at), 0, 1);
   const sa = A.s, sb = B.s;
-  m.state = sb.st; m.stateT = sb.sT; m.serverIdx = sb.srv; if (sb.rcv !== undefined) m.receiverIdx = sb.rcv; m.wind.x = sb.w[0]; m.wind.z = sb.w[1];
+  const st0 = matchClipsEnabled && k < 1 ? sa : sb;   // state at the drawn time (the later snapshot already says "rally" before the serve is shown)
+  m.state = st0.st; m.stateT = st0.sT; m.serverIdx = st0.srv; if (st0.rcv !== undefined) m.receiverIdx = st0.rcv; m.wind.x = sb.w[0]; m.wind.z = sb.w[1];
   m.score = sb.sc.slice(); if (sb.g) m.games = sb.g.slice();
   const sh = m.shuttle, ha = sa.sh, hb = sb.sh;
   const jump = Math.hypot(hb[0] - ha[0], hb[2] - ha[2]) > 3;
   sh.p.x = jump ? hb[0] : lerp(ha[0], hb[0], k); sh.p.y = jump ? hb[1] : lerp(ha[1], hb[1], k); sh.p.z = jump ? hb[2] : lerp(ha[2], hb[2], k);
-  sh.v.x = hb[3]; sh.v.y = hb[4]; sh.v.z = hb[5];
-  sh.live = !!(hb[6] & 1); sh.held = !!(hb[6] & 2); sh.netted = !!(hb[6] & 4); sh.landed = !!(hb[6] & 8); sh.last = hb[7]; sh.lastTeam = hb[8];
-  sh.pred = sb.pr ? { x: sb.pr[0], z: sb.pr[1], inside: !!sb.pr[2] } : null;
+  if (matchClipsEnabled && !jump && B !== A && (ha[6] & 1) && (hb[7] !== ha[7] || hb[8] !== ha[8])) {
+    // the hit event that comes with the later snapshot says where (and, on newer servers, when) the shuttle was hit:
+    // fly it to that point by that time and hold it there until the hit is shown
+    const item = session.presentationEvents.find((q) => q.at === B.at && q.events), hit = item && item.events.find((e) => e.type === 'hit');
+    if (hit) {
+      const kHit = hit.c !== undefined && sa.c !== undefined && sb.c > sa.c ? clamp((hit.c - sa.c) / (sb.c - sa.c), 0.05, 1) : 0.5, u = Math.min(1, k / kHit);
+      sh.p.x = lerp(ha[0], hit.x, u); sh.p.y = lerp(ha[1], hit.y, u); sh.p.z = lerp(ha[2], hit.z, u);
+    } else { const ahead = clamp(rt - A.at, 0, 0.04); sh.p.x = ha[0] + ha[3] * ahead; sh.p.y = Math.max(0, ha[1] + ha[4] * ahead); sh.p.z = ha[2] + ha[5] * ahead; }
+  }
+  const early = matchClipsEnabled && !jump && k < 1, hs = early ? ha : hb, ss = early ? sa : sb;   // state at the drawn time (the later snapshot once its time is reached - that is when its events are shown)
+  sh.v.x = hs[3]; sh.v.y = hs[4]; sh.v.z = hs[5];
+  sh.live = !!(hs[6] & 1); sh.held = !!(hs[6] & 2); sh.netted = !!(hs[6] & 4); sh.landed = !!(hs[6] & 8); sh.last = hs[7]; sh.lastTeam = hs[8];
+  sh.pred = ss.pr ? { x: ss.pr[0], z: ss.pr[1], inside: !!ss.pr[2] } : null;
   const latest = snaps[snaps.length - 1].s;
+  session.simNow = sa.c !== undefined && sb.c !== undefined ? lerp(sa.c, sb.c, k) : undefined;
+  session.meSync = matchClipsEnabled ? damp(session.meSync || 0, session.meSyncWant || 0, session.meSyncWant ? 14 : 6, rdt) : 0;
   m.athletes.forEach((a, i) => {
     if (i === session.me) {
       S.applyAthleteSnap(a, latest.a[i]);
       const ex = Math.min(0.12, Net.rtt / 2);
       a.x += a.vx * ex; a.z += a.vz * ex;
+      if (session.meSync > 0.001) {   // around a hit: onto the interpolated timeline the shuttle and the hit event are on
+        const va = sa.a[i], vb = sb.a[i], w = session.meSync;
+        a.x = lerp(a.x, lerp(va[0], vb[0], k), w); a.z = lerp(a.z, lerp(va[1], vb[1], k), w); a.jumpY = lerp(a.jumpY, lerp(va[2], vb[2], k), w);
+      }
     } else {
       const va = sa.a[i], vb = sb.a[i];
-      S.applyAthleteSnap(a, vb);
+      S.applyAthleteSnap(a, matchClipsEnabled && k < 1 ? va : vb);
       a.x = lerp(va[0], vb[0], k); a.z = lerp(va[1], vb[1], k); a.jumpY = lerp(va[2], vb[2], k);
     }
   });
