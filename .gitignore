@@ -1,0 +1,27 @@
+# Whitelist: only source, tests and docs are tracked. Replay inputs, traces, screenshots, snapshots and backups stay local.
+/*
+!/.gitignore
+!/index.html
+!/style.css
+!/game.js
+!/sim.js
+!/server.js
+!/anim.js
+!/anim_mid.js
+!/anim_misc.js
+!/anim_net.js
+!/anim_rear.js
+!/lab.js
+!/manifest.webmanifest
+!/icon.svg
+!/lib/
+!/tests/
+!/README.md
+!/BACKLOG.md
+!/combined-14-accepted.patch
+!/touch-v2-mobile.patch
+# never track player data or caches
+data.json
+node_modules/
+__pycache__/
+*.pyc

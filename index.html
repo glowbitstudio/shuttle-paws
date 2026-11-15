@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1f2257">
+<meta name="description" content="Shuttle Paws: cầu lông 3D dễ thương. Canh thời điểm đánh, nhảy đập, lao người cứu cầu, đấu bot hoặc chơi online 1v1 và 2v2.">
+<title>Shuttle Paws · Cầu lông 3D</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<!-- web font loads without blocking: offline / behind a proxy the page still opens instantly with system fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- ================= Icon set (one style for all UI chrome: bold rounded line + soft fill) ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-shuttle" viewBox="0 0 24 24"><path class="f2" d="M6.5 3h11l-3 12h-5z"/><path d="M6.5 3h11l-3 12h-5zM10.2 3l.6 12M13.8 3l-.6 12"/><circle class="f1" cx="12" cy="18.4" r="3.4"/></symbol>
+    <symbol id="i-bot" viewBox="0 0 24 24"><rect class="f2" x="4" y="8" width="16" height="12" rx="4.5"/><rect x="4" y="8" width="16" height="12" rx="4.5"/><path d="M12 8V5"/><circle class="f1" cx="12" cy="3.6" r="1.6"/><circle class="f1" cx="9" cy="13.4" r="1.6"/><circle class="f1" cx="15" cy="13.4" r="1.6"/><path d="M10 17h4M2 13v3M22 13v3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle class="f2" cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><path class="f2" d="M7 3.5h10V9a5 5 0 0 1-10 0z"/><path d="M7 3.5h10V9a5 5 0 0 1-10 0zM7 5.5H4.5a3 3 0 0 0 3 4.6M17 5.5h2.5a3 3 0 0 1-3 4.6M12 14v3.5M8 20.5h8M9.5 17.5h5v3h-5z"/></symbol>
+    <symbol id="i-paw" viewBox="0 0 24 24"><circle class="f1" cx="5.8" cy="10.6" r="2.2"/><circle class="f1" cx="9.3" cy="5.8" r="2.2"/><circle class="f1" cx="14.7" cy="5.8" r="2.2"/><circle class="f1" cx="18.2" cy="10.6" r="2.2"/><path class="f1" d="M12 11.2c-3.2 0-6 3.7-6 6.3 0 1.8 1.4 2.8 3 2.8 1.2 0 2-.7 3-.7s1.8.7 3 .7c1.6 0 3-1 3-2.8 0-2.6-2.8-6.3-6-6.3z"/></symbol>
+    <symbol id="i-medal" viewBox="0 0 24 24"><path d="M8 2.5l3 7M16 2.5l-3 7"/><circle class="f2" cx="12" cy="15" r="6"/><circle cx="12" cy="15" r="6"/><path class="f1" d="M12 11.6l1.1 2.2 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 20.5h17"/><rect class="f2" x="5" y="12" width="3.6" height="8.5" rx="1.2"/><rect class="f2" x="10.2" y="7.5" width="3.6" height="13" rx="1.2"/><rect class="f2" x="15.4" y="3.5" width="3.6" height="17" rx="1.2"/><path d="M6.2 12h1.2a1.2 1.2 0 0 1 1.2 1.2v7.3H5v-7.3A1.2 1.2 0 0 1 6.2 12zM11.4 7.5h1.2a1.2 1.2 0 0 1 1.2 1.2v11.8h-3.6V8.7a1.2 1.2 0 0 1 1.2-1.2zM16.6 3.5h1.2A1.2 1.2 0 0 1 19 4.7v15.8h-3.6V4.7a1.2 1.2 0 0 1 1.2-1.2z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path class="f2" d="M10.3 2.5h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.5.5v3.4l-2.5.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9-2.5-.5v-3.4l2.5-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8z"/><path d="M10.3 2.5h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.5.5v3.4l-2.5.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9-2.5-.5v-3.4l2.5-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8z"/><circle cx="12" cy="12" r="3.2"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path class="f2" d="M2.5 5.5c3.4-1.2 6.6-.8 9.5 1.3v13.5c-2.9-2.1-6.1-2.5-9.5-1.3zM21.5 5.5c-3.4-1.2-6.6-.8-9.5 1.3v13.5c2.9-2.1 6.1-2.5 9.5-1.3z"/><path d="M2.5 5.5c3.4-1.2 6.6-.8 9.5 1.3v13.5c-2.9-2.1-6.1-2.5-9.5-1.3zM21.5 5.5c-3.4-1.2-6.6-.8-9.5 1.3v13.5c2.9-2.1 6.1-2.5 9.5-1.3z"/></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><rect class="f2" x="3.5" y="3.5" width="17" height="17" rx="4.5"/><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle class="f1" cx="8.5" cy="8.5" r="1.6"/><circle class="f1" cx="15.5" cy="15.5" r="1.6"/><circle class="f1" cx="12" cy="12" r="1.6"/><circle class="f1" cx="15.5" cy="8.5" r="1.6"/><circle class="f1" cx="8.5" cy="15.5" r="1.6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect class="f2" x="4.5" y="10.5" width="15" height="10.5" rx="3"/><rect x="4.5" y="10.5" width="15" height="10.5" rx="3"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.6v2.4"/></symbol>
+    <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8.5h11a3 3 0 1 0-3-3M3 12.5h16a3 3 0 1 1-3 3M3 16.5h8"/></symbol>
+    <symbol id="i-gust" viewBox="0 0 24 24"><path d="M3 7.5c3-2.5 6 2.5 9 0s6-2.5 9 0M3 12.5c3-2.5 6 2.5 9 0s6-2.5 9 0M3 17.5c3-2.5 6 2.5 9 0"/></symbol>
+    <symbol id="i-swirl" viewBox="0 0 24 24"><path d="M12.5 12.5a1.5 1.5 0 1 1-1.5-2 3.5 3.5 0 0 1 3.5 3.5 5.5 5.5 0 0 1-5.5 5.5A7.5 7.5 0 0 1 1.5 12 9 9 0 0 1 10.5 3 10.5 10.5 0 0 1 21 13.5"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect class="f1" x="6" y="4.5" width="4.2" height="15" rx="1.6"/><rect class="f1" x="13.8" y="4.5" width="4.2" height="15" rx="1.6"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24"><circle class="f2" cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="9"/><circle class="f1" cx="9" cy="10" r="1.5"/><circle class="f1" cx="15" cy="10" r="1.5"/><path d="M8 14.5a4.6 4.6 0 0 0 8 0"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path class="f2" d="M4 6.5a3.5 3.5 0 0 1 3.5-3.5h9A3.5 3.5 0 0 1 20 6.5v6a3.5 3.5 0 0 1-3.5 3.5H11l-5 4.5v-4.6A3.5 3.5 0 0 1 4 12.5z"/><path d="M4 6.5a3.5 3.5 0 0 1 3.5-3.5h9A3.5 3.5 0 0 1 20 6.5v6a3.5 3.5 0 0 1-3.5 3.5H11l-5 4.5v-4.6A3.5 3.5 0 0 1 4 12.5zM8.5 9.5h7"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path class="f2" d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z"/><path d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z"/><circle class="f1" cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><rect class="f2" x="2.5" y="6.5" width="13" height="11" rx="3"/><rect x="2.5" y="6.5" width="13" height="11" rx="3"/><path class="f1" d="M16.5 10.8l5-3v8.4l-5-3z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path class="f2" d="M13.5 2.5L4.5 14h7l-1.5 7.5L19.5 10h-7z"/><path d="M13.5 2.5L4.5 14h7l-1.5 7.5L19.5 10h-7z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 3.5v5h-5"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7.3l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10.5a4 4 0 0 0-5.7-.3l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path class="f1" d="M8 4.8a1.2 1.2 0 0 1 1.8-1l10 7.2a1.2 1.2 0 0 1 0 2l-10 7.2a1.2 1.2 0 0 1-1.8-1z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle class="f2" cx="12" cy="13" r="8.5"/><circle cx="12" cy="13" r="8.5"/><path d="M12 8.5V13l3 2M9.5 2.5h5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path class="f2" d="M12 2.8l2.8 5.8 6.3.8-4.6 4.4 1.2 6.3L12 17l-5.7 3.1 1.2-6.3-4.6-4.4 6.3-.8z"/><path d="M12 2.8l2.8 5.8 6.3.8-4.6 4.4 1.2 6.3L12 17l-5.7 3.1 1.2-6.3-4.6-4.4 6.3-.8z"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24"><path class="f2" d="M12 2.5c.8 4.2 6.5 6 6.5 12a6.5 6.5 0 0 1-13 0c0-3.3 2.2-4.8 2.2-7.6 1.6 1.1 2.3 2.7 2.3 3.8 1-2.3 2-4.8 2-8.2z"/><path d="M12 2.5c.8 4.2 6.5 6 6.5 12a6.5 6.5 0 0 1-13 0c0-3.3 2.2-4.8 2.2-7.6 1.6 1.1 2.3 2.7 2.3 3.8 1-2.3 2-4.8 2-8.2z"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path class="f2" d="M3 7.5l4.6 4.3L12 4.5l4.4 7.3L21 7.5l-1.8 11H4.8z"/><path d="M3 7.5l4.6 4.3L12 4.5l4.4 7.3L21 7.5l-1.8 11H4.8zM5 21.5h14"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle class="f2" cx="9" cy="8" r="3.6"/><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20.5c0-3.8 2.9-6.5 6.5-6.5s6.5 2.7 6.5 6.5M16 4.9a3.3 3.3 0 0 1 0 6.3M18 14.3c2.1.8 3.5 3 3.5 6.2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle class="f2" cx="12" cy="8" r="4.2"/><circle cx="12" cy="8" r="4.2"/><path d="M4.5 20.5c0-4.2 3.3-7.3 7.5-7.3s7.5 3.1 7.5 7.3"/></symbol>
+    <symbol id="i-run" viewBox="0 0 24 24"><circle class="f1" cx="15.5" cy="4.2" r="2.2"/><path d="M5 20.5l3.5-5 3 2 1.5-5.5 3.5 3.5h3.5M13 12l-3.5-2.5L6 11.5M9 21.5"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path class="f2" d="M2.5 6l6.5-2.5 6 2.5 6.5-2.5v14.5L15 20.5l-6-2.5-6.5 2.5z"/><path d="M2.5 6l6.5-2.5 6 2.5 6.5-2.5v14.5L15 20.5l-6-2.5-6.5 2.5zM9 3.5V18M15 6v14.5"/></symbol>
+    <symbol id="i-loop" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-shirt" viewBox="0 0 24 24"><path class="f2" d="M8.5 3L3 6l2 4.5 2.5-1v11h9v-11l2.5 1L21 6l-5.5-3c-.5 1.6-1.9 2.6-3.5 2.6S9 4.6 8.5 3z"/><path d="M8.5 3L3 6l2 4.5 2.5-1v11h9v-11l2.5 1L21 6l-5.5-3c-.5 1.6-1.9 2.6-3.5 2.6S9 4.6 8.5 3z"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path class="f1" d="M10.5 2.5c.9 4.6 2.4 6.1 7 7-4.6.9-6.1 2.4-7 7-.9-4.6-2.4-6.1-7-7 4.6-.9 6.1-2.4 7-7zM18.5 14.5c.4 2 1 2.6 3 3-2 .4-2.6 1-3 3-.4-2-1-2.6-3-3 2-.4 2.6-1 3-3z"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 3.5l-4 4 4 4M3 7.5h14M17 12.5l4 4-4 4M21 16.5H7"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M3.5 12h16M13.5 5.5l6.5 6.5-6.5 6.5"/></symbol>
+    <symbol id="i-stick" viewBox="0 0 24 24"><circle class="f2" cx="12" cy="7" r="3.8"/><circle cx="12" cy="7" r="3.8"/><path d="M12 10.8V15"/><rect class="f2" x="4" y="15" width="16" height="6" rx="3"/><rect x="4" y="15" width="16" height="6" rx="3"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle class="f1" cx="12" cy="12" r="1.8"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path class="f2" d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5 1 1.3 1 2.2h5.6c0-.9.4-1.7 1-2.2A6.5 6.5 0 0 0 12 2.5z"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5 1 1.3 1 2.2h5.6c0-.9.4-1.7 1-2.2A6.5 6.5 0 0 0 12 2.5zM9.5 19.5h5M10.5 22h3"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path class="f2" d="M2.5 17L17 2.5l4.5 4.5L7 21.5z"/><path d="M2.5 17L17 2.5l4.5 4.5L7 21.5zM7 12.5l2 2M10 9.5l2 2M13 6.5l2 2"/></symbol>
+    <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17.5l6-6 4 4 8-8M15 7.5h6v6"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21.5V3.5"/><path class="f2" d="M5 4h12l-2.5 4.5L17 13H5z"/><path d="M5 4h12l-2.5 4.5L17 13H5z"/></symbol>
+    <symbol id="i-court" viewBox="0 0 24 24"><rect class="f2" x="4" y="2.5" width="16" height="19" rx="2"/><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M4 12h16M12 2.5v6.5M12 15v6.5"/></symbol>
+  </defs>
+</svg>
+<canvas id="c"></canvas>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+  <div id="score">
+    <div class="side you"><span id="nameA">A</span><b id="scoreA">0</b><i class="sta" id="staA" title="Thể lực"><u></u></i></div>
+    <div class="mid"><span id="target">tới 11</span><span id="venueName"></span></div>
+    <div class="side bot"><b id="scoreB">0</b><span id="nameB">B</span><i class="sta" id="staB" title="Thể lực"><u></u></i></div>
+  </div>
+  <div id="wind" class="hidden"><div id="windArrow"><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></div><span id="windText">0</span></div>
+  <div id="serveClock" class="hidden"></div>
+  <div id="ping" class="hidden"></div>
+  <div id="fps" class="hidden"></div>
+  <div id="hint"></div>
+  <div id="ctrlHelp" class="hidden"></div>
+  <div id="powerBar" class="hidden"><div class="pb-track"><div class="pb-fill" id="pbFill"></div><i style="bottom:35%"></i><i style="bottom:72%"></i></div><div class="pb-label" id="pbLabel">Vừa</div></div>
+  <div id="topBtns">
+    <button id="emoteBtn" class="round" title="Biểu cảm"><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg></button>
+    <button id="chatBtn" class="round hidden" title="Chat (Enter)"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg></button>
+    <button id="pauseBtn" class="round" title="Tạm dừng (Esc)"><svg class="ico" aria-hidden="true"><use href="#i-pause"/></svg></button>
+  </div>
+  <div id="emoteWheel" class="hidden"></div>
+  <div id="chatLog"></div>
+  <form id="chatForm" class="hidden"><input id="chatInput" maxlength="140" placeholder="Nhắn gì đó… (Enter để gửi)" autocomplete="off"></form>
+  <div id="spectBar" class="hidden"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg> Đang xem trận <button id="stopWatch" class="pill">Thôi xem</button></div>
+</div>
+<div id="popups"></div>
+<div id="toasts"></div>
+
+<!-- ================= Touch ================= -->
+<div id="touch" class="hidden">
+  <div id="stickZone"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <!-- touch controls v2: buttons are placed on an arc around the thumb (style.css, end of file) -->
+  <div id="tbtns">
+    <button data-k="hit" class="tb big" id="hitBtn"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19C7 8 15 5 20 9M20 9l-5-.6M20 9l-1.6 4.6"/></svg><span>PHÔNG</span><small id="hitSub">đánh cao</small></button>
+    <button data-k="smash" class="tb shot smash"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l13 13M18 17v-6M18 17h-6"/></svg><span>ĐẬP</span></button>
+    <button data-k="drop" class="tb shot drop"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c3-8 9-8 12-1M16 14l-4.4-.3M16 14l.4-4.4"/></svg><span>BỎ NHỎ</span></button>
+    <button data-k="jump" class="tb shot jump"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V6M12 6l-6 6M12 6l6 6"/></svg><span>NHẢY</span></button>
+    <button data-k="dive" class="tb shot dive"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M19 12l-6-6M19 12l-6 6"/></svg><span>LAO</span></button>
+  </div>
+</div>
+
+<!-- ================= Screens ================= -->
+<div id="screens">
+
+  <!-- Home -->
+  <section id="s-home" class="screen">
+    <div class="panel">
+      <h1 class="logo"><em class="logo-ic"><svg class="ico" aria-hidden="true"><use href="#i-shuttle"/></svg></em>Shuttle <span>Paws</span></h1>
+      <p class="sub">Cầu lông 3D dễ thương · Rally thật sự</p>
+      <button class="profile-chip" data-go="chars"><span id="homeFace"></span><span><b id="homeName">Khách</b><small id="homeChar">Mướp</small></span><em>Đổi</em></button>
+      <div class="menu-grid">
+        <button class="big-btn orange" data-go="bot"><i><svg class="ico" aria-hidden="true"><use href="#i-bot"/></svg></i>Đấu với Bot<small>1v1 hoặc 2v2</small></button>
+        <button class="big-btn blue" data-go="online"><i><svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg></i>Chơi Online<small>Ghép trận, phòng, xem trận</small></button>
+        <button class="big-btn gold wide-btn" data-go="tour"><i><svg class="ico" aria-hidden="true"><use href="#i-cup"/></svg></i>Giải đấu<small id="homeTour">5 vòng đấu loại trực tiếp · giành cúp vô địch</small></button>
+      </div>
+      <div class="menu-row">
+        <button class="mini-btn" data-go="chars"><i><svg class="ico" aria-hidden="true"><use href="#i-paw"/></svg></i><span>Nhân vật</span></button>
+        <button class="mini-btn" data-go="ach"><i><svg class="ico" aria-hidden="true"><use href="#i-medal"/></svg></i><span>Thành tích</span></button>
+        <button class="mini-btn" data-go="stats"><i><svg class="ico" aria-hidden="true"><use href="#i-chart"/></svg></i><span>Thống kê</span></button>
+        <button class="mini-btn" data-go="settings"><i><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg></i><span>Cài đặt</span></button>
+        <button class="mini-btn" data-go="guide"><i><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></i><span>Hướng dẫn</span></button>
+      </div>
+      <p class="tiny" id="homeStats"></p>
+    </div>
+  </section>
+
+  <!-- Bot setup -->
+  <section id="s-bot" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Đấu với Bot</h2></header>
+      <div class="label">Nhân vật của bạn</div>
+      <div class="pick-row">
+        <button class="profile-chip pick" id="botChar"><span class="pf"></span><span><b class="pn"></b><small class="pk"></small></span><em>Đổi ›</em></button>
+        <div><div class="mini-label">Hỗ trợ đánh</div><div class="seg sm" id="botAssist"><button data-v="2">Dễ</button><button data-v="1">Thường</button><button data-v="0">Chuyên</button></div></div>
+      </div>
+      <div class="label">Chế độ</div>
+      <div class="seg" id="botMode"><button data-v="1v1" class="on">1v1 · Bạn vs Bot</button><button data-v="2v2">2v2 · Bạn + Bot đồng đội</button></div>
+      <div class="row">
+        <div><div class="label">Độ khó</div><div class="seg" id="botDiff"><button data-v="0">Dễ</button><button data-v="1" class="on">Vừa</button><button data-v="2">Khó</button><button data-v="3">Cao thủ</button></div></div>
+        <div><div class="label">Điểm</div><div class="seg" id="botPts"><button data-v="11" class="on">11</button><button data-v="21">21</button></div></div>
+        <div><div class="label">Số ván</div><div class="seg" id="botGames"><button data-v="1" class="on">1 ván</button><button data-v="3">3 ván</button></div></div>
+      </div>
+      <div class="label">Sân đấu</div>
+      <div class="venues" id="botVenues"></div>
+      <button class="cta" id="botStart">Vào trận!</button>
+    </div>
+  </section>
+
+  <!-- Tournament -->
+  <section id="s-tour" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Giải đấu Shuttle Paws</h2></header>
+      <div class="pick-row">
+        <button class="profile-chip pick" id="tourChar"><span class="pf"></span><span><b class="pn"></b><small class="pk"></small></span><em>Đổi ›</em></button>
+        <div class="tour-cups" id="tourCups"></div>
+      </div>
+      <p class="sub" id="tourInfo"></p>
+      <div class="tour-list" id="tourList"></div>
+      <button class="cta" id="tourStart">Vào trận!</button>
+      <button class="pill" id="tourReset">Bắt đầu lại giải</button>
+    </div>
+  </section>
+
+  <!-- Characters -->
+  <section id="s-chars" class="screen stage hidden">
+    <div class="panel side">
+      <header><button class="back" id="charsBack">‹</button><h2>Chọn nhân vật</h2></header>
+      <div class="name-row"><input id="nameInput" maxlength="18" placeholder="Tên của bạn"><button class="pill" id="randName"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Tên ngẫu nhiên</button></div>
+      <div class="char-grid" id="charGrid"></div>
+      <div class="char-info" id="charInfo"></div>
+      <button class="cta" id="charsDone">Chọn</button>
+    </div>
+    <div class="stage-name" id="stageName"></div>
+  </section>
+
+  <!-- Achievements -->
+  <section id="s-ach" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Thành tích</h2></header>
+      <div id="achList" class="ach-list"></div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section id="s-stats" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Thống kê</h2></header>
+      <div id="statGrid" class="stat-grid"></div>
+      <div class="label">Trận gần đây</div>
+      <div id="historyList" class="history"></div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="s-settings" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Cài đặt</h2></header>
+      <div class="set-group">
+        <div class="label">Âm thanh &amp; Đồ hoạ</div>
+        <label class="set">Âm lượng <input type="range" id="setVol" min="0" max="1" step="0.05"></label>
+        <div class="set">Đồ hoạ <div class="seg sm" id="setGfx"><button data-v="0">Thấp</button><button data-v="1">Vừa</button><button data-v="2">Cao</button></div></div>
+        <label class="set">Hiện FPS <input type="checkbox" id="setFps"></label>
+      </div>
+      <div class="set-group">
+        <div class="label">Lối chơi</div>
+        <div class="set">Góc nhìn <small>Phím C để đổi nhanh trong trận</small><div class="seg sm" id="setCam"><button data-v="high">Trên cao</button><button data-v="close">Sau lưng</button><button data-v="full">Toàn sân</button></div></div>
+        <div class="set">Tay thuận <small>Tay cầm vợt của nhân vật bạn</small><div class="seg sm" id="setHand"><button data-v="R">Tay phải</button><button data-v="L">Tay trái</button></div></div>
+        <div class="set">Kiểu đánh <small>3 nút: mỗi cú một nút (phông · đập · bỏ nhỏ), bấm sớm cũng được · Nạp lực: một nút, giữ càng lâu càng mạnh (kiểu cũ)</small><div class="seg sm" id="setCtrl"><button data-v="simple">3 nút</button><button data-v="charge">Nạp lực</button></div></div>
+        <div class="set">Hỗ trợ đánh <small>Chuyên: tự canh từng nhịp · Thường: bấm sớm tối đa khoảng 1 giây vẫn tính, tự chạy tới cầu và tự về giữa sân khi bạn đứng yên, tự nhảy đập, bỏ qua cầu ra ngoài · Dễ: tự đánh luôn, bạn chỉ cần chọn hướng. <b>Chỉ dùng khi đấu bot</b> — online ai cũng tự chạy, tự canh như nhau</small><div class="seg sm" id="setAssist"><button data-v="0">Chuyên</button><button data-v="1">Thường</button><button data-v="2">Dễ</button></div></div>
+        <label class="set">Điểm rơi khi đấu bot <small>Vòng trắng = cầu rơi trong sân · đỏ có ✕ = ra ngoài</small><input type="checkbox" id="setMarker"></label>
+        <label class="set">Điểm rơi khi chơi online <small>Vòng trắng/đỏ như khi đấu bot</small><input type="checkbox" id="setMarkerOnline"></label>
+        <label class="set">Vòng ngắm <small>Hiện chỗ cú đánh của bạn sẽ đi tới trên sân đối thủ</small><input type="checkbox" id="setShowAim"></label>
+        <label class="set">Vòng tầm với <small>Vòng quanh chân, sáng lên khi cầu vào tầm vợt</small><input type="checkbox" id="setShowReach"></label>
+        <label class="set">Vệt bay của cầu <small>Chuỗi chấm theo sau quả cầu</small><input type="checkbox" id="setShowTrail"></label>
+        <label class="set">Tô sáng ô giao cầu <small>Tô màu ô giao và ô nhận lúc chờ giao</small><input type="checkbox" id="setShowServeBox"></label>
+        <label class="set">Đường gióng cầu <small>Vạch đứt nối quả cầu thẳng xuống sân để dễ đoán vị trí. Chỉ có khi đấu bot</small><input type="checkbox" id="setDropLine"></label>
+        <label class="set">Thanh canh nhịp <small>Thanh ngang dưới sân khi cầu bay tới: bấm lúc chấm trắng ở vùng xanh để được Perfect</small><input type="checkbox" id="setRing"></label>
+        <label class="set">Khựng hình khi đập <small>Đứng hình rất ngắn khi đập Perfect</small><input type="checkbox" id="setHitStop"></label>
+        <label class="set">Bước chuẩn bị tự động <small>Nhún chân lấy đà khi đối thủ đánh</small><input type="checkbox" id="setSplit"></label>
+        <label class="set">Hiện chat khi online <input type="checkbox" id="setChat"></label>
+        <div class="set">Cỡ nút cảm ứng <small>Kéo thanh bên dưới để chỉnh mịn hơn</small><div class="seg sm" id="setTouchSize"><button data-v="0.85">Nhỏ</button><button data-v="1">Vừa</button><button data-v="1.2">Lớn</button></div></div>
+        <label class="set">Cỡ nút (chỉnh mịn) <input type="range" id="setTouch" min="0.7" max="1.4" step="0.05"></label>
+        <label class="set">Đổi bên nút cảm ứng <small>Cần di chuyển bên phải, nút đánh bên trái</small><input type="checkbox" id="setTouchSwap"></label>
+      </div>
+      <div class="set-group">
+        <div class="label">Phím điều khiển <small>(bấm vào ô rồi nhấn phím mới)</small></div>
+        <div id="keyList" class="key-list"></div>
+        <button class="pill" id="resetKeys">Về mặc định</button>
+      </div>
+      <div class="set-group">
+        <div class="label">Máy chủ online</div>
+        <label class="set col">Địa chỉ server <input id="setServer" placeholder="ws://localhost:3040"></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guide -->
+  <section id="s-guide" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Cách chơi</h2></header>
+      <div class="guide">
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-run"/></svg>Di chuyển</b><p><kbd>W A S D</kbd> hoặc phím mũi tên. Đứng yên thì nhân vật <b>tự chạy tới cầu</b> và <b>tự về giữa sân</b> sau khi đánh (chế độ hỗ trợ Thường/Dễ). Cầu bay ra ngoài (vòng đánh dấu <b style="color:#e04848">đỏ</b>) thì nhân vật tự bỏ, không đỡ.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-shuttle"/></svg>Ba nút đánh</b><p>• <kbd>J</kbd> / chuột trái: <b>Phông cầu</b> — đánh cao sâu về cuối sân, an toàn nhất<br>• <kbd>K</kbd> / chuột phải: <b>Đập</b> khi cầu cao (tự nhảy), <b>tạt</b> nhanh khi cầu ngang người<br>• <kbd>L</kbd> / chuột giữa: <b>Bỏ nhỏ</b> rơi sát lưới — khi cầu thấp thì thành cú <b>bỏ lưới</b> nhẹ nhàng</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg>Bấm lúc nào?</b><p>Bấm <b>bất cứ lúc nào khi cầu đang bay về phía bạn</b> — cầu tới vợt là tự vung. Nhìn <b>thanh canh nhịp</b> hiện dưới sân khi cầu bay tới: chấm trắng chạy dần vào vạch "chạm vợt". Bấm lúc chấm ở vùng <b style="color:#2e9e62">xanh</b> = <b class="gold">Perfect</b> (cầu rơi đúng chỗ nhắm, bù cả gió) · vùng <b class="gold">vàng</b> = Tốt (lệch chút) · <b style="color:#e04848">đỏ</b> = quá sớm/muộn (lệch nhiều, dễ ra ngoài). Cầu cao hay thấp đều Perfect được; độ cao chỉ quyết định cú đánh — dòng chữ trên thanh ghi rõ mỗi nút sẽ ra cú gì.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Đánh sang trái / phải</b><p>Sau khi bấm nút đánh, giữ <kbd>A</kbd> / <kbd>D</kbd> để chọn góc. Vòng ngắm hiện trên sân đối thủ: <b style="color:#2e9e62">xanh</b> bỏ nhỏ · <b class="gold">vàng</b> phông · <b style="color:#e04848">đỏ</b> đập. Không chọn hướng: tự đánh vào chỗ trống.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-bulb"/></svg>Mẹo thắng</b><p>Đối thủ đứng cuối sân → <b>bỏ nhỏ</b>. Đối thủ lên lưới → <b>phông</b> sâu. Cầu bổng cao bên sân mình → <b>đập</b>. Đập liên tục dễ hụt hơi, xen kẽ các cú mới khó đỡ.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg>Nhảy &amp; lao người</b><p><kbd>Space</kbd> nhảy — nhảy lên rồi bấm <kbd>K</kbd> để đập ở điểm cao nhất, cầu cắm xuống dốc và nhanh hơn · <kbd>Shift</kbd> lao theo hướng đang giữ để cứu cầu ngoài tầm. Sau khi lao cần chút thời gian đứng dậy. Muốn kiểu cũ (giữ nút nạp lực)? Vào <b>Cài đặt → Kiểu đánh</b>.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-court"/></svg>Giao cầu</b><p><kbd>J</kbd> = giao cao sâu, <kbd>L</kbd> = giao ngắn sát vạch. Có 25 giây để giao; hết giờ máy tự giao cao. Giao chéo sân theo điểm chẵn/lẻ.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-wind"/></svg>Gió</b><p>Sân ngoài trời có gió (mũi tên trên màn hình). Gió đẩy cầu bay lệch, nhất là cú phông cao.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-ruler"/></svg>Luật</b><p>Tính điểm từng pha (rally point). Chạm 11 hoặc 21, phải hơn 2 điểm. Có thể chơi <b>1 ván</b> hoặc <b>3 ván thắng 2</b>. Ai thắng pha thì giao tiếp. Đơn dùng biên dọc trong, đôi dùng biên dọc ngoài.</p></div>
+        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg>Biểu cảm &amp; chat</b><p>Phím <kbd>1</kbd>–<kbd>8</kbd> để thả biểu cảm. Khi online bấm <kbd>Enter</kbd> để chat.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Online -->
+  <section id="s-online" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" data-go="home">‹</button><h2>Chơi Online</h2><span id="netStatus" class="net-status">Đang kết nối…</span></header>
+      <div class="tabs" id="onTabs"><button data-tab="play" class="on">Chơi</button><button data-tab="rooms">Phòng &amp; trận</button><button data-tab="board">Bảng xếp hạng</button></div>
+      <div class="tab" id="tab-play">
+        <button class="profile-chip pick wide-chip" id="onChar"><span class="pf"></span><span><b class="pn"></b><small class="pk"></small></span><em>Đổi nhân vật ›</em></button>
+        <button class="big-btn orange full" id="quickBtn"><i><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg></i>Ghép trận nhanh<small>Đối thủ ngẫu nhiên · sân ngẫu nhiên · tới 11</small></button>
+        <div class="card">
+          <b>Tạo phòng</b>
+          <div class="row tight">
+            <div class="seg sm" id="crMode"><button data-v="1v1" class="on">1v1</button><button data-v="2v2">2v2</button></div>
+            <div class="seg sm" id="crPts"><button data-v="11" class="on">11</button><button data-v="21">21</button></div>
+            <div class="seg sm" id="crGames"><button data-v="1" class="on">1 ván</button><button data-v="3">3 ván</button></div>
+            <div class="seg sm" id="crOpen"><button data-v="1" class="on">Mở</button><button data-v="0">Bạn bè</button></div>
+          </div>
+          <select id="crVenue"></select>
+          <button class="pill solid" id="createRoom">Tạo phòng</button>
+        </div>
+        <div class="card">
+          <b>Vào phòng bạn bè</b>
+          <div class="name-row"><input id="joinCode" maxlength="6" placeholder="Mã phòng (VD: K3F9Q)"><button class="pill solid" id="joinBtn">Vào</button></div>
+        </div>
+      </div>
+      <div class="tab hidden" id="tab-rooms">
+        <div class="label">Phòng đang mở <button class="pill sm" id="refreshLobby"><svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg></button></div>
+        <div id="roomList" class="list"></div>
+        <div class="label">Đang thi đấu</div>
+        <div id="matchList" class="list"></div>
+      </div>
+      <div class="tab hidden" id="tab-board">
+        <div class="label">Xếp hạng theo số trận thắng online</div>
+        <div id="board" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Room -->
+  <section id="s-room" class="screen hidden">
+    <div class="panel wide">
+      <header><button class="back" id="leaveRoom">‹</button><h2>Phòng <span id="roomCode" class="code"></span></h2><button class="pill" id="copyLink"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Sao chép link</button></header>
+      <p class="sub" id="roomInfo"></p>
+      <div class="teams" id="roomTeams"></div>
+      <div id="roomHost" class="card">
+        <div class="row tight">
+          <div class="seg sm" id="rmMode"><button data-v="1v1">1v1</button><button data-v="2v2">2v2</button></div>
+          <div class="seg sm" id="rmPts"><button data-v="11">11</button><button data-v="21">21</button></div>
+          <div class="seg sm" id="rmGames"><button data-v="1">1 ván</button><button data-v="3">3 ván</button></div>
+          <div class="seg sm" id="rmOpen"><button data-v="1">Mở</button><button data-v="0">Bạn bè</button></div>
+        </div>
+        <select id="rmVenue"></select>
+      </div>
+      <div class="room-chat"><div id="roomChat"></div><form id="roomChatForm"><input id="roomChatInput" maxlength="140" placeholder="Chào cả phòng…"></form></div>
+      <button class="cta" id="roomStart">Bắt đầu trận</button>
+      <p class="tiny" id="roomWait"></p>
+    </div>
+  </section>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="panel-wrap hidden">
+  <div class="panel small">
+    <h2>Tạm dừng</h2>
+    <p class="sub hidden" id="pauseOnline">Trận online vẫn đang chạy!</p>
+    <button id="resume" class="cta">Chơi tiếp</button>
+    <button id="camBtn" class="ghost"><svg class="ico" aria-hidden="true"><use href="#i-camera"/></svg>Góc nhìn: Trên cao</button>
+    <button id="restart" class="ghost">Chơi lại từ đầu</button>
+    <button id="quit" class="ghost">Thoát về menu</button>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="over" class="panel-wrap hidden">
+  <div class="panel small">
+    <h2 id="overTitle">Bạn thắng!</h2>
+    <p id="overScore" class="big-score">11 – 7</p>
+    <div id="overStats" class="over-stats"></div>
+    <div id="overAch"></div>
+    <button id="again" class="cta">Đấu lại</button>
+    <p class="tiny" id="rematchInfo"></p>
+    <button id="toMenu" class="ghost">Về menu</button>
+  </div>
+</div>
+
+<!-- Searching -->
+<div id="searching" class="panel-wrap hidden">
+  <div class="panel small">
+    <div class="spinner"><svg class="ico" aria-hidden="true"><use href="#i-shuttle"/></svg></div>
+    <h2>Đang tìm đối thủ…</h2>
+    <p class="sub" id="searchTime">0 giây</p>
+    <button id="stopSearch" class="ghost">Dừng tìm</button>
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="sim.js"></script>
+<script src="anim.js"></script>
+<script src="anim_net.js"></script>
+<script src="anim_rear.js"></script>
+<script src="anim_mid.js"></script>
+<script src="anim_misc.js"></script>
+<script src="game.js"></script>
+<script src="lab.js"></script>
+</body>
+</html>

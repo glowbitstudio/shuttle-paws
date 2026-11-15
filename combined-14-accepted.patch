@@ -1,0 +1,448 @@
+--- game.js.pre-matchclips-accept.bak
++++ game.js
+@@ -1920,11 +1920,95 @@
+   if (e.shot === 'drop' || e.shot === 'net') return 'net_shot' + (bh ? 'BH' : 'FH');
+   return null;
+ }
++// <shot-prediction>
++// Which shots can the next hit produce at a predicted contact height? Mirrors of sim.js humanShot and
++// botChooseShot (tests/shot-prediction-regression.js keeps them in step). Presentation only.
++function humanShotAt(a, y, iy, pw) {
++  const az = Math.abs(a.z);
++  if (pw !== undefined) {
++    if (y < 1.05) return pw < 0.4 ? 'net' : 'lift';
++    if (y > 1.45 && (a.jumpY > 0.25 || a.assist) && pw >= 0.72 && a.sta >= 0.15) return 'smash';
++    if (pw < 0.35) return y < 1.75 ? 'net' : 'drop';
++    if (pw >= 0.72 && y > 1.35) return 'drive';
++    return 'clear';
++  }
++  if ((a.jumpY > 0.25 || (a.assist && y > 1.7)) && y > 1.6 && iy <= 0.4) return 'smash';
++  if (y < 1.05) return iy < -0.4 ? 'net' : (iy > 0.4 ? 'lift' : (az < 2.6 ? 'net' : 'lift'));
++  if (iy > 0.4) return y < 1.75 ? 'net' : 'drop';
++  if (iy < -0.4) return y > 1.58 && az > 2.5 ? 'smash' : 'drive';
++  return 'clear';
++}
++// Every shot botChooseShot can return for this bot at this contact height (its choice is random until the hit).
++function botShotOptions(b, y, diffs) {
++  const d = diffs[b.diff], az = Math.abs(b.z), out = [];
++  const add = (s) => { if (!out.includes(s)) out.push(s); };
++  if (y > 1.58 && az < 5.6 && b.sta >= 0.15 && d.smash > 0) { add('smash'); if (d.smash * Math.min(1, Math.max(0.25, b.sta / 0.6)) >= 1) return out; }
++  if (y < 1.05) { if (az < 2.6) add('net'); add('lift'); return out; }
++  for (let shot of ['clear', 'drop', 'drive']) {
++    if (shot === 'drive' && y < 1.5) shot = az < 3 ? 'net' : 'clear';
++    if (shot === 'drop' && y < 1.75) shot = 'net';
++    add(shot);
++  }
++  return out;
++}
++// Nothing known about the hitter's intent (online snapshots carry no plan or buffered press; no button pressed yet).
++function genericShots(y) {
++  if (y < 1.05) return ['net', 'lift'];
++  const out = ['clear', 'drive'];
++  if (y > 1.45) out.push('smash');
++  out.push(y < 1.75 ? 'net' : 'drop');
++  return out;
++}
++// </shot-prediction>
++function predictedShots(m, a, at, y) {
++  if (!session || session.kind !== 'local') return genericShots(y);
++  if (a.ctrl === 'bot') return S.DIFF[a.diff] ? botShotOptions(at, y, S.DIFF) : genericShots(y);
++  const inp = a.input || {}, iy = +inp.y || 0;
++  if (a.hitQueue > 0) return [humanShotAt(at, y, iy, a.hitPower)];                                   // buffered press
++  if (inp.hold && a.assist >= 1) return [humanShotAt(at, y, iy, clamp(inp.holdPower || 0, 0, 1))];   // held button
++  if (a.assist >= 2 && !(m.opts && m.opts.autoSave === false)) return [humanShotAt(at, y, iy, 0.5)]; // auto hit
++  return genericShots(y);
++}
++// Clips the hit can select at the predicted contact, through the same selector the hit path uses.
++function prepClips(m, a, h, pred) {
++  const at = pred.ax === undefined ? a : { ...a, x: pred.ax, z: pred.az }, clips = [];
++  for (const shot of predictedShots(m, a, at, pred.y)) {
++    const c = selectMatchStroke(at, h, { x: pred.x, y: pred.y, z: pred.z, shot });
++    if (c && !clips.includes(c)) clips.push(c);
++  }
++  return clips;
++}
+ // Bounded joint fitting: no teleporting the body/racket, no changing the simulation.
++const matchFitJoints = mdl => [[mdl.arm.rotation,'x',-3.2,1.5], [mdl.arm.rotation,'z',-1.6,1.6],
++    [mdl.armEl.rotation,'x',-2.6,0.05], [mdl.armEl.rotation,'z',-0.6,0.6], [mdl.wrist.rotation,'x',-1.5,1.5], [mdl.wrist.rotation,'y',-1.2,1.2], [mdl.rig.chest.rotation,'y',-0.45,0.45], [mdl.rig.chest.rotation,'x',-0.22,0.22]];
++// Project a start pose onto the solver's joint limits. A quaternion has two Euler readings
++// (a,b,c) and (a+pi, pi-b, c+pi); each is clamped and the one that moves the joint least is kept.
++// Ties keep the reading whose middle angle is within +-pi/2: the branch every authored pose lives in.
++function projectMatchFit(mdl) {
++  const joints = matchFitJoints(mdl), wrap = v => Math.atan2(Math.sin(v), Math.cos(v));
++  let moved = 0;
++  for (const node of [mdl.arm, mdl.armEl, mdl.wrist, mdl.rig.chest]) {
++    const r = node.rotation, o = r.order.toLowerCase(), original = node.quaternion.clone();
++    const readings = [{ x: r.x, y: r.y, z: r.z }, { x: r.x, y: r.y, z: r.z }];
++    readings[1][o[0]] = wrap(r[o[0]] + Math.PI); readings[1][o[1]] = wrap(Math.PI - r[o[1]]); readings[1][o[2]] = wrap(r[o[2]] + Math.PI);
++    readings.sort((p, q) => Math.abs(p[o[1]]) - Math.abs(q[o[1]]));   // authored branch first
++    let best = null;
++    for (const reading of readings) {
++      const v = { ...reading };
++      for (const [jr, k, lo, hi] of joints) if (jr === r) v[k] = clamp(v[k], lo, hi);
++      const angle = new THREE.Quaternion().setFromEuler(new THREE.Euler(v.x, v.y, v.z, r.order)).angleTo(original);
++      if (!best || angle < best.angle - 1e-9) best = { v, angle };
++    }
++    r.set(best.v.x, best.v.y, best.v.z);
++    moved = Math.max(moved, best.angle);
++  }
++  return moved;
++}
+ function fitMatchRacket(mdl, target, weight) {
+   const tip = new THREE.Vector3(0, -0.71, 0), world = new THREE.Vector3();
+-  const joints = [[mdl.arm.rotation,'x',-3.2,1.5], [mdl.arm.rotation,'z',-1.6,1.6],
+-    [mdl.armEl.rotation,'x',-2.6,0.05], [mdl.armEl.rotation,'z',-0.6,0.6], [mdl.wrist.rotation,'x',-1.5,1.5], [mdl.wrist.rotation,'y',-1.2,1.2], [mdl.rig.chest.rotation,'y',-0.45,0.45], [mdl.rig.chest.rotation,'x',-0.22,0.22]];
++  const joints = matchFitJoints(mdl);
++  // The coordinate search only clamps trial steps, so it must be entered with a feasible pose.
++  projectMatchFit(mdl);
+   if (window.__captureContactRig) window.__captureContactRig(mdl, target, weight);
+   const distance = () => { mdl.root.updateMatrixWorld(true); world.copy(tip); mdl.wrist.localToWorld(world); return world.distanceTo(target); };
+   for (const step of [0.32,0.16,0.08,0.04,0.02]) for (let pass=0; pass<6; pass++) for (const [r,k,lo,hi] of joints) {
+@@ -1932,12 +2016,64 @@
+     for (const sign of [-1,1]) { r[k]=clamp(original+sign*step*weight,lo,hi); const d=distance(); if(d<best){best=d;value=r[k];} }
+     r[k]=value;
+   }
++  for (const [r,k,lo,hi] of joints) if (!(r[k] >= lo && r[k] <= hi)) {
++    (window.__matchFitBoundViolations ||= []).push({ axis: k, value: r[k], lo, hi });
++    console.assert(false, 'fitMatchRacket left a joint outside its limits', k, r[k], lo, hi);
++  }
+   return distance();
+ }
++// Analytic two-bone start: fold the elbow hinge until the racket head is as far from the shoulder as the target is,
++// then swing the shoulder so the head points at the target. Wrist, elbow side angle and chest are left as posed.
++const foldSh = new THREE.Vector3(), foldTip = new THREE.Vector3();
++function foldMatchArm(mdl, target) {
++  mdl.root.updateMatrixWorld(true);
++  mdl.arm.getWorldPosition(foldSh);
++  const want = foldSh.distanceTo(target), original = clamp(mdl.armEl.rotation.x, -2.6, 0.05);
++  const head = (x) => { mdl.armEl.rotation.x = x; mdl.armEl.updateMatrixWorld(true); return mdl.wrist.localToWorld(foldTip.set(0, -0.71, 0)).distanceTo(foldSh); };
++  let bestX = original, bestGap = Math.abs(head(original) - want);
++  for (let i = 0; i <= 53; i++) {           // 0.05 rad steps over the hinge range; ties keep the fold nearest the posed one
++    const x = -2.6 + i * 0.05, gap = Math.abs(head(x) - want);
++    if (gap < bestGap - 1e-6 || (gap < bestGap + 1e-6 && Math.abs(x - original) < Math.abs(bestX - original))) { bestGap = gap; bestX = x; }
++  }
++  head(bestX);
++  const from = foldTip.clone().sub(foldSh), to = target.clone().sub(foldSh);
++  if (from.lengthSq() < 1e-8 || to.lengthSq() < 1e-8) return;
++  const swing = new THREE.Quaternion().setFromUnitVectors(from.normalize(), to.normalize());
++  const armWorld = mdl.arm.getWorldQuaternion(new THREE.Quaternion()), parentWorld = mdl.arm.parent.getWorldQuaternion(new THREE.Quaternion());
++  mdl.arm.quaternion.copy(parentWorld.invert().multiply(swing).multiply(armWorld));
++}
++// Clean solve = better of (posed start, analytic fold start). The fold must win by more than 1 cm.
++function fitMatchClean(mdl, target) {
++  const nodes = [mdl.arm, mdl.armEl, mdl.wrist, mdl.rig.chest], start = nodes.map(n => n.quaternion.clone());
++  const posedError = fitMatchRacket(mdl, target, 1), posed = nodes.map(n => n.quaternion.clone());
++  nodes.forEach((n, i) => n.quaternion.copy(start[i]));
++  foldMatchArm(mdl, target);
++  const foldError = fitMatchRacket(mdl, target, 1);
++  if (window.__matchFoldTrace) window.__matchFoldTrace({ posed: posedError, fold: foldError });
++  if (foldError < posedError - 0.01) return foldError;
++  nodes.forEach((n, i) => n.quaternion.copy(posed[i]));
++  return posedError;
++}
++// Racket-head position in the model's own frame (neutral stance) at a clip's authored contact pose.
++// Joint Euler values are restored exactly: later code reads them component-wise.
++function clipHeadLocal(md, clip) {
++  const cache = md.clipHead || (md.clipHead = {});
++  if (!cache[clip]) {
++    const mdl = md.model, nodes = [mdl.body, mdl.rig.chest, mdl.arm, mdl.armEl, mdl.wrist];
++    const keep = nodes.map(n => [n.rotation.x, n.rotation.y, n.rotation.z]), keepY = mdl.body.position.y;
++    nodes.forEach(n => n.rotation.set(0, 0, 0)); mdl.body.position.y = 0;
++    setArm(mdl, 'arm', SPAnim.sample(clip, SPAnim.CLIPS[clip].contact).arm, 0, 0); mdl.root.updateMatrixWorld(true);
++    const v = mdl.wrist.localToWorld(new THREE.Vector3(0, -0.71, 0)); mdl.root.worldToLocal(v);
++    cache[clip] = { x: v.x, y: v.y, z: v.z, r: Math.hypot(v.x, v.z), ang: Math.atan2(v.x, v.z) };
++    nodes.forEach((n, i) => n.rotation.set(keep[i][0], keep[i][1], keep[i][2])); mdl.body.position.y = keepY;
++  }
++  return cache[clip];
++}
+ const legTgt = new THREE.Vector3();
+ function animateAthlete(a, md, dt, t, m) {
+   const mdl = md.model, facing = a.team === 0 ? Math.PI : 0;
+   const previousFacing = mdl.root.rotation.y;
++  const previousSolved=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest].map(n=>n.quaternion.clone());
+   mdl.root.position.set(a.x, a.jumpY, a.z);
+   // Restore clip-owned joints before the procedural path; clips never own simulation travel.
+   if (md.matchClip && mdl.rig) {
+@@ -1963,11 +2099,26 @@
+   md.pred = null;
+   if (s.live && !s.netted && s.lastTeam !== a.team && (a.swingT < 0 || a.swingT > 0.2) && a.diveT < 0) {
+     const p = { x: s.p.x, y: s.p.y, z: s.p.z }, v = { x: s.v.x, y: s.v.y, z: s.v.z };
++    // Opt-in clips: the athlete keeps travelling until contact, so test reach from where it will be.
++    // Presentation only; the simulation's own reach test and positions are untouched.
++    const at = matchClipsEnabled ? { ...a } : a;
+     for (let k = 0; k < 70; k++) {
+-      if (S.inReachAt(a, p).ok) { md.pred = { t: k * S.DT, x: p.x, y: p.y, z: p.z, type: swingType(p.y) }; break; }
++      if (at !== a) { at.x = a.x + a.vx * k * S.DT; at.z = a.z + a.vz * k * S.DT; }
++      if (S.inReachAt(at, p).ok) { md.pred = { t: k * S.DT, x: p.x, y: p.y, z: p.z, type: swingType(p.y) }; if (at !== a) { md.pred.ax = at.x; md.pred.az = at.z; } break; }
+       S.stepShuttle(p, v, S.DT, m.wind); if (p.y <= 0) break;
+     }
+   }
++  if (md.pred && matchClipsEnabled && !debugPose) {
++    // Swing family by contact height relative to the athlete at contact: a jump moves the body, not the swing
++    // (a bot can leap 1 m and meet the shuttle at waist height; the overhead pose cannot reach down there).
++    const tj = md.pred.t, vy = a.vy || 0, jy = a.jumpY > 0 || vy > 0 ? Math.max(0, a.jumpY + vy * tj - 6.5 * tj * tj) : 0;
++    md.pred.type = swingType(md.pred.y - jy);
++    md.pred.clips = prepClips(m, a, mdl.h, md.pred);
++    md.pred.clip = md.pred.clips.length === 1 ? md.pred.clips[0]
++      : md.prepClip && md.pred.clips.includes(md.prepClip) ? md.prepClip   // already preparing it and it is still possible: keep it
++      : null;                                                             // shot unknown: neutral preparation
++  }
++  md.prepClip = md.pred ? md.pred.clip || null : null;
+   if (md.pred && md.pred.t < 0.6) md.lastPred = Object.assign({ at: t }, md.pred);
+   // turn so the racket side faces the contact point (overhead: almost square on; side-arm: well turned)
+   const cp = md.pred && md.pred.t < 0.6 ? md.pred : (a.swingT >= 0 && a.swingT < 0.25 && md.lastPred && t - md.lastPred.at < 0.5 ? md.lastPred : null);
+@@ -1983,28 +2134,61 @@
+     }
+     mdl.body.rotation.x = keepRot; mdl.body.position.y = keepY;
+   }
+-  let lungeT = 0, crouch = 0, rise = 0;
++  let lungeT = 0, crouch = 0, rise = 0, lungeStep = null;
+   if (cp) {
+-    const hl = md.headLocal[cp.type], dx = cp.x - a.x, dz = cp.z - a.z, dist = Math.hypot(dx, dz);
++    const stance = cp === md.pred && cp.ax !== undefined;
++    const dx = cp.x - (stance ? cp.ax : a.x), dz = cp.z - (stance ? cp.az : a.z), dist = Math.hypot(dx, dz);
++    let hl = md.headLocal[cp.type];
++    if (matchClipsEnabled && !debugPose) {
++      // Known shot: lean / lunge / rise for the clip that will be shown. Unknown shot: the neutral swing's contact
++      // region, kept through the hit (cp.clip === null) so the root never re-targets in the middle of a stroke.
++      const ev = md.strokeEvent;
++      const reachClip = cp.clip !== undefined ? cp.clip : ev ? selectMatchStroke(a, mdl.h, ev) : md.stroke ? md.stroke.clip : null;
++      if (reachClip) hl = clipHeadLocal(md, reachClip);
++    }
+     yaw = Math.atan2(dx, dz) - hl.ang;                         // turn so the racket head lines up with the shuttle
+     lungeT = clamp(dist - hl.r, -0.2, 0.55);                    // step / lean in to close the gap
+     const dh = cp.y - (hl.y + a.jumpY);
+     crouch = clamp(-dh * 0.8, 0, 0.34);                         // bend down for low shuttles
+     rise = clamp(dh, 0, 0.6);                                   // go up on the toes / hop for high ones
+     md.lungeDir = dist > 0.01 ? { x: dx / dist, z: dz / dist } : md.lungeDir;
++    if (matchClipsEnabled && !debugPose) {
++      // The racket head lines up with the target only once the body has finished turning, and the turn is rate
++      // limited. Step by what is still missing at the facing the body actually has (same 0.55 m limit).
++      const c = Math.cos(previousFacing), s = Math.sin(previousFacing);
++      const lx = dx - (hl.x * c + hl.z * s), lz = dz - (hl.z * c - hl.x * s), ll = Math.hypot(lx, lz), k = ll > 0.55 ? 0.55 / ll : 1;
++      lungeStep = { x: lx * k, z: lz * k };
++    }
+   }
+   // ease in quickly while the shuttle arrives, then settle back after the hit
+   const near = cp && cp.t !== undefined && cp === md.pred ? clamp(1 - cp.t / 0.35, 0, 1) : cp ? 1 : 0;
+-  md.lunge = damp(md.lunge || 0, lungeT * near, cp ? 16 : 5, dt);
+-  md.crouch = damp(md.crouch || 0, crouch * near, cp ? 16 : 5, dt);
+-  md.rise = damp(md.rise || 0, rise * near, cp ? 18 : 6, dt);
+-  if (md.lungeDir) mdl.root.position.set(a.x + md.lungeDir.x * md.lunge, a.jumpY + md.rise, a.z + md.lungeDir.z * md.lunge);
++  if (matchClipsEnabled && !debugPose && cp && cp === md.pred && near > 0) {
++    // Time to contact is known: close the remaining gap linearly so the vertical placement (rise / crouch) is complete on the contact
++    // frame. A damped chase of the ramp is still ~20% short there, which costs reach on high / wide contacts.
++    const f = Math.min(1, dt / Math.max(cp.t, dt));
++    md.lunge = damp(md.lunge || 0, lungeT * near, 16, dt);   // horizontal: unchanged damped chase
++    const vmax = 4 * dt;   // m per frame; jump take-off speeds are 4.5-5.3 m/s
++    md.crouch = (md.crouch || 0) + clamp((crouch - (md.crouch || 0)) * f, -vmax, vmax);
++    md.rise = (md.rise || 0) + clamp((rise - (md.rise || 0)) * f, -vmax, vmax);
++  } else {
++    md.lunge = damp(md.lunge || 0, lungeT * near, cp ? 16 : 5, dt);
++    md.crouch = damp(md.crouch || 0, crouch * near, cp ? 16 : 5, dt);
++    const riseBefore = md.rise || 0;
++    md.rise = damp(riseBefore, rise * near, cp ? 18 : 6, dt);
++    if (matchClipsEnabled && !debugPose) md.rise = riseBefore + clamp(md.rise - riseBefore, -4 * dt, 4 * dt);   // never faster than a jump take-off
++  }
++  if (matchClipsEnabled && !debugPose) {
++    const v = md.lungeVec || (md.lungeVec = { x: 0, z: 0 }), rate = cp ? 16 : 5;
++    v.x = damp(v.x, lungeStep ? lungeStep.x * near : 0, rate, dt); v.z = damp(v.z, lungeStep ? lungeStep.z * near : 0, rate, dt);
++    mdl.root.position.set(a.x + v.x, a.jumpY + md.rise, a.z + v.z);
++  } else if (md.lungeDir) mdl.root.position.set(a.x + md.lungeDir.x * md.lunge, a.jumpY + md.rise, a.z + md.lungeDir.z * md.lunge);
+   if (a.diveT >= 0 && (a.diveDx || a.diveDz)) yaw = Math.atan2(a.diveDx, a.diveDz);
+   let dy = yaw - md.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
+   md.yaw += dy * (1 - Math.exp(-12 * dt));
+   // Clip-facing is acquired during prediction, not snapped at the hit event.
+   if (matchClipsEnabled) {
+-    const desired = md.clipFacing === undefined ? md.yaw : md.clipFacing;
++    const desired = md.clipFacing !== undefined ? md.clipFacing
++      : cp ? facing + clamp(Math.atan2(Math.sin(md.yaw - facing), Math.cos(md.yaw - facing)), -1.2, 1.2) : md.yaw;
+     const turn = Math.atan2(Math.sin(desired - previousFacing), Math.cos(desired - previousFacing));
+     mdl.root.rotation.y = previousFacing + clamp(turn, -3.2 * dt, 3.2 * dt);
+     md.clipFacing = undefined;
+@@ -2099,6 +2283,7 @@
+   // the non-racket arm swings opposite the legs while running
+   if (fpose === FREE.rest && run > 0.05) fpose = { s: [FREE.rest.s[0] + Math.sin(md.phase) * 0.7 * run * Math.sign(fwd || 1), FREE.rest.s[1]], e: [FREE.rest.e[0] - 0.3 * run, FREE.rest.e[1]], w: 0 };
+   if (debugPose && session && a.i === session.me) { pose = debugPose.k !== undefined ? swingPose(debugPose.hi, debugPose.k) : POSE[debugPose.name]; fpose = debugPose.free ? FREE[debugPose.free] : fpose; rate = 0; }
++  if (matchClipsEnabled && !debugPose) { mdl.arm.rotation.y = 0; mdl.armEl.rotation.y = 0; mdl.wrist.rotation.y = 0; mdl.wrist.rotation.z = 0; }
+   setArm(mdl, 'arm', pose, rate, dt);
+   setArm(mdl, 'free', fpose, debugPose ? 0 : 9, dt);
+   if (matchClipsEnabled && !debugPose) {
+@@ -2120,18 +2305,56 @@
+       md.serveClipTime = 0;
+     }
+     else if (md.pred && md.pred.t < 0.3 && incoming && a.diveT < 0) {
+-      // Preparation is provisional: actual hit event always chooses the real shot.
+-      clip = selectMatchStroke(a, mdl.h, { ...md.pred, shot: md.pred.y > 1.35 ? 'clear' : md.pred.y > 0.85 ? 'drive' : 'lift' });
++      // Preparation uses the clip the hit will select when that is already determined; the hit event still decides.
++      clip = md.pred.clip || null;
+       ct = clip ? Math.max(0, SPAnim.CLIPS[clip].contact - md.pred.t) : 0;
+     }
++    // Unknown shot: no clip is assumed. What every candidate shares is the contact point.
++    if (!clip && !stroke && !holding && md.pred && md.pred.t < 0.3 && incoming && a.swingT < 0 && a.diveT < 0 && a.recoverT <= 0 && mdl.rig) {
++      const layerNodes=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest];
++      // Independent poses (never the damped Euler values of the last rendered frame).
++      const setBase=(p)=>{mdl.arm.rotation.set(p.s[0],0,p.s[1]*mdl.h); mdl.armEl.rotation.set(p.e[0],0,p.e[1]*mdl.h); mdl.wrist.rotation.set(p.w,0,0); mdl.rig.chest.rotation.set(0,0,0);};
++      // 1. Aim: fit the neutral swing's own contact pose to the predicted contact point. That correction varies
++      //    slowly (only with the prediction and the body), so the 8 rad/s slew keeps up with it.
++      const hit=swingPose(md.pred.type,0.38), fitTarget=new THREE.Vector3(md.pred.x,md.pred.y,md.pred.z);
++      setBase(hit);
++      const hitBase=layerNodes.map(n=>n.quaternion.clone());
++      if(!md.neutralCorrection) md.neutralCorrection=layerNodes.map(()=>new THREE.Quaternion());   // enter from no correction, slewed like every later frame
++      const cleanError=fitMatchClean(mdl,fitTarget), cleanSolved=layerNodes.map(n=>n.quaternion.clone());
++      layerNodes.forEach((n,i)=>n.quaternion.copy(hitBase[i]).multiply(md.neutralCorrection[i]));
++      const warmError=fitMatchRacket(mdl,fitTarget,1);
++      if(!(warmError<=cleanError+0.02)) layerNodes.forEach((n,i)=>n.quaternion.copy(cleanSolved[i]));   // warm keeps unless beaten by more than the finest solver step
++      const correction=layerNodes.map((n,i)=>{
++        const q=hitBase[i].clone().invert().multiply(n.quaternion), prev=md.neutralCorrection[i], angle=prev.angleTo(q);
++        return prev.clone().slerp(q,angle?Math.min(1,8*dt/angle):1);
++      });
++      md.neutralCorrection=correction.map(q=>q.clone());
++      // 2. Show: the neutral swing, carrying the aim in as the shuttle arrives; at contact it is the fitted contact
++      //    pose, which the hit frame then starts from. A low swing goes from ready straight to its contact pose:
++      //    its drawn-back start passes through the floor (the floor guard would pop the wrist).
++      const u=clamp((0.3-md.pred.t)/0.3,0,1);
++      setBase(md.pred.type!=='hi' ? mixPose(POSE.ready,hit,u*u*(3-2*u)) : pose);   // side-arm and low wind-ups can dip under the floor (floor-guard pop)
++      const base=layerNodes.map(n=>n.quaternion.clone()), w=clamp(1-md.pred.t/0.2,0,1), weight=w*w*(3-2*w);
++      layerNodes.forEach((n,i)=>n.quaternion.copy(base[i]).multiply(new THREE.Quaternion().slerp(correction[i],weight)));
++      md.matchClip='neutralPrep';   // owner label: crossfades in and out, chest restored before the next frame
++    } else md.neutralCorrection=null;
+     if (clip) {
+       const contact = SPAnim.CLIPS[clip].contact, length = SPAnim.clipLength(clip);
+       const q = SPAnim.sample(clip, ct);
+       // Layer authored arms over distance-driven feet. Recovery yields gradually to locomotion.
+       const blend = stroke ? clamp((length - ct) / 0.22, 0, 1) : holding ? clamp(ct/0.2,0,1) : clamp((0.3-md.pred.t)/0.12,0,1);
+-      // Complete authored orientation before layering a separate fitted correction.
+-      mdl.wrist.rotation.y=0; mdl.wrist.rotation.z=0;
+-      setArm(mdl, 'arm', mixPose(pose,q.arm,blend), 0, dt);
++      // Independent authored state: never derive it from last rendered corrected Euler angles.
++      const ap=mixPose(pose,q.arm,blend);
++      const armNodes=[mdl.arm,mdl.armEl,mdl.wrist];
++      const clean=[new THREE.Quaternion().setFromEuler(new THREE.Euler(ap.s[0],0,ap.s[1]*mdl.h,'XYZ')),
++        new THREE.Quaternion().setFromEuler(new THREE.Euler(ap.e[0],0,ap.e[1]*mdl.h,'XYZ')),
++        new THREE.Quaternion().setFromEuler(new THREE.Euler(ap.w,0,0,'XYZ'))];
++      const boundary=(m.state==='serve'?'serve':'rally')+':'+clip;
++      if(!md.armLayer || md.armLayer.boundary!==boundary || (stroke && stroke.elapsed===0)) {
++        md.armLayer={boundary,authored:clean.map(q=>q.clone()),correction:null};
++      }
++      md.armLayer.authored=clean.map(q=>q.clone());
++      armNodes.forEach((n,i)=>n.quaternion.copy(md.armLayer.authored[i]));
+       setArm(mdl, 'free', mixPose(fpose,q.free,blend), 0, dt);
+       const target = stroke ? stroke.event : md.pred;
+       if (target && (!stroke || stroke.elapsed < 0.16)) {
+@@ -2144,28 +2367,54 @@
+         const localTip = mdl.wrist.localToWorld(new THREE.Vector3(0,-0.71,0));
+         mdl.root.worldToLocal(localTip);
+         [mdl.arm, mdl.armEl, mdl.wrist].forEach((n,i)=>n.quaternion.copy(rotations[i]));
+-        const dx=target.x-a.x, dz=target.z-a.z;
++        const dx=target.x-(target.ax===undefined?a.x:target.ax), dz=target.z-(target.az===undefined?a.z:target.az);
+         const desired=Math.atan2(dx,dz)-Math.atan2(localTip.x,localTip.z);
+         const relative=Math.atan2(Math.sin(desired-facing),Math.cos(desired-facing));
+         md.clipFacing=facing+clamp(relative,-1.2,1.2);
+       }
+ 
+       const w = stroke ? clamp(1-stroke.elapsed/0.16,0,1) : holding ? 0 : clamp(1-md.pred.t/0.2,0,1);
+-      if (w > 0) {
+-        const nodes=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest];
+-        const authored=nodes.map(n=>n.quaternion.clone());
+-        fitMatchRacket(mdl,new THREE.Vector3(target.x,target.y,target.z),1);
+-        let correction=nodes.map((n,i)=>authored[i].clone().invert().multiply(n.quaternion));
+-        if(md.previousCorrection && md.previousCorrectionClip===clip && !(stroke && stroke.elapsed===0)) {
+-          correction=correction.map((q,i)=>{
+-            const prev=md.previousCorrection[i],angle=prev.angleTo(q);
+-            return prev.clone().slerp(q,angle>0?Math.min(1,8*dt/angle):1);
+-          });
++      const layerNodes=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest];
++      const base=layerNodes.map(n=>n.quaternion.clone());
++      // Preparation aims the clip's own contact pose (its correction varies slowly, so the slew keeps up and the hit
++      // frame starts from a racket that is already there); a running stroke is fitted where it is.
++      let aim=base;
++      if(!stroke && w>0){
++        const cpose=SPAnim.sample(clip,contact).arm;
++        aim=[new THREE.Quaternion().setFromEuler(new THREE.Euler(cpose.s[0],0,cpose.s[1]*mdl.h,'XYZ')),
++          new THREE.Quaternion().setFromEuler(new THREE.Euler(cpose.e[0],0,cpose.e[1]*mdl.h,'XYZ')),
++          new THREE.Quaternion().setFromEuler(new THREE.Euler(cpose.w,0,0,'XYZ')), base[3].clone()];
++        layerNodes.forEach((n,i)=>n.quaternion.copy(aim[i]));
++      }
++      if(w>0){
++        if(stroke && stroke.elapsed===0){
++          md.armLayer.correction=base.map((q,i)=>q.clone().invert().multiply(previousSolved[i]));
+         }
+-        md.previousCorrection=correction.map(q=>q.clone());md.previousCorrectionClip=clip;
++        // Solver warm start is a separate pose, not next frame's authored data.
++        const fitTarget=new THREE.Vector3(target.x,target.y,target.z);
++        if(stroke && stroke.elapsed===0) mdl.rig.chest.quaternion.copy(previousSolved[3]);   // clips do not author the chest: start it where it was rendered
++        let fitError=fitMatchClean(mdl,fitTarget), fitStart='clean';
++        if(md.armLayer.correction){
++          // Lower contact error wins; an exact tie keeps the warm start (continuity).
++          const cleanSolved=layerNodes.map(n=>n.quaternion.clone());
++          layerNodes.forEach((n,i)=>n.quaternion.copy(aim[i]).multiply(md.armLayer.correction[i]));
++          const warmError=fitMatchRacket(mdl,fitTarget,1);
++          if(window.__matchFitTrace) window.__matchFitTrace({player:a.i,clip,clock:m.clock,first:!!(stroke && stroke.elapsed===0),stroke:!!stroke,clean:fitError,warm:warmError});
++          if(warmError<=fitError+0.02){fitError=warmError;fitStart='warm';}   // warm keeps unless beaten by more than the finest solver step
++          else layerNodes.forEach((n,i)=>n.quaternion.copy(cleanSolved[i]));
++        }
++        let correction=layerNodes.map((n,i)=>aim[i].clone().invert().multiply(n.quaternion));
++        if(md.armLayer.correction && !(stroke && stroke.elapsed===0)) correction=correction.map((q,i)=>{
++          const prev=md.armLayer.correction[i],angle=prev.angleTo(q);
++          return prev.clone().slerp(q,angle?Math.min(1,8*dt/angle):1);
++        });
++        md.armLayer.correction=correction.map(q=>q.clone());
+         const weight=w*w*(3-2*w);
+-        nodes.forEach((n,i)=>n.quaternion.copy(authored[i]).multiply(new THREE.Quaternion().slerp(correction[i],weight)));
+-      } else {md.previousCorrection=null;md.previousCorrectionClip=null;}
++        layerNodes.forEach((n,i)=>n.quaternion.copy(base[i]).multiply(new THREE.Quaternion().slerp(correction[i],weight)));
++      }else{
++        md.armLayer.correction=null;
++        layerNodes.forEach((n,i)=>n.quaternion.copy(base[i]));
++      }
+       md.matchClip = clip;
+       if (stroke) {
+         if (stroke.elapsed === 0) {
+@@ -2188,6 +2437,24 @@
+     }
+   }
+   if(md.readyHandoff && (md.stroke || cp || a.swingT>=0 || a.diveT>=0 || speed>=0.3 || m.state!=='rally')) md.readyHandoff=null;
++  if (matchClipsEnabled && !debugPose && holding && mdl.rig && !md.stroke) {
++    const p=POSE.serve, holdNodes=[mdl.arm,mdl.armEl,mdl.wrist,mdl.rig.chest];
++    mdl.arm.rotation.set(p.s[0],0,p.s[1]*mdl.h); mdl.armEl.rotation.set(p.e[0],0,p.e[1]*mdl.h); mdl.wrist.rotation.set(p.w,0,0); mdl.rig.chest.rotation.set(0,0,0);
++    const holdTarget=new THREE.Vector3(sh.p.x,sh.p.y,sh.p.z), holdClean=holdNodes.map(n=>n.quaternion.clone());
++    const holdGap=()=>{mdl.root.updateMatrixWorld(true);return mdl.wrist.localToWorld(new THREE.Vector3(0,-0.71,0)).distanceTo(holdTarget);};
++    // The target is static while held: keep the last solution until it drifts past the solver's finest step (~2 cm).
++    if(md.holdSolved) holdNodes.forEach((n,i)=>n.quaternion.copy(md.holdSolved[i]));
++    if(!md.holdSolved || holdGap()>md.holdGapSolved+0.02){
++      const warmError=md.holdSolved?fitMatchRacket(mdl,holdTarget,1):Infinity, warmSolved=holdNodes.map(n=>n.quaternion.clone());
++      holdNodes.forEach((n,i)=>n.quaternion.copy(holdClean[i]));
++      if(fitMatchClean(mdl,holdTarget)+0.02>=warmError) holdNodes.forEach((n,i)=>n.quaternion.copy(warmSolved[i]));
++      md.holdSolved=holdNodes.map(n=>n.quaternion.clone()); md.holdGapSolved=holdGap();
++    }
++    // Shown pose slews from the last rendered pose at the fitted layer's existing 8 rad/s limit.
++    holdNodes.forEach((n,i)=>{const to=n.quaternion.clone(), angle=previousSolved[i].angleTo(to); n.quaternion.copy(previousSolved[i]).slerp(to,angle>0?Math.min(1,8*dt/angle):1);});
++    md.matchClip='serveHold';
++  } else md.holdSolved=null;
++  if(md.armLayer && (!md.matchClip || a.diveT>=0 || m.state!=='rally')) md.armLayer=null;
+   // Opt-in first integration: only grounded, stationary rally readiness/split-step.
+   // Shot prediction, serves, movement, dives and all contact poses stay procedural.
+   if (matchClipsEnabled && mdl.rig && m.state === 'rally' && speed < 0.3 &&
+@@ -2210,6 +2477,21 @@
+     }
+     md.matchClip = name;
+   }
++  if (matchClipsEnabled && mdl.rig && !debugPose) {
++    const owner = md.stroke ? 'stroke' : (md.matchClip || 'procedural');
++    if (owner !== md.armOwner) md.armFade = owner === 'stroke' || md.armOwner === undefined ? null : { elapsed: 0, from: previousSolved };
++    md.armOwner = owner;
++    if (md.armFade) {
++      md.armFade.elapsed += dt;
++      const u = clamp(md.armFade.elapsed / 0.1, 0, 1), k = u * u * (3 - 2 * u);
++      const layerOwned = owner !== 'procedural' && owner !== 'ready' && owner !== 'splitStep';
++      [mdl.arm, mdl.armEl, mdl.wrist, mdl.rig.chest].forEach((n, i) => {
++        if (i === 3 && !layerOwned) return;   // chest belongs to locomotion / ready handoff there
++        const to = n.quaternion.clone(); n.quaternion.copy(md.armFade.from[i]).slerp(to, k);
++      });
++      if (u >= 1) md.armFade = null;
++    }
++  }
+   floorGuard(mdl);
+   if (matchClipsEnabled && md.checkAt && md.clipMeasurement) {
+     mdl.root.updateMatrixWorld(true);
