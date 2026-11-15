@@ -2063,7 +2063,16 @@ function fitMatchRacket(mdl, target, weight) {
   // The coordinate search only clamps trial steps, so it must be entered with a feasible pose.
   projectMatchFit(mdl);
   if (window.__captureContactRig) window.__captureContactRig(mdl, target, weight);
-  const distance = () => { mdl.root.updateMatrixWorld(true); world.copy(tip); mdl.wrist.localToWorld(world); return world.distanceTo(target); };
+  // Each trial only changes chest / shoulder / elbow / wrist: refresh just that chain (chest pivot down to the wrist)
+  // instead of the whole athlete (about 150 nodes) - same matrices, a fraction of the work. The solver runs on every
+  // prediction and stroke frame and was the reason frames hitched right at the contact.
+  let chain = mdl.fitChain;
+  if (!chain) { chain = []; for (let n = mdl.wrist; n; n = n.parent) { chain.unshift(n); if (n === mdl.rig.chest) break; } mdl.fitChain = chain; }
+  mdl.root.updateMatrixWorld(true);
+  const distance = () => {
+    for (const n of chain) { n.updateMatrix(); n.matrixWorld.multiplyMatrices(n.parent.matrixWorld, n.matrix); }
+    return world.copy(tip).applyMatrix4(mdl.wrist.matrixWorld).distanceTo(target);
+  };
   for (const step of [0.32,0.16,0.08,0.04,0.02]) for (let pass=0; pass<6; pass++) for (const [r,k,lo,hi] of joints) {
     const original=r[k]; let best=distance(), value=original;
     for (const sign of [-1,1]) { r[k]=clamp(original+sign*step*weight,lo,hi); const d=distance(); if(d<best){best=d;value=r[k];} }

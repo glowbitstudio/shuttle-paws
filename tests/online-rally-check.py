@@ -11,6 +11,10 @@ import json,sys
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1];GAME=ROOT/sys.argv[2];OUT=ROOT/sys.argv[3];OUT.mkdir(exist_ok=False)
 SECONDS=int(sys.argv[4]) if len(sys.argv)>4 else 240
+# mode: 'three' = two browser players + browser spectator (heavy: three software-rendered pages);
+#       'solo'  = ONE page plays against the server's bot;  'watch' = ONE page spectates a match played by
+#                 tests/online-bot-client.js (start that node client first)
+MODE=sys.argv[5] if len(sys.argv)>5 else 'three'
 URL=f'http://127.0.0.1:{PORT}/'
 HOOK='''window.__on=(function(){
  const rec={contacts:[],frames:0,dtSum:0,dtMax:0,pops:[],lastT:0};let presses=0,lastPress=0,hist=[];
@@ -36,9 +40,14 @@ HOOK='''window.__on=(function(){
    const before=idx>=0?hist.slice(0,-1).slice(-3).map(f=>+Math.hypot(f.tips[idx][0]-tg[0],f.tips[idx][1]-tg[1],f.tips[idx][2]-tg[2]).toFixed(3)):[];
    rec.contacts.push({shot:h.shot,clip:h.clip,team:h.team,athlete:idx,error:+h.error.toFixed(3),before,frameDt:+dt.toFixed(3),hitterMoved:+Math.hypot(h.athleteAtRender[0]-h.athleteAtEvent[0],h.athleteAtRender[1]-h.athleteAtEvent[1]).toFixed(3),prepClip:null});}
  }
+ // three software-rendered pages on two throttled cores manage ~3 fps, far too slow to rally: draw only every 40th frame
+ // (poses, transforms and all game logic still run every frame; the measurements read transforms, not pixels)
+ const realRender=renderer.render.bind(renderer);let fr=0;renderer.render=function(sc,cam){if(sc!==scene||(fr++)%40===0)realRender(sc,cam);};
+ // cost of posing: time spent in animateAthlete on frames with a prediction or a stroke vs plain frames
+ rec.cost={busyMs:0,busyN:0,idleMs:0,idleN:0,busyMax:0};const aa=animateAthlete;animateAthlete=function(a,md){const busy=!!(md.pred||md.stroke);const t0=performance.now();const r=aa.apply(this,arguments);const d=performance.now()-t0;if(busy||md.stroke){rec.cost.busyMs+=d;rec.cost.busyN++;rec.cost.busyMax=Math.max(rec.cost.busyMax,d);}else{rec.cost.idleMs+=d;rec.cost.idleN++;}return r;};
  const raf=window.requestAnimationFrame.bind(window);
  (function loop(now){raf(loop);try{tick(now);}catch(e){rec.err=String(e);}})(performance.now());
- return {rec,state:()=>({session:!!session,kind:session&&session.kind,me:session?session.me:null,score:session?session.m.score.slice():null,contacts:rec.contacts.length,rally:rec.contacts.filter(c=>!c.shot.startsWith('serve')).length,over:session?!!session.over:null,err:rec.err||null})};})();
+ return {rec,shot(){realRender(scene,camera);},state:()=>({session:!!session,kind:session&&session.kind,me:session?session.me:null,score:session?session.m.score.slice():null,contacts:rec.contacts.length,rally:rec.contacts.filter(c=>!c.shot.startsWith('serve')).length,over:session?!!session.over:null,err:rec.err||null})};})();
 '''
 def new_ctx(b,errs):
     ctx=b.new_context(viewport={'width':420,'height':270})
@@ -52,32 +61,60 @@ def new_ctx(b,errs):
     return ctx,pg
 with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])
-    ea,eb,ec=[],[],[];ca,pa=new_ctx(b,ea);cb,pb=new_ctx(b,eb);cc,pc=new_ctx(b,ec)
-    for pg in (pa,pb,pc): pg.evaluate("()=>{__spDebug.go('online'); if(!__spDebug.Net.ws) __spDebug.Net.connect();}")
-    for pg in (pa,pb,pc): pg.wait_for_function('()=>__spDebug.Net.ok')
-    def start_match():
-        pa.evaluate("()=>__spDebug.Net.send({t:'createRoom',open:true})");pa.wait_for_function('()=>__spDebug.Net.room&&__spDebug.Net.room.code')
-        code=pa.evaluate('()=>__spDebug.Net.room.code')
-        pb.evaluate("(c)=>__spDebug.Net.send({t:'joinRoom',code:c})",code);pb.wait_for_function('()=>__spDebug.Net.room&&__spDebug.Net.room.code')
-        pa.evaluate("()=>__spDebug.Net.send({t:'start'})")
-        pa.wait_for_function('()=>__on.state().session');pb.wait_for_function('()=>__on.state().session')
-        pc.evaluate("()=>__spDebug.Net.send({t:'lobby'})");pc.wait_for_function('()=>__spDebug.Net.lobby&&__spDebug.Net.lobby.matches&&__spDebug.Net.lobby.matches.length>0')
-        mid=pc.evaluate('()=>__spDebug.Net.lobby.matches[0].id');pc.evaluate("(id)=>__spDebug.Net.send({t:'spectate',id})",mid);pc.wait_for_function('()=>__on.state().session')
-    start_match()
-    shots=0;last=0;log=[]
-    for sec in range(0,SECONDS,3):
-        pa.wait_for_timeout(3000);st=pa.evaluate('()=>__on.state()')
-        if st['contacts']>last and shots<8:
-            for nm,pg in (('A',pa),('B',pb),('S',pc)): pg.screenshot(path=str(OUT/f'contact{shots:02d}-{nm}.png'))
-            shots+=1
-        last=st['contacts'];log.append((sec,st['score'],st['contacts'],st['rally']))
-        if st['over'] or not st['session']: break
-    res={}
-    for nm,pg,errs in (('playerA',pa,ea),('playerB',pb,eb),('spectator',pc,ec)):
-        r=pg.evaluate('()=>({rec:__on.rec,state:__on.state()})');r['errors']=errs;res[nm]=r
-    ca.close();cb.close();cc.close();b.close()
+    res={};log=[]
+    if MODE in('solo','watch'):
+        ea=[];ca,pa=new_ctx(b,ea)
+        pa.evaluate("()=>{__spDebug.go('online'); if(!__spDebug.Net.ws) __spDebug.Net.connect();}");pa.wait_for_function('()=>__spDebug.Net.ok')
+        def begin():
+            if MODE=='solo':
+                pa.evaluate("()=>__spDebug.Net.send({t:'createRoom',open:true,points:21})");pa.wait_for_function('()=>__spDebug.Net.room&&__spDebug.Net.room.code')
+                pa.evaluate("()=>__spDebug.Net.send({t:'start'})")
+            else:
+                pa.evaluate("()=>{__spDebug.Net.lobby=null;__spDebug.Net.send({t:'lobby'})}");pa.wait_for_function('()=>__spDebug.Net.lobby&&__spDebug.Net.lobby.matches&&__spDebug.Net.lobby.matches.length>0')
+                mid=pa.evaluate('()=>__spDebug.Net.lobby.matches[__spDebug.Net.lobby.matches.length-1].id');pa.evaluate("(id)=>__spDebug.Net.send({t:'spectate',id})",mid)
+            pa.wait_for_function('()=>__on.state().session&&!__on.state().over')
+        begin();shots=0;last=0
+        for sec in range(0,SECONDS,3):
+            pa.wait_for_timeout(3000);st=pa.evaluate('()=>__on.state()')
+            if st['contacts']>last and shots<6: pa.evaluate('()=>__on.shot()');pa.wait_for_timeout(300);pa.screenshot(path=str(OUT/f'{MODE}-contact{shots:02d}.png'));shots+=1
+            last=st['contacts'];log.append((sec,st['score'],st['contacts'],st['rally']))
+            if st['over'] or not st['session']:
+                if st['rally']>=60: break
+                pa.evaluate("()=>{try{__spDebug.Net.send({t:'leaveMatch'});__spDebug.Net.send({t:'unspectate'});__spDebug.Net.send({t:'leaveRoom'});__spDebug.Net.room=null;endSession();}catch(e){} __spDebug.go('online');}")
+                pa.wait_for_timeout(2500);begin()
+        r=pa.evaluate('()=>({rec:__on.rec,state:__on.state()})');r['errors']=ea;res[MODE]=r
+        ca.close();b.close()
+    else:
+        ea,eb,ec=[],[],[];ca,pa=new_ctx(b,ea);cb,pb=new_ctx(b,eb);cc,pc=new_ctx(b,ec)
+        for pg in (pa,pb,pc): pg.evaluate("()=>{__spDebug.go('online'); if(!__spDebug.Net.ws) __spDebug.Net.connect();}")
+        for pg in (pa,pb,pc): pg.wait_for_function('()=>__spDebug.Net.ok')
+        def start_match():
+            pa.evaluate("()=>__spDebug.Net.send({t:'createRoom',open:true})");pa.wait_for_function('()=>__spDebug.Net.room&&__spDebug.Net.room.code')
+            code=pa.evaluate('()=>__spDebug.Net.room.code')
+            pb.evaluate("(c)=>__spDebug.Net.send({t:'joinRoom',code:c})",code);pb.wait_for_function('()=>__spDebug.Net.room&&__spDebug.Net.room.code')
+            pa.evaluate("()=>__spDebug.Net.send({t:'start'})")
+            pa.wait_for_function('()=>__on.state().session');pb.wait_for_function('()=>__on.state().session')
+            pc.evaluate("()=>__spDebug.Net.send({t:'lobby'})");pc.wait_for_function('()=>__spDebug.Net.lobby&&__spDebug.Net.lobby.matches&&__spDebug.Net.lobby.matches.length>0')
+            mid=pc.evaluate('()=>__spDebug.Net.lobby.matches[0].id');pc.evaluate("(id)=>__spDebug.Net.send({t:'spectate',id})",mid);pc.wait_for_function('()=>__on.state().session')
+        start_match()
+        shots=0;last=0;log=[];matches=1
+        for sec in range(0,SECONDS,3):
+            pa.wait_for_timeout(3000);st=pa.evaluate('()=>__on.state()')
+            if st['contacts']>last and shots<8:
+                for nm,pg in (('A',pa),('B',pb),('S',pc)): pg.screenshot(path=str(OUT/f'contact{shots:02d}-{nm}.png'))
+                shots+=1
+            last=st['contacts'];log.append((sec,st['score'],st['contacts'],st['rally']))
+            if st['over'] or not st['session']:
+                if pa.evaluate('()=>__on.rec.contacts.filter(c=>!c.shot.startsWith("serve")).length')>=40 or matches>=6: break
+                for pg in (pa,pb): pg.evaluate("()=>{__spDebug.Net.send({t:'leaveMatch'});__spDebug.Net.send({t:'leaveRoom'});__spDebug.Net.room=null;}")
+                pc.evaluate("()=>{__spDebug.Net.send({t:'unspectate'});}")
+                for pg in (pa,pb,pc): pg.evaluate("()=>{try{endSession();}catch(e){} __spDebug.go('online');}")
+                pa.wait_for_timeout(1500);start_match();matches+=1
+        for nm,pg,errs in (('playerA',pa,ea),('playerB',pb,eb),('spectator',pc,ec)):
+            r=pg.evaluate('()=>({rec:__on.rec,state:__on.state()})');r['errors']=errs;res[nm]=r
+        ca.close();cb.close();cc.close();b.close()
 (OUT/'results.json').write_text(json.dumps(res,indent=1))
-print('progress (s, score, contacts, rally contacts) on player A:',log[-6:])
+print('matches played',globals().get('matches','-'),'progress (s, score, contacts, rally contacts) on player A:',log[-4:])
 for nm,r in res.items():
     c=[x for x in r['rec']['contacts'] if not x['shot'].startswith('serve')];s=[x for x in r['rec']['contacts'] if x['shot'].startswith('serve')]
     fam={}
@@ -87,4 +124,5 @@ for nm,r in res.items():
     for k,v in fam.items():
         e=[x['error'] for x in v];arr=[x for x in v if x['before'] and max(x['before'])<=0.15]
         print(f"   {k:6s} n={len(v):2d} error mean {sum(e)/len(e)*100:5.1f} cm max {max(e)*100:5.1f} cm | arrival ok (<=15 cm on the 3 frames before) {len(arr)}/{len(v)} | mean frame {sum(x['frameDt'] for x in v)/len(v)*1000:.0f} ms, hitter moved since hit {sum(x['hitterMoved'] for x in v)/len(v)*100:.0f} cm")
+    co=r['rec']['cost'];print(f"   posing cost per athlete per frame: prediction/stroke frames {co['busyMs']/max(1,co['busyN']):.2f} ms (max {co['busyMax']:.1f}, n={co['busyN']}) vs other frames {co['idleMs']/max(1,co['idleN']):.2f} ms (n={co['idleN']})")
     print('   pops (>1.6 rad in one frame):',len(r['rec']['pops']),r['rec']['pops'][:6])
