@@ -25,10 +25,11 @@ for old,new in [
  ("body: 0x2f3542, belly: 0xffffff, earIn: 0xffa94d,","body: 0x2b3350, belly: 0xffffff, earIn: 0xffa94d,"),
  ("body: 0xffd84d, belly: 0xfff3b0,","body: 0xf1e3c2, belly: 0xfbf3df,"),
  ("body: 0xf0b27a, belly: 0xfff4e6, earIn: 0xffb3a7,","body: 0xcbbfae, belly: 0xfbf6ee, earIn: 0xe8b4a8,"),
- ("body: 0xfff4e6, belly: 0xffffff, earIn: 0x8d6e63, earCol: 0x8d6e63,","body: 0xfaf2e6, belly: 0xffffff, earIn: 0xc48a52, earCol: 0xc48a52,"),
- ("body: 0xfdfbf7, belly: 0x5d4e46, earIn: 0x5d4e46,","body: 0xfdfbf7, belly: 0xedc0a0, earIn: 0xd79b7c,"),
+ ("body: 0xfff4e6, belly: 0xffffff, earIn: 0x8d6e63, earCol: 0x8d6e63,","body: 0xfaf2e6, belly: 0xffffff, earIn: 0xa5673c, earCol: 0xa5673c,"),
+ ("body: 0xfdfbf7, belly: 0x5d4e46, earIn: 0x5d4e46,","body: 0xfdfbf7, belly: 0xb3a59b, earIn: 0x97877c,"),
  ("body: 0x8d6e63, belly: 0xd7ccc8,","body: 0x7a5a4c, belly: 0xe6d6c8,"),
  ("body: 0x7bd389, belly: 0xfff3b0, earIn: 0xffd23f,","body: 0x3f86b8, belly: 0xfde9c9, earIn: 0xff8a6b,"),
+ ("body: 0xfdf0ff, belly: 0xffffff, earIn: 0xffb8e0,","body: 0xe9defa, belly: 0xffffff, earIn: 0xffa8d8,"),   # unicorn: very light lavender instead of pure white
  ("body: 0xffa94d, belly: 0xfff4e6, earIn: 0x2b2b2b,","body: 0xf7b733, belly: 0xfff4e6, earIn: 0x2b2b2b,"),   # tiger: golden, away from the rust fox
 ]: s=rep(s,old,new)
 # ------------------------------------------------------------------ game.js
@@ -45,53 +46,53 @@ const LOOKS = {
     marks: (k) => { const m = k.toon(shadeHex(k.col.body, -0.45));   // tabby: three forehead stripes above the band, two per cheek
       for (const i of [-1, 0, 1]) k.stripe([i * 0.11, 0.31, 0.06], [i * 0.07, 0.215, 0.25], 0.042, m);
       for (const sd of [-1, 1]) for (let q = 0; q < 2; q++) k.stripe([sd * 0.37, 0.07 - q * 0.08, -0.02], [sd * 0.285, 0.05 - q * 0.06, 0.19], 0.04, m); } },
-  bunny:   { iris: 0xc8527e, lid: 0, mouth: 'bun',      accent: 0xfff0d8, kit: 'sleeves', gear: 'band',     wrist: 'band', earTip: 0xc9a37c,
+  bunny:   { iris: 0xb9706a, irisLo: 0xeeb0a6, lid: 0, mouth: 'bun',      accent: 0xfff0d8, kit: 'sleeves', gear: 'band',     wrist: 'band', splay: true,
     marks: (k) => { k.patch(0, -0.105, 0.28, 0.17, 0.115, k.toon(0xffffff), { bulge: 0.08 }); } },   // white muzzle on sand fur
   bear:    { iris: 0xd9902f, lid: 0,  mouth: 'smile',     accent: 0xf0dcb4, kit: 'plain',   gear: 'band',   wrist: 'double', smallEars: 0.085,
     marks: (k) => {   // moon-bear chest crescent
       const cr = k.U(new THREE.TorusGeometry(0.16, 0.034, 6, 16, Math.PI), k.mBelly, 0, k.tc + 0.27 * k.ty - 0.03, 0.05); cr.rotation.set(Math.PI / 2 + 0.5, 0, Math.PI); cr.scale.z = 0.6; k.noOL(cr); } },
-  panda:   { iris: 0x9edc4a, lid: 0,  mouth: 'smile',        accent: 0x6fbf5b, kit: 'side',    gear: 'leaf', wrist: 'band', cheek: [0.24, -0.12, 0.222] },
-  fox:     { iris: 0x6a3a1c, lid: -0.1, mouth: 'smirk',    accent: 0x3b2a24, kit: 'sash',    gear: 'none',   wrist: 'double', earW: 1.3, earDip: 0x3b2a24,
+  panda:   { iris: 0x8fc866, lid: 0,  mouth: 'smile',        accent: 0x6fbf5b, kit: 'side',    gear: 'leaf', wrist: 'band', cheek: [0.24, -0.12, 0.222] },
+  fox:     { iris: 0xe39a2a, lid: -0.1, mouth: 'smirk',    accent: 0x3b2a24, kit: 'sash',    gear: 'none',   wrist: 'double', earW: 1.3, earDip: 0x3b2a24, mouthR: 0.034, mouthT: 0.006,
     marks: (k) => { k.patch(0, -0.19, 0.24, 0.44, 0.14, k.mBelly, { bulge: 0.03, rings: 5, seg: 32 });   // one white lower-face mask
-      const tf = k.U(new THREE.SphereGeometry(0.075, 10, 8), k.mBelly, 0, k.tc + 0.27 * k.ty - 0.125, 0.2 * k.tz); tf.scale.set(1.25, 1, 0.5); k.noOL(tf); } },   // chest tuft
+      const tf = k.U(new THREE.SphereGeometry(0.1, 16, 12), k.mBelly, 0, k.tc + 0.27 * k.ty - 0.14, 0.235 * k.tz); tf.scale.set(1.3, 0.85, 0.4); k.noOL(tf); } },   // white chest ruff
   frog:    { iris: 0xf0b429, lid: 0,  mouth: 'frog',     accent: 0xff9d3c, kit: 'plain',   gear: 'none',    wrist: 'band', pads: 0xff9d3c, eyeX: 0.215,
     marks: (k) => {
       const bk = k.H(new THREE.SphereGeometry(0.2, 12, 8), k.toon(shadeHex(k.col.body, -0.22)), 0, 0.12, -0.14); bk.scale.set(1.2, 0.7, 0.9); k.noOL(bk);
-      k.patch(0, -0.235, 0.2, 0.3, 0.08, k.mBelly, { seg: 28 });   // pale chin under the mouth line
+      k.patch(0, -0.25, 0.19, 0.2, 0.095, k.mBelly, { seg: 28 });   // rounded pale throat patch under the mouth line
       for (const sd of [-1, 1]) { const ns = k.H(new THREE.SphereGeometry(0.012, 6, 4), k.mDark, sd * 0.035, 0.065, 0.325); ns.scale.set(1, 0.8, 0.5); k.noOL(ns); } } },
-  penguin: { iris: 0x9cc4e4, lid: 0, mouth: 'none',     accent: 0xffd23f, kit: 'side',    gear: 'none',    wrist: 'double',
-    marks: (k) => { const m = k.toon(0xffd23f), parts = [];   // brow crest: three swept feathers rooted above each eye
-      for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) { const hh = 0.19 - i * 0.03, dir = new THREE.Vector3(sd * 0.8, 0.22 + i * 0.06, -0.58).normalize();
-        const f = k.H(new THREE.ConeGeometry(0.038 - i * 0.004, hh, 6), m, sd * (0.115 + i * 0.05) + dir.x * hh * 0.4, 0.158 + i * 0.014 + dir.y * hh * 0.4, 0.27 - i * 0.04 + dir.z * hh * 0.4); f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); f.scale.z = 0.55; parts.push(f); }
-      k.fuse(parts, m);
-      for (const sd of [-1, 1]) { const sm = k.H(new THREE.TorusGeometry(0.024, 0.0065, 4, 8, Math.PI * 0.5), k.mDark, sd * 0.078, -0.07, 0.32); sm.rotation.z = sd > 0 ? Math.PI * 1.5 : Math.PI; k.noOL(sm); } } },   // smile cue at the beak corners
-  duck:    { iris: 0xf0c24a, lid: 0, mouth: 'none',     accent: 0xffffff, kit: 'sleeves', gear: 'none',    wrist: 'tape', headCol: 0x1f8a70, bill: 0xd9b23a,
-    marks: (k) => { const teal = k.toon(0x1f8a70);
+  penguin: { iris: 0x9cc4e4, lid: 0, mouth: 'none',     accent: 0xffd23f, kit: 'side',    gear: 'none',    wrist: 'band',
+    marks: (k) => { const m = k.toon(0xffd23f);   // crest: three rounded feather tufts fanning outward from the outer brow
+      for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) { const a = 0.3 + i * 0.42, len = 0.1 - i * 0.012, dir = new THREE.Vector3(sd * Math.cos(a), Math.sin(a), -0.3).normalize();
+        const f = k.H(new THREE.SphereGeometry(len, 10, 8), m, sd * 0.215 + dir.x * len * 0.75, 0.15 + dir.y * len * 0.75, 0.17 + dir.z * len * 0.75); f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); f.scale.set(0.34, 1, 0.3); }
+      const sm = k.H(new THREE.TorusGeometry(0.034, 0.0065, 4, 10, Math.PI * 0.7), k.mDark, 0, -0.112, 0.318); sm.rotation.z = Math.PI * 1.15; sm.rotation.x = -0.2; k.noOL(sm); } },   // small smile under the beak
+  duck:    { iris: 0xf0c24a, lid: 0, mouth: 'none',     accent: 0xffffff, kit: 'sleeves', gear: 'none',    wrist: 'tape', headCol: 0x2a9d7f, bill: 0xd9b23a,
+    marks: (k) => { const teal = k.toon(0x2a9d7f);
+      k.band(-0.7, 0.13, k.toon(0xffffff));   // white neck ring low on the head, where it shows
       const curl = k.H(new THREE.TorusGeometry(0.05, 0.02, 5, 12, Math.PI * 1.4), teal, 0.02, 0.36, -0.02); curl.rotation.set(0, Math.PI / 2, 0.4);
       const tc2 = k.U(new THREE.TorusGeometry(0.045, 0.018, 5, 12, Math.PI * 1.5), teal, 0, 0.44, -0.27 * k.tz - 0.1); tc2.rotation.y = Math.PI / 2; } },
-  hamster: { iris: 0x6a4a3a, lid: 0, mouth: 'smile',      accent: 0x6b5d52, kit: 'plain',   gear: 'band', wrist: 'band', smallEars: 0.078, noHem: true,
-    marks: (k) => { const m = k.toon(shadeHex(k.col.body, -0.2)), parts = [];   // small fur tuft
-      for (const i of [-1, 0, 1]) { const t = k.H(new THREE.ConeGeometry(0.024, 0.085 - Math.abs(i) * 0.015, 5), m, i * 0.028, 0.335, 0.05); t.rotation.set(0.35, 0, -i * 0.5); parts.push(t); } k.fuse(parts, m); } },
+  hamster: { iris: 0x6a4a3a, lid: 0, mouth: 'smile',      accent: 0xffe6c4, kit: 'plain',   gear: 'band', wrist: 'band', smallEars: 0.078, noHem: true,
+    marks: (k) => { const m = k.toon(shadeHex(k.col.body, -0.2)), parts = [];   // fur tuft
+      for (const i of [-1, 0, 1]) { const t = k.H(new THREE.ConeGeometry(0.036, 0.13 - Math.abs(i) * 0.025, 6), m, i * 0.04, 0.345, 0.04); t.rotation.set(0.3, 0, -i * 0.5); parts.push(t); } k.fuse(parts, m); } },
   dog:     { iris: 0xb9772e, lid: 0,  mouth: 'open',    accent: 0x9a6638, kit: 'side',    gear: 'bandana',    wrist: 'tape',
     marks: (k) => { k.patch(0.17 * k.h, 0.275, 0.02, 0.12, 0.085, k.toon(k.col.earCol), { rot: 0.5 * k.h }); } },   // caramel crown patch (the eye patch is on the other side)
-  sheep:   { iris: 0x8a6a2f, lid: 0,  mouth: 'smile',     accent: 0xcfa77a, kit: 'sleeves', gear: 'bow',     wrist: 'band', eyeX2: 0.105, eyeZ: 0.03, gearAt: [0.2, 0.37, 0.19],
-    marks: (k) => { const horn = k.toon(0xbfae93); { const sm = k.H(new THREE.TorusGeometry(0.04, 0.008, 4, 12, Math.PI * 0.8), k.mDark, 0, -0.15, 0.385); sm.rotation.z = Math.PI * 1.1; sm.rotation.x = -0.25; k.noOL(sm); }
-      for (const sd of [-1, 1]) {   // smooth curled ram horns: tapered spiral tube with its own constant-width outline
-        const args = [0.115, 0.055, 0.048, 0.012, Math.PI / 2 + 0.6, -Math.PI, 0.07];
-        const hn = k.H(hornGeo(...args, 0), horn, sd * 0.395, 0.1, 0.05); hn.rotation.y = Math.PI / 2; hn.scale.z = sd; k.noOL(hn);
+  sheep:   { iris: 0xe0a63a, lid: 0,  mouth: 'smile',     accent: 0xcfa77a, kit: 'sleeves', gear: 'none',     wrist: 'band', eyeX2: 0.11,
+    marks: (k) => { const horn = k.toon(0xcdbb9c);
+      for (const sd of [-1, 1]) {   // smooth curled ram horns: tapered spiral tube, closed at both ends, root buried in the wool
+        const args = [0.115, 0.055, 0.05, 0.006, Math.PI / 2 - 0.35, -Math.PI - 0.5, 0.075];
+        const hn = k.H(hornGeo(...args, 0), horn, sd * 0.4, 0.09, 0.0); hn.rotation.y = Math.PI / 2; hn.scale.z = sd; k.noOL(hn);
         const ol = new THREE.Mesh(hornGeo(...args, 0.011), OUTLINE); ol.userData.noOutline = true; ol.userData.isOutline = true; hn.add(ol); } } },
   koala:   { iris: 0x45c4c9, lid: 0,  mouth: 'smile',     accent: 0x7fbf6a, kit: 'side',    gear: 'none',    wrist: 'band',
-    marks: (k) => { const lf = k.toon(0x6fbf5b);
+    marks: (k) => { const lf = k.toon(0x6fbf5b); k.patch(0, -0.2, 0.26, 0.2, 0.1, k.toon(0xffffff), { bulge: 0.05, seg: 28 });   // soft white chin patch
       for (const [x, r] of [[0.3, 0.5], [0.36, -0.1]]) { const l = k.H(new THREE.SphereGeometry(0.06, 8, 6), lf, x, 0.38, 0.06); l.scale.set(0.45, 1.3, 0.2); l.rotation.z = r; } } },
   tiger:   { iris: 0x6fd0d8, lid: -0.12, mouth: 'open',    accent: 0x2b2220, kit: 'sash',    gear: 'band', wrist: 'double',
     marks: (k) => { const parts = [], wm = k.toon(0xffffff);   // two small symmetric fangs at the top of the open mouth
       for (const sd of [-1, 1]) { const f = k.H(new THREE.ConeGeometry(0.011, 0.03, 5), wm, sd * 0.032, -0.113, 0.4); f.rotation.x = Math.PI; parts.push(f); } k.fuse(parts, wm);
 } },
-  otter:   { iris: 0xe6b450, lid: 0, mouth: 'smile',    accent: 0xffd9c2, kit: 'hoop',    gear: 'goggles', wrist: 'band', noHem: true,
+  otter:   { iris: 0xe6b450, lid: 0, mouth: 'smile',    accent: 0xffd9c2, kit: 'plain',   gear: 'goggles', wrist: 'band', noHem: true,
     marks: (k) => { const face = k.H(new THREE.SphereGeometry(0.25, 22, 14), k.mBelly, 0, -0.08, 0.12); face.scale.set(1.22, 0.78, 0.86); } },
   unicorn: { iris: 0xa06bd6, lid: 0, mouth: 'smile',    accent: 0xc5a3ff, kit: 'sleeves', gear: 'none',     wrist: 'band', muzzle: 0xf3cfe6,
-    marks: (k) => {   // forelock: three pastel locks sweeping across the brow to one side
-      for (const [x, y, z, r, rz, col] of [[-0.03, 0.335, 0.13, 0.085, 0.25, 0xff9fd6], [-0.13, 0.3, 0.17, 0.075, 0.65, 0x9fd8ff], [-0.215, 0.235, 0.17, 0.062, 1.05, 0xc5a3ff]]) { const l = k.H(new THREE.SphereGeometry(r, 10, 8), k.toon(col), x, y, z); l.scale.set(1.45, 0.72, 0.8); l.rotation.z = rz; } } },
+    marks: (k) => {   // forelock: three separate pastel locks falling to one side, behind the horn
+      for (const [x, y, z, r, rz, col] of [[-0.1, 0.325, 0.1, 0.075, 0.35, 0xff9fd6], [-0.19, 0.275, 0.14, 0.07, 0.8, 0x9fd8ff], [-0.26, 0.19, 0.14, 0.06, 1.2, 0xc5a3ff]]) { const l = k.H(new THREE.SphereGeometry(r, 12, 8), k.toon(col), x, y, z); l.scale.set(1.4, 0.66, 0.8); l.rotation.z = rz; } } },
   dragon:  { iris: 0xffc93c, lid: 0, mouth: 'none',     accent: 0xff8a6b, kit: 'hoop',    gear: 'none',    wrist: 'double', fin: 0xff8a6b, horn: 0xf3ead7,
     marks: (k) => { { const sm = k.H(new THREE.TorusGeometry(0.04, 0.008, 4, 12, Math.PI * 0.8), k.mDark, 0, -0.15, 0.44); sm.rotation.z = Math.PI * 1.1; sm.rotation.x = -0.25; k.noOL(sm); } const n = k.H(new THREE.ConeGeometry(0.03, 0.08, 5), k.toon(0xf3ead7), 0, 0.02, 0.4); n.rotation.x = 0.9; k.noOL(n);
       for (let i = 0; i < 3; i++) { const f = k.H(new THREE.ConeGeometry(0.04, 0.1, 3), k.toon(0xff8a6b), 0, 0.36 - i * 0.05, 0.04 - i * 0.12); f.rotation.x = -0.3 - i * 0.5; f.scale.x = 0.3; } } },
@@ -100,7 +101,7 @@ const LOOKS = {
 function hornGeo(R0, R1, r0, r1, a0, a1, rise, grow) {
   const n = 22, m = 8, pos = [], nor = [], idx = [];
   const C = (t) => { const a = a0 + (a1 - a0) * t, R = R0 + (R1 - R0) * t; return new THREE.Vector3(Math.cos(a) * R, Math.sin(a) * R, rise * t); };
-  let T = null;
+  let T = null; const T0 = C(0.01).sub(C(0)).normalize();
   for (let i = 0; i <= n; i++) {
     const t = i / n, c = C(t), a = a0 + (a1 - a0) * t; T = C(Math.min(1, t + 0.01)).sub(C(Math.max(0, t - 0.01))).normalize();
     const B = T.clone().cross(new THREE.Vector3(Math.cos(a), Math.sin(a), 0)).normalize(), N = B.clone().cross(T), r = r0 + (r1 - r0) * t + grow;
@@ -109,6 +110,8 @@ function hornGeo(R0, R1, r0, r1, a0, a1, rise, grow) {
   const tip = C(1).addScaledVector(T, r1 + grow); pos.push(tip.x, tip.y, tip.z); nor.push(T.x, T.y, T.z);
   for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) { const a = i * m + j, b = (i + 1) * m + j, c = i * m + (j + 1) % m, d = (i + 1) * m + (j + 1) % m; idx.push(a, c, b, c, d, b); }
   for (let j = 0; j < m; j++) idx.push(n * m + j, n * m + (j + 1) % m, (n + 1) * m);
+  const root = C(0).addScaledVector(T0, -(r0 + grow) * 0.5); pos.push(root.x, root.y, root.z); nor.push(-T0.x, -T0.y, -T0.z);
+  for (let j = 0; j < m; j++) idx.push((j + 1) % m, j, (n + 1) * m + 1);
   const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); ge.setIndex(idx); return ge;
 }
 // head gear (detachable group in head space). Bands are fitted to the skull: a cone frustum cut from the unit sphere,
@@ -135,14 +138,14 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     const kn = mk(new THREE.SphereGeometry(0.03, 10, 8), dk, 0, 0, 0.018, bg); kn.scale.set(0.85, 1.1, 0.8); return gr;
   }
   if (kind === 'leaf') { for (const [x, r] of [[0.3, -0.6], [0.34, -1.2]]) { const l = mk(new THREE.SphereGeometry(0.07, 8, 6), toon(0x6fbf5b), x * P.sq[0], 0.2 * fy, 0.12); l.scale.set(0.4, 1.4, 0.18); l.rotation.z = r; } return gr; }
-  if (kind === 'goggles') {   // thin team-colour strap round the head, dark lenses pushed up on the forehead
-    ring(0.5, 0.075, team, 1.03);
+  if (kind === 'goggles') {   // thin dark strap round the head (no headband), bright aqua lenses pushed up on the forehead
+    ring(0.52, 0.05, toon(0x2f3340, { side: THREE.DoubleSide }), 1.025);
     for (const sd of [-1, 1]) {
-      const d = new THREE.Vector3(sd * 0.3, 0.63, 0.72).normalize(), n = new THREE.Vector3(d.x / AX[0], d.y / AX[1], d.z / AX[2]).normalize();
+      const d = new THREE.Vector3(sd * 0.25, 0.65, 0.72).normalize(), n = new THREE.Vector3(d.x / AX[0], d.y / AX[1], d.z / AX[2]).normalize();
       const gg = new THREE.Group(); gg.position.set(d.x * AX[0] * 1.07, d.y * AX[1] * 1.07, d.z * AX[2] * 1.07); gg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); gr.add(gg);
-      mk(new THREE.TorusGeometry(0.058, 0.015, 6, 16), acc, 0, 0, 0, gg);
-      mk(new THREE.CircleGeometry(0.054, 16), basic(0x24465c), 0, 0, 0.004, gg);
-      mk(new THREE.CircleGeometry(0.016, 8), basic(0x9fd6ee), -0.018, 0.02, 0.007, gg).scale.set(1.3, 0.7, 1);
+      mk(new THREE.TorusGeometry(0.058, 0.015, 6, 16), toon(teamColor), 0, 0, 0, gg);
+      mk(new THREE.CircleGeometry(0.054, 16), basic(0x4fd6e6), 0, 0, 0.004, gg);
+      mk(new THREE.CircleGeometry(0.016, 8), basic(0xffffff), -0.018, 0.02, 0.007, gg).scale.set(1.3, 0.7, 1);
     }
     return gr;
   }
@@ -169,10 +172,9 @@ g=rep(g,'''  const mJersey = toon(teamColor), mTrim = toon(0xffffff), mShorts = 
 g=rep(g,'''  const hem = U(new THREE.TorusGeometry(0.245, 0.018, 6, 26), mTrim, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, 0.88 * tz, 1); noOL(hem);
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mTrim, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
   for (const s of [-1, 1]) { const st = U(new THREE.BoxGeometry(0.03, 0.2 * ty, 0.02), mTrim, s * 0.255 * tx, tc + 0.01, 0); st.rotation.z = s * 0.12; noOL(st); }
-''','''  const hem = U(new THREE.TorusGeometry(0.245, 0.018, 6, 26), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, 0.88 * tz, 1); noOL(hem); if (V.noHem) up.remove(hem);
+''','''  const hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(0.11 / (0.27 * ty), 2)) + 0.004, 0.012, 6, 30), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mKit, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
-  if (V.kit === 'side') for (const s of [-1, 1]) { const st = U(new THREE.BoxGeometry(0.03, 0.2 * ty, 0.02), mKit, s * 0.255 * tx, tc + 0.01, 0); st.rotation.z = s * 0.12; noOL(st); }
-  else if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
+  if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
   else if (V.kit === 'sash') { const sa = U(new THREE.TorusGeometry(0.262, 0.022, 6, 26), mKit, 0, tc + 0.02, 0); sa.rotation.set(Math.PI / 2, 0.62 * -h, 0); sa.scale.set(tx * 1.02, tz * 1.02, ty); noOL(sa); }
 ''')
 # surface helpers: geometry laid on the skull ellipsoid itself (clean edges instead of discs / spheres cutting through it)
@@ -198,6 +200,11 @@ g=rep(g,'''  const id = c.id;
     for (let i = 1; i < RN; i++) for (let j = 0; j < N; j++) { const a = 1 + (i - 1) * N + j, b = 1 + (i - 1) * N + (j + 1) % N; idx.push(a, a + N, b + N, a, b + N, b); }
     return surfMesh(pts, idx, mat);
   };
+  // horizontal band round the skull at unit height d (-1 chin .. 1 crown), width w
+  const band = (d, w, mat, off = 1.02) => {
+    const rr = (y) => Math.sqrt(Math.max(0.01, 1 - y * y)) * off, gq = new THREE.Group(); gq.scale.set(AX[0], AX[1], AX[2]); hs.add(gq);
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(rr(d + w / 2), rr(d - w / 2), w, 32, 1, true), mat); b.position.y = d; b.userData.noOutline = true; gq.add(b); return b;
+  };
   // tapered stripe on the skull from a (blunt, wide) to b (point), both in H coordinates
   const stripe = (a, b, w, mat, o = {}) => {
     const A = udir(...a), B = udir(...b), side = A.clone().cross(B).normalize(), n = o.seg || 7, lift = o.lift || 1.02, pts = [], idx = [];
@@ -207,7 +214,7 @@ g=rep(g,'''  const id = c.id;
     return surfMesh(pts, idx, mat);
   };
 ''')
-g=rep(g,"  if (['panda', 'cat', 'koala', 'hamster'].includes(id)) { const face = H(new THREE.SphereGeometry(0.25, 16, 12), mBelly, 0, -0.1, 0.13); face.scale.set(1.25, 0.72, 0.85); }","  if (['cat', 'koala', 'hamster'].includes(id)) patch(0, -0.17, 0.27, 0.45, 0.143, mBelly, { bulge: 0.1, rings: 6, seg: 32 });   // pale lower face (the panda is white already)")
+g=rep(g,"  if (['panda', 'cat', 'koala', 'hamster'].includes(id)) { const face = H(new THREE.SphereGeometry(0.25, 16, 12), mBelly, 0, -0.1, 0.13); face.scale.set(1.25, 0.72, 0.85); }","  if (id === 'cat') patch(0, -0.17, 0.27, 0.45, 0.143, mBelly, { bulge: 0.1, rings: 6, seg: 32 });   // pale lower face (the panda is white already)")
 # skull colour (duck head cap) and face patches
 g=rep(g,"c.id === 'sheep' ? mBelly : mBody, 0, 0, 0, hs); skull.scale.set(...P.sq);","V.headCol ? toon(V.headCol) : c.id === 'sheep' ? mBelly : mBody, 0, 0, 0, hs); skull.scale.set(...P.sq);")
 g=rep(g,'''  if (id === 'penguin') { const face = H(new THREE.SphereGeometry(0.29, 18, 14), toon(0xffffff), 0, -0.04, 0.08); face.scale.set(1.08, 0.88, 0.92); }
@@ -219,26 +226,26 @@ g=rep(g,'''  if (id === 'penguin') { const face = H(new THREE.SphereGeometry(0.2
 g=rep(g,'''    for (let i = 0; i < 13; i++) { const a = (i / 13) * Math.PI * 2; H(new THREE.SphereGeometry(0.12, 10, 8), toon(0xfdfbf7), Math.cos(a) * 0.3, 0.2 + Math.sin(a * 3) * 0.03, Math.sin(a) * 0.24 - 0.04); }
     H(new THREE.SphereGeometry(0.14, 10, 8), toon(0xfdfbf7), 0, 0.33, 0.02);
 ''','''    // wool: a flat-top fringe across the brow and big side puffs (no single top puff)
-    const wool = toon(0xfdfbf7);
-    for (let i = 0; i < 5; i++) H(new THREE.SphereGeometry(0.1, 10, 8), wool, (i - 2) * 0.115, 0.27 - Math.abs(i - 2) * 0.012, 0.17 - Math.abs(i - 2) * 0.03);
+    const wool = toon(0xfdfbf7), sz = (x, y) => 0.3332 * Math.sqrt(Math.max(0.04, 1 - Math.pow(x / 0.3672, 2) - Math.pow(y / 0.323, 2)));
+    for (let i = 0; i < 11; i++) { const a = -0.75 + i * (Math.PI + 1.5) / 10, x = Math.cos(a) * 0.29, y = Math.sin(a) * 0.255 + 0.015; H(new THREE.SphereGeometry(i % 2 ? 0.085 : 0.095, 10, 8), wool, x, y, sz(x, y)); }   // woolly rim framing the face
     for (let i = 0; i < 7; i++) { const a = Math.PI + (i / 6 - 0.5) * 2.4; H(new THREE.SphereGeometry(0.13, 10, 8), wool, Math.sin(a) * 0.27, 0.2, Math.cos(a) * 0.24 - 0.03); }
-    for (const s of [-1, 1]) { H(new THREE.SphereGeometry(0.13, 10, 8), wool, s * 0.32, -0.05, -0.05); H(new THREE.SphereGeometry(0.1, 10, 8), wool, s * 0.3, -0.19, -0.01); }
+    H(new THREE.SphereGeometry(0.15, 10, 8), wool, 0, 0.23, -0.03);
 ''')
 g=rep(g,"    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; U(new THREE.SphereGeometry(0.065, 8, 6), toon(0xfdfbf7), Math.cos(a) * 0.24 * tx, 0.3, Math.sin(a) * 0.21 * tz); }\n","")   # sheep: no wool tutu
 g=rep(g,"n.scale.set(sx, sy, 0.8); return n; };","n.scale.set(sx, sy, 0.8); return noOL(n); };")   # noses: no outline shell (it showed as a ring around the nose)
 g=rep(g,'''  if (P.spot) { const sp = H(new THREE.SphereGeometry(0.1, 10, 8), toon(0x8d6e63), 0.13 * -h, 0.04, 0.26); sp.scale.set(1.1, 1.0, 0.45); noOL(sp); }
-''','''  if (P.spot) { const sp = H(new THREE.SphereGeometry(0.1, 10, 8), toon(c.earCol || 0x8d6e63), 0.13 * -h, 0.04, 0.26); sp.scale.set(1.1, 1.0, 0.45); noOL(sp); }
+''','''  if (P.spot) { const sp = H(new THREE.SphereGeometry(0.1, 16, 12), toon(c.earCol || 0x8d6e63), 0.13 * -h, 0.04, 0.26); sp.scale.set(1.1, 1.0, 0.45); noOL(sp); }
 ''')
 # mouths: one shape per species
 g=rep(g,'''  const mouthW = (y, z) => { for (const s of [-1, 1]) { const mo = H(new THREE.TorusGeometry(0.028, 0.008, 4, 12, Math.PI), mDark, s * 0.027, y, z); mo.rotation.z = Math.PI; mo.rotation.x = -0.25; noOL(mo); } };
 ''','''  const mouthW = (y, z) => {
-    const arc = (x, r, len, rz) => { const mo = H(new THREE.TorusGeometry(r, 0.008, 4, 12, len), mDark, x, y, z); mo.rotation.z = rz; mo.rotation.x = -0.25; noOL(mo); return mo; };
+    const arc = (x, r, len, rz) => { const mo = H(new THREE.TorusGeometry(r, V.mouthT || 0.008, 4, 12, len), mDark, x, y, z); mo.rotation.z = rz; mo.rotation.x = -0.25; noOL(mo); return mo; };
     const bar = (len, x, yy, rz) => { const b = H(new THREE.CapsuleGeometry(0.007, len, 2, 6), mDark, x, yy, z + 0.004); b.rotation.z = rz; noOL(b); };
     switch (V.mouth) {
       case 'philtrum': bar(0.035, 0, y + 0.03, 0); arc(0, 0.05, Math.PI * 0.7, Math.PI * 1.15); break;      // short line down from the nose, one shallow curve
       case 'smile': arc(0, 0.045, Math.PI * 0.8, Math.PI * 1.1); break;
       case 'bun': bar(0.018, 0, y + 0.02, 0); for (const sd of [-1, 1]) arc(sd * 0.027, 0.027, Math.PI * 0.8, Math.PI * 1.1); break;   // nose line + two small curves
-      case 'smirk': arc(0.02 * -h, 0.05, Math.PI * 0.6, Math.PI * 1.05 + 0.25 * -h); break;                   // lopsided
+      case 'smirk': arc(0.012 * -h, V.mouthR || 0.05, Math.PI * 0.62, Math.PI * 1.05 + 0.25 * -h); break;                   // lopsided
       case 'open': { const o = H(new THREE.SphereGeometry(0.046, 10, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mDark, 0, y + 0.035, z + 0.004); o.scale.set(1.25, 1.25, 0.5); noOL(o); const tg = H(new THREE.SphereGeometry(0.024, 8, 6), toon(0xff8a8a), 0, y - 0.006, z + 0.016); tg.scale.set(1.2, 0.7, 0.4); noOL(tg); break; }
       case 'o': { const o = H(new THREE.SphereGeometry(0.02, 8, 6), mDark, 0, y + 0.01, z); o.scale.set(1.1, 0.8, 0.5); noOL(o); break; }
       case 'tri': { const t = H(new THREE.ConeGeometry(0.02, 0.03, 3), mDark, 0, y + 0.012, z); t.rotation.x = Math.PI; t.scale.z = 0.4; noOL(t); break; }
@@ -250,16 +257,31 @@ g=rep(g,'''      const mz = H(new THREE.ConeGeometry(0.13, 0.3, 14), mBelly, 0, 
       for (const s of [-1, 1]) { const ch = H(new THREE.SphereGeometry(0.11, 10, 8), mBelly, s * 0.15, -0.1, 0.2); ch.scale.set(1, 0.7, 0.8); }
       nose(0.035, -0.06, 0.53, 1.2, 0.9); break;
 ''','''      const mz = H(new THREE.SphereGeometry(0.12, 16, 12), mBelly, 0, -0.1, 0.3); mz.scale.set(0.95, 0.7, 1.25);   // short rounded muzzle, small nose on its tip, smirk below
-      nose(0.021, -0.058, 0.44, 1.3, 0.9); mouthW(-0.1, 0.432); break;
+      nose(0.021, -0.058, 0.44, 1.3, 0.9); mouthW(-0.108, 0.437); break;
 ''')
-g=rep(g,"    case 'koala': { const n = nose(0.085, -0.06, 0.34, 1.0, 1.35); n.scale.z = 0.75; mouthW(-0.17, 0.3); break; }","    case 'koala': { const n = nose(0.078, -0.045, 0.335, 1.0, 0.82, toon(0x4b4852)); n.scale.z = 0.62; const hl = H(new THREE.SphereGeometry(0.016, 8, 6), toon(0xa5a2ae), -0.022, -0.02, 0.379); hl.scale.set(1.5, 0.7, 0.5); noOL(hl); mouthW(-0.125, 0.33); break; }")
+g=rep(g,'''      const face = H(new THREE.SphereGeometry(0.24, 16, 12), toon(c.belly), 0, -0.05, 0.16); face.scale.set(1.0, 1.1, 0.9);
+      nose(0.03, -0.12, 0.38, 1.4, 0.8, toon(0x2b2220)); break;
+''','''      patch(0, -0.15, 0.29, 0.125, 0.09, toon(0xf3e3d0), { bulge: 0.07, seg: 28 });   // one clean face tone (the skull itself) + a short pale muzzle
+      nose(0.026, -0.105, 0.35, 1.4, 0.8, toon(0x2b2220)); mouthW(-0.13, 0.315); break;
+''')
+g=rep(g,"      nose(id === 'dog' ? 0.05 : 0.045, -0.04, 0.4, 1.35, 0.85); mouthW(-0.135, 0.38);","      const mzd = id === 'bear' ? -0.02 : 0; nose(id === 'dog' ? 0.05 : 0.045, -0.04, 0.4 + mzd, 1.35, 0.85); mouthW(-0.135, 0.38 + mzd);")
+g=rep(g,"      nose(0.025, -0.05, 0.36, 1.2, 0.9, toon(0xff8fa8)); mouthW(-0.09, 0.35);\n      for (const s of [-1, 1]) { const t = H(new THREE.BoxGeometry(0.026, 0.04, 0.02), toon(0xffffff), s * 0.015, -0.13, 0.34); noOL(t); }","      nose(0.025, -0.05, 0.342, 1.2, 0.9, toon(0xff8fa8)); mouthW(-0.09, 0.31);   // on the fur between the two pouches\n      for (const s of [-1, 1]) { const t = H(new THREE.BoxGeometry(0.026, 0.04, 0.02), toon(0xffffff), s * 0.015, -0.13, 0.312); noOL(t); }")
+g=rep(g,"  if (P.pouches) for (const s of [-1, 1]) { const p = H(new THREE.SphereGeometry(0.13, 12, 10), mBelly, s * 0.24, -0.12, 0.17); p.scale.set(1, 0.9, 0.85); }","  if (P.pouches) for (const s of [-1, 1]) { const p = H(new THREE.SphereGeometry(0.125, 20, 14), mBelly, s * 0.205, -0.145, 0.175); p.scale.set(1, 0.9, 0.85); }   // two distinct round pouches")
+g=rep(g,"      for (const s of [-1, 1]) { const ch = H(new THREE.SphereGeometry(0.1, 12, 8), mBelly, s * 0.07, -0.1, 0.28); ch.scale.set(1, 0.75, 0.8); }","      for (const s of [-1, 1]) { const ch = H(new THREE.SphereGeometry(0.1, 20, 14), mBelly, s * 0.07, -0.1, 0.28); ch.scale.set(1, 0.75, 0.8); }")
+g=rep(g,'''          const hn = H(new THREE.ConeGeometry(0.05, 0.32, 10), toon(0xffd23f), 0, 0.44, 0.12); hn.rotation.x = 0.35;
+          for (let k = 0; k < 3; k++) { const r = H(new THREE.TorusGeometry(0.04 - k * 0.01, 0.008, 4, 10), toon(0xffb84d), 0, 0.36 + k * 0.08, 0.09 + k * 0.03); r.rotation.x = Math.PI / 2 + 0.35; noOL(r); }
+''','''          const hn = H(new THREE.ConeGeometry(0.085, 0.42, 12), toon(0xffd23f), 0, 0.42, 0.27); hn.rotation.x = 0.45;   // thick horn rising from the forehead, in front of the mane
+          for (const f of [0.42, 0.6, 0.78]) { const r = H(new THREE.TorusGeometry(0.085 * (1 - f) + 0.003, 0.009, 4, 12), toon(0xffb84d), 0, 0.231 + 0.378 * f, 0.179 + 0.183 * f); r.rotation.x = Math.PI / 2 + 0.45; noOL(r); }
+''')
+g=rep(g,"sq: [0.95, 1.06, 0.95], lift: 0.08,  snout: 'bunny'","sq: [1.04, 1.06, 0.95], lift: 0.08,  snout: 'bunny'")   # bunny head ~10% wider (skull squash only; joints untouched)
+g=rep(g,"    case 'koala': { const n = nose(0.085, -0.06, 0.34, 1.0, 1.35); n.scale.z = 0.75; mouthW(-0.17, 0.3); break; }","    case 'koala': { const n = nose(0.05, -0.05, 0.335, 1.0, 1.5, toon(0x4a3f3c)); n.scale.z = 0.6; mouthW(-0.15, 0.285); break; }")
 g=rep(g,'''      const mz = H(new THREE.CapsuleGeometry(0.12, 0.12, 6, 12), mBelly, 0, -0.12, 0.3); mz.rotation.x = Math.PI / 2 - 0.25; mz.scale.set(1.1, 1, 0.9);
       for (const s of [-1, 1]) { const ns = H(new THREE.SphereGeometry(0.02, 6, 4), toon(0xd98cb3), s * 0.05, -0.11, 0.44); noOL(ns); }
-''','''      const mz = H(new THREE.CapsuleGeometry(0.12, 0.12, 6, 12), toon(V.muzzle || c.belly), 0, -0.12, 0.3); mz.rotation.x = Math.PI / 2 - 0.25; mz.scale.set(1.1, 1, 0.9); noOL(mz);
+''','''      const mz = H(new THREE.CapsuleGeometry(0.12, 0.12, 10, 22), toon(V.muzzle || c.belly), 0, -0.12, 0.3); mz.rotation.x = Math.PI / 2 - 0.25; mz.scale.set(1.1, 1, 0.9); noOL(mz);
       for (const s of [-1, 1]) { const ns = H(new THREE.SphereGeometry(0.015, 6, 4), toon(0xb86a9a), s * 0.04, -0.055, 0.465); ns.scale.set(0.8, 1.2, 0.5); noOL(ns); }
       mouthW(-0.1, 0.467);
 ''')
-g=rep(g,"mz.scale.set(1.15, 0.78, 0.85);","mz.scale.set(1.15, 0.78, 0.85); if (id === 'panda') noOL(mz);")   # white muzzle on a white head: no outline arc
+g=rep(g,"mz.scale.set(1.15, 0.78, 0.85);","mz.scale.set(1.15, 0.78, id === 'bear' ? 0.72 : 0.85); if (id === 'panda') noOL(mz);")   # white muzzle on a white head: no outline arc
 g=rep(g,"H(new THREE.SphereGeometry(0.09, 10, 8), toon(col), (i % 2 ? 0.05 : -0.05), 0.32 - i * 0.1, -0.27 - i * 0.02));","H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012).scale.set(1.15, 1.35, 0.8));")   # unicorn mane: flows down the back of the head, nothing poking up beside the ears
 # tiger: clean tapered stripes on the skull; whiskers rooted in the cheek
 g=rep(g,'''    for (let i = -1; i <= 1; i++) { const st = H(new THREE.BoxGeometry(0.035, 0.12, 0.02), mDark, i * 0.09, 0.26, 0.2); st.rotation.x = -0.65; noOL(st); }
@@ -268,16 +290,17 @@ g=rep(g,'''    for (let i = -1; i <= 1; i++) { const st = H(new THREE.BoxGeometr
     for (const s of [-1, 1]) for (let q = 0; q < 3; q++) stripe([s * 0.37, 0.08 - q * 0.09, -0.02], [s * (q === 1 ? 0.255 : 0.275), 0.05 - q * 0.066, 0.2], 0.05, mDark);
 ''')
 g=rep(g,'''    const w = H(new THREE.CylinderGeometry(0.004, 0.004, 0.2, 4), mDark, s * 0.2, -0.08 - k * 0.04, 0.3); w.rotation.z = Math.PI / 2 + s * (0.1 - k * 0.2); w.rotation.y = -s * 0.35; noOL(w);
-''','''    const dir = new THREE.Vector3(s * 0.94, k ? -0.26 : 0.06, 0.08).normalize(), WL = 0.15;
+''','''    const dir = new THREE.Vector3(s * 0.94, k ? -0.26 : 0.06, 0.08).normalize(), WL = 0.112;
     const w = H(new THREE.CylinderGeometry(0.0045, 0.0025, WL, 4), mDark, s * 0.165 + dir.x * WL / 2, -0.12 - k * 0.03 + dir.y * WL / 2, 0.288 + dir.z * WL / 2); w.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); noOL(w);
 ''')
 g=rep(g,'''      const b = H(new THREE.SphereGeometry(0.1, 14, 8), mOrange, 0, -0.08, 0.34); b.scale.set(1.55, 0.36, 1.25);
       const b2 = H(new THREE.SphereGeometry(0.085, 12, 8), toon(0xff9426), 0, -0.115, 0.32); b2.scale.set(1.4, 0.3, 1.15); break;
 ''','''      const billM = toon(V.bill || 0xffa94d);   // narrow bill with a darker nail at the tip
-      const b = H(new THREE.SphereGeometry(0.1, 14, 8), billM, 0, -0.07, 0.35); b.scale.set(1.05, 0.38, 1.45);
-      const b2 = H(new THREE.SphereGeometry(0.085, 12, 8), toon(shadeHex(V.bill || 0xffa94d, -0.15)), 0, -0.105, 0.32); b2.scale.set(0.95, 0.3, 1.2);
-      const split = H(new THREE.TorusGeometry(0.1, 0.006, 4, 18, Math.PI), mDark, 0, -0.086, 0.35); split.rotation.x = Math.PI / 2 + 0.13; split.scale.set(0.99, 1.37, 1); noOL(split);   // bill split line, corners turned up
-      for (const s of [-1, 1]) { const ns = H(new THREE.SphereGeometry(0.009, 6, 4), mDark, s * 0.026, -0.041, 0.43); ns.scale.set(1, 0.5, 1.7); noOL(ns); }
+      const b = H(new THREE.SphereGeometry(0.1, 18, 10), billM, 0, -0.07, 0.35); b.scale.set(1.2, 0.43, 1.6); noOL(b);   // ~15% larger; no outline shell (it showed as a dark smear under the bill)
+      const b2 = H(new THREE.SphereGeometry(0.085, 12, 8), toon(shadeHex(V.bill || 0xffa94d, -0.06)), 0, -0.1, 0.335); b2.scale.set(1.0, 0.26, 1.25); noOL(b2);   // lower bill, no dark smear
+      const split = H(new THREE.TorusGeometry(0.1, 0.006, 4, 18, Math.PI), mDark, 0, -0.088, 0.35); split.rotation.x = Math.PI / 2 + 0.13; split.scale.set(1.1, 1.46, 1); noOL(split);   // bill split line
+      for (const s of [-1, 1]) { const ns = H(new THREE.SphereGeometry(0.009, 6, 4), mDark, s * 0.03, -0.037, 0.45); ns.scale.set(1, 0.5, 1.7); noOL(ns);
+        const cn = H(new THREE.CapsuleGeometry(0.0065, 0.03, 2, 5), mDark, s * 0.124, -0.073, 0.345); cn.rotation.z = -s * 0.7; noOL(cn); }   // upturned mouth corners
       break;
 ''')
 # markings hook (before the eyes) + eyes v2 (replaces the black sticker eye, the brow and the blush)
@@ -291,11 +314,11 @@ g=rep(g,'''  for (const s of [-1, 1]) {
     const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
     const out = new THREE.Mesh(ge, mat); hs.add(out); return noOL(out);
   };
-  if (V.marks) V.marks({ H, U, dab, fuse, patch, stripe, toon, basic, noOL, mBody, mBelly, mDark, tc, ty, tz, h, col: c });
-  const eyeRim = [], eyeIris = [], eyePupil = [], eyeGlint = [], cheek = [];
+  if (V.marks) V.marks({ H, U, dab, fuse, patch, stripe, band, toon, basic, noOL, mBody, mBelly, mDark, tc, ty, tz, h, col: c });
+  const eyeRim = [], eyeIris = [], eyePupil = [], eyeGlint = [], cheek = [], eyeLo = [];
   const mIris = toon(V.iris), mPupil = toon(0x1c1416), mLid = toon(0x2a1c1a);
   for (const s of [-1, 1]) {
-    if (c.patches) { const p = H(new THREE.SphereGeometry(0.082, 10, 8), mDark, s * 0.135, 0.015, 0.275); p.scale.set(0.95, 1.5, 0.5); p.rotation.z = s * 0.95; noOL(p); }   // small tilted teardrops
+    if (c.patches) { const p = H(new THREE.SphereGeometry(0.082, 16, 12), mDark, s * 0.135, 0.015, 0.275); p.scale.set(0.95, 1.5, 0.5); p.rotation.z = s * 0.95; noOL(p); }   // small tilted teardrops
 ''')
 g=rep(g,'''    const ex = frog ? s * 0.17 : s * 0.125, ey = frog ? 0.25 : 0.02, ez = frog ? 0.19 : 0.29;
     if (frog) { H(new THREE.SphereGeometry(0.125, 14, 10), mBody, s * 0.17, 0.23, 0.1); H(new THREE.SphereGeometry(0.088, 12, 10), toon(0xffffff), ex, ey, 0.17); }
@@ -317,6 +340,7 @@ g=rep(g,'''    const ex = frog ? s * 0.17 : s * 0.125, ey = frog ? 0.25 : 0.02, 
     const er = V.eyeR || (P.eye === 'dot' ? 0.062 : 0.074), wide = 0.94, tall = P.eye === 'fierce' ? 0.98 : 1.06;
     const rim = H(new THREE.SphereGeometry(er * 1.1, 14, 10), mLid, ex, ey, ez - 0.006); rim.scale.set(wide, tall, 0.45); eyeRim.push(rim);
     const iris = H(new THREE.SphereGeometry(er, 14, 10), mIris, ex, ey - er * 0.02, ez + 0.006); iris.scale.set(wide * 0.95, tall * 0.95, 0.45); eyeIris.push(iris);
+    if (V.irisLo) { const lo = H(new THREE.SphereGeometry(er, 14, 6, 0, Math.PI * 2, Math.PI * 0.56, Math.PI * 0.44), toon(V.irisLo), ex, ey - er * 0.02, ez + 0.012); lo.scale.set(wide * 0.95, tall * 0.95, 0.45); eyeLo.push(lo); }   // lighter lower half of the iris
     const pupil = H(new THREE.SphereGeometry(er * 0.62, 10, 8), mPupil, ex, ey - er * 0.06, ez + 0.024); pupil.scale.set(0.9, 1.05, 0.4); eyePupil.push(pupil);
     const glint = H(new THREE.ConeGeometry(er * 0.3, er * 0.8, 3), basic(0xffffff), ex + 0.018, ey + er * 0.38, ez + 0.04); glint.rotation.z = -0.55; glint.scale.z = 0.25; eyeGlint.push(glint);
     const spark = H(new THREE.SphereGeometry(er * 0.13, 6, 4), basic(0xffffff), ex - 0.02, ey - er * 0.36, ez + 0.04); eyeGlint.push(spark);
@@ -338,9 +362,9 @@ g=rep(g,'''        const o = add(new THREE.ConeGeometry(0.12 * E, 0.22 * E, 4), 
         if (V.earDip) { const tp = add(pyr(0.12 * E * W * 0.42, 0.22 * E * 0.42), toon(V.earDip), 0, 0.22 * E * 0.29, 0, ear); tp.scale.set(1.12, 1, 0.66); noOL(tp); }
         ear.position.set(s * 0.19 * fx, 0.29 * fy + (E - 1) * 0.06 + (W - 1) * 0.1, -0.02); ear.rotation.z = -s * 0.32; break;
 ''')
-g=rep(g,"        for (let k = 0; k < 4; k++) add(new THREE.SphereGeometry(0.06, 8, 6), toon(0xffffff), Math.cos(k * 1.6) * 0.07, Math.sin(k * 1.6) * 0.07, 0.06, ear);","        { const fl = add(new THREE.SphereGeometry(0.105, 16, 10), toon(0xf4f6fa), 0, -0.01, 0.075, ear); fl.scale.z = 0.45; noOL(fl); }   // one soft fluff patch")
-g=rep(g,"        add(new THREE.ConeGeometry(0.07, 0.17, 6), mEar, 0, 0, 0, ear).scale.z = 0.6; ear.position.set(s * 0.2 * fx, 0.3 * fy, -0.05); ear.rotation.z = -s * 0.35;","        add(new THREE.ConeGeometry(0.085, 0.22, 6), mEar, 0, 0, 0, ear).scale.z = 0.6; noOL(add(new THREE.ConeGeometry(0.05, 0.15, 6), mEarIn, 0, -0.025, 0.036, ear)).scale.z = 0.4; ear.position.set(s * 0.21 * fx, 0.33 * fy, -0.03); ear.rotation.z = -s * 0.4;")
-g=rep(g,"        const e = add(new THREE.SphereGeometry(0.08, 10, 8), mEarIn, 0, 0, 0, ear); e.scale.set(1.7, 0.6, 0.6);\n        ear.position.set(s * 0.33, 0.08, 0.05); ear.rotation.z = s * 0.4; break;","        const e = add(new THREE.SphereGeometry(0.08, 10, 8), mEarIn, 0, 0, 0, ear); e.scale.set(1.25, 0.55, 0.5);\n        ear.position.set(s * 0.37, 0.03, 0.05); ear.rotation.z = -s * 0.4; break;")
+g=rep(g,"        for (let k = 0; k < 4; k++) add(new THREE.SphereGeometry(0.06, 8, 6), toon(0xffffff), Math.cos(k * 1.6) * 0.07, Math.sin(k * 1.6) * 0.07, 0.06, ear);","        { const fl = add(new THREE.SphereGeometry(0.105, 16, 10), toon(0xf4f6fa), 0, -0.01, 0.075, ear); fl.scale.z = 0.45; noOL(fl); for (let q = 0; q < 5; q++) { const a = -0.6 + q * 0.8; add(new THREE.SphereGeometry(0.06, 8, 6), mEar, s * Math.cos(a) * 0.17, Math.sin(a) * 0.17, 0, ear).scale.z = 0.6; } }   // one soft fluff patch, scalloped fluffy rim")
+g=rep(g,"        add(new THREE.ConeGeometry(0.07, 0.17, 6), mEar, 0, 0, 0, ear).scale.z = 0.6; ear.position.set(s * 0.2 * fx, 0.3 * fy, -0.05); ear.rotation.z = -s * 0.35;","        add(new THREE.SphereGeometry(0.075, 12, 10), mEar, 0, 0, 0, ear).scale.set(0.72, 1.6, 0.45); noOL(add(new THREE.SphereGeometry(0.05, 10, 8), mEarIn, 0, -0.005, 0.02, ear)).scale.set(0.6, 1.55, 0.4); ear.position.set(s * 0.23 * fx, 0.33 * fy, -0.03); ear.rotation.z = -s * 0.45;")
+g=rep(g,"        const e = add(new THREE.SphereGeometry(0.08, 10, 8), mEarIn, 0, 0, 0, ear); e.scale.set(1.7, 0.6, 0.6);\n        ear.position.set(s * 0.33, 0.08, 0.05); ear.rotation.z = s * 0.4; break;","        const e = add(new THREE.SphereGeometry(0.08, 10, 8), mEarIn, 0, 0, 0, ear); e.scale.set(1.25, 0.55, 0.5);\n        ear.position.set(s * 0.345, -0.03, 0.1); ear.rotation.z = -s * 1.0; break;")
 g=rep(g,'''        add(new THREE.CapsuleGeometry(0.07, 0.46, 4, 10), mEar, 0, 0, 0, ear).scale.z = 0.65; add(new THREE.CapsuleGeometry(0.04, 0.36, 4, 8), mEarIn, 0, 0, 0.035, ear).scale.z = 0.5;
         ear.position.set(s * 0.13, 0.52 * fy, -0.04); ear.rotation.set(-0.12, 0, -s * 0.13); break;   // both ears upright, mirrored
 ''','''        if (V.lop) {   // lop ears: hang from the sides of the head, one flicked forward
@@ -349,7 +373,7 @@ g=rep(g,'''        add(new THREE.CapsuleGeometry(0.07, 0.46, 4, 10), mEar, 0, 0,
         }
         add(new THREE.CapsuleGeometry(0.085, 0.33, 4, 10), mEar, 0, 0, 0, ear).scale.z = 0.65; add(new THREE.CapsuleGeometry(0.05, 0.2, 4, 8), mEarIn, 0, -0.02, 0.04, ear).scale.z = 0.5;   // shorter, fatter ears
         if (V.earTip) { const tp = add(new THREE.SphereGeometry(0.089, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), toon(V.earTip), 0, 0.15, 0, ear); tp.scale.set(1.03, 1.3, 0.7); }   // dipped ear tips
-        ear.position.set(s * (V.earTip ? 0.15 : 0.13), 0.47 * fy, -0.04); ear.rotation.set(-0.12, 0, -s * (V.earTip ? (s === h ? 0.42 : 0.2) : 0.13)); break;   // upright; the dipped pair splays, one ear wider
+        ear.position.set(s * (V.earTip || V.splay ? 0.15 : 0.13), 0.47 * fy, -0.04); ear.rotation.set(-0.12, 0, -s * (V.earTip || V.splay ? (s === h ? 0.42 : 0.2) : 0.13)); break;   // upright; the dipped pair splays, one ear wider
 ''')
 g=rep(g,"        const r = c.id === 'bear' || c.id === 'panda' ? 0.11 : c.id === 'hamster' ? 0.075 : c.id === 'otter' ? 0.065 : 0.1;","        const r = V.smallEars || (c.id === 'bear' || c.id === 'panda' ? 0.11 : c.id === 'hamster' ? 0.075 : c.id === 'otter' ? 0.065 : 0.1);")
 # dragon palette parts
@@ -368,7 +392,7 @@ g=rep(g,'''  if (c.id !== 'sheep' && c.id !== 'unicorn') {
     for (const s of [-1, 1]) { const bw = add(new THREE.ConeGeometry(0.06, 0.1, 4), toon(teamColor), s * 0.06, 0.34 * fy, -0.12, hs); bw.rotation.z = s * Math.PI / 2; }
     add(new THREE.SphereGeometry(0.035, 8, 6), toon(teamColor), 0, 0.34 * fy, -0.12, hs);
   }
-''','''  fuse(eyeRim, mLid); fuse(eyeIris, mIris); fuse(eyePupil, mPupil); fuse(eyeGlint, basic(0xffffff)); fuse(cheek, toon(0xff9a7a));
+''','''  fuse(eyeRim, mLid); fuse(eyeIris, mIris); fuse(eyePupil, mPupil); fuse(eyeGlint, basic(0xffffff)); fuse(cheek, toon(0xff9a7a)); if (eyeLo.length) fuse(eyeLo, toon(V.irisLo));
   const headGear = buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
   const wristGear = [];
 ''')
