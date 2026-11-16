@@ -1832,7 +1832,7 @@ function startLocal(opts) {
   const names = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
   const botHand = () => (Math.random() < 0.18 ? 'L' : 'R');
   const slots = [{ name: profile.name, char: profile.char, ctrl: 'human', assist: settings.assist, hand: settings.hand, gear: myGear() }];
-  if (opts.mode === '2v2') slots.push({ name: names[0], char: pick(), ctrl: 'bot', diff: Math.max(1, d), hand: botHand() });
+  if (opts.mode === '2v2') slots.push({ name: names[0], char: pick(), ctrl: 'bot', diff: 3, hand: botHand() });   // the partner bot always plays at master level
   slots.push({ name: opts.oppName || names[1], char: opts.opp || pick(), ctrl: 'bot', diff: d, hand: botHand() });
   if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand() });
   const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;

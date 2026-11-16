@@ -430,6 +430,7 @@ function doHit(m, a, shotName, target, q, label, pw) {
   s.pred = { x: r.x, z: r.z, t: r.t, inside: Math.abs(r.x) <= m.halfW + 0.02 && Math.abs(r.z) <= HALF_L + 0.02 };
   if (m.serveShot && s.pred.inside && serveFault(m, r.x, r.z, a.team)) s.pred.inside = false;   // wrong box counts as out
   planTeam(m, 1 - a.team, r, s.pred.inside);
+  coverHomes(m, a.team);
   for (const o of m.athletes) if (o.team === a.team && o.ctrl === 'bot') { o.plan = null; o.tx = o.home.x; o.tz = o.home.z; o.jumpAt = -1; }
 }
 
@@ -472,17 +473,35 @@ function chooseTarget(m, a, shotName, aimX, pw) {
 }
 
 // ------------------------------------------------------------------ bots
+// doubles: a bot holds the half of the court its partner is not standing in (sides are re-read on every hit)
+function coverHomes(m, team) {
+  if (!m.doubles) return;
+  const t = m.athletes.filter((o) => o.team === team); if (t.length !== 2) return;
+  const hx = Math.max(Math.abs(t[0].home.x), Math.abs(t[1].home.x), 1), side = t[0].x >= t[1].x ? 1 : -1;
+  if (t[0].ctrl === 'bot') t[0].home.x = side * hx;
+  if (t[1].ctrl === 'bot') t[1].home.x = -side * hx;
+}
+// the mate who is not taking the shuttle: opposite half, and behind a front contact / in front of a deep one
+function coverSpot(b, p, sg, taker, m) {
+  const az = Math.abs(p.z), hx = Math.abs(b.home.x) || 1;
+  b.plan = { yield: true, to: taker.i, t0: m.clock, react: 0 };
+  b.tx = Math.abs(p.x) < 0.4 ? b.home.x : (p.x > 0 ? -hx : hx) * 0.8;
+  b.tz = sg * (az < 2.6 ? 4.3 : az > 4.5 ? 2.9 : Math.abs(b.home.z));
+}
 function planTeam(m, team, r, landIn) {
   const mates = m.athletes.filter((o) => o.team === team);
   const bots = mates.filter((o) => o.ctrl === 'bot');
   const human = mates.find((o) => o.ctrl === 'human');
   if (!bots.length) return;
   const sg = sgn(team);
+  coverHomes(m, team);
+  const rcv = m.doubles && m.serveShot ? m.athletes[m.receiverIdx] : null;   // doubles: only the receiver may return a serve
   const margin = m.serveShot && !landIn ? 1 : Math.max(Math.abs(r.x) - m.halfW, Math.abs(r.z) - HALF_L);
   let best = null;
   for (const b of bots) {
-    b.plan = null; b.jumpAt = -1;
+    b.plan = null; b.jumpAt = -1; b._cand = null;
     const d = DIFF[b.diff];
+    if (rcv && b !== rcv) { b.plan = { leave: true, t0: m.clock, react: d.react }; b.tx = b.home.x; b.tz = b.home.z; continue; }
     if (!landIn && margin > 0.12 && Math.random() < d.judge) { b.plan = { leave: true, t0: m.clock, react: d.react }; b.tx = b.home.x; b.tz = b.home.z; continue; }
     const spd = d.speed * botPace(b) * tired.move(b);
     const jv = b.st.jumpVy * tired.jump(b);
@@ -504,21 +523,23 @@ function planTeam(m, team, r, landIn) {
       const last = r.pts[r.pts.length - 1];
       pick = { x: last.x, z: last.z, y: 0.4, t: last.t, desperate: true };
     }
-    const cost = Math.hypot(pick.x - b.x, pick.z - b.z) - slack * 0.002;
-    b._cand = { pick, cost, react: d.react };
+    const dist = Math.hypot(pick.x - b.x, pick.z - b.z);
+    const cost = dist - slack * 0.002 + (cands.length ? 0 : 2.5);   // a mate who can really get there goes before one who would have to lunge
+    b._cand = { pick, cost, dist, react: d.react };
     if (!best || cost < best._cand.cost) best = b;
   }
   if (!best) return;
   // with a human partner: leave shots on the human's half when they're nearby
-  if (human && best._cand) {
-    const p = best._cand.pick;
-    const humanSide = Math.sign(human.x - best.x) === Math.sign(p.x - (human.x + best.x) / 2);
+  // with a human partner: the nearer one takes it. The human gets it when they are practically there already,
+  // or when the bot could only lunge and the human is closer. The bot then covers and steps in only if the human is far off.
+  if (human && best._cand && !rcv) {
+    const c = best._cand, p = c.pick;
     const hd = Math.hypot(p.x - human.x, p.z - human.z);
-    if (humanSide && hd < 1.6 && hd < best._cand.cost + 0.3) { for (const b of bots) if (!b.plan) { b.tx = b.home.x; b.tz = b.home.z; } return; }
+    if ((hd < 1.4 && hd <= c.dist + 0.3) || (p.desperate && hd < c.dist)) { for (const b of bots) if (!b.plan) coverSpot(b, p, sg, human, m); return; }
   }
   for (const b of bots) {
     if (b.plan) continue;
-    if (b !== best) { b.tx = b.home.x; b.tz = b.home.z; continue; }
+    if (b !== best) { coverSpot(b, best._cand.pick, sg, best, m); continue; }
     const p = b._cand.pick;
     b.plan = { p, react: b._cand.react, t0: m.clock };
     b.tx = p.x - sg * 0.3; b.tz = p.z + sg * 0.25;
@@ -805,10 +826,13 @@ function tickBot(m, a, dt) {
     if (a.jumpAt > 0 && m.clock >= a.jumpAt && a.jumpY === 0) { a.vy = a.st.jumpVy * tired.jump(a); a.jumpY = 0.001; a.jumpAt = -1; useStamina(m, a, 0.005); }   // bots' routine hops to reach high balls
     if (s.live && !s.netted && s.lastTeam !== a.team && !(a.plan && a.plan.leave) && s.p.z * sg > OWN_SIDE) {
       const desperate = a.plan && a.plan.p && a.plan.p.desperate;
+      // this shuttle is the partner's: stay out of it unless the partner is nowhere near and it is about to drop
+      const yl = a.plan && a.plan.yield ? m.athletes[a.plan.to] : null;
+      const mine = !yl || (s.v.y < 0 && s.p.y < 1.4 && Math.hypot(s.p.x - yl.x, s.p.z - yl.z) > 1.5);
       a._extra = desperate && a.diff > 0 ? 0.35 : 0;
       const r = inReach(m, a);
       a._extra = 0;
-      if (r.ok && (s.v.y < 0 || r.dh < 0.55 || s.p.y < 1.2)) {
+      if (mine && r.ok && (s.v.y < 0 || r.dh < 0.55 || s.p.y < 1.2)) {
         if (desperate && r.dh > 0.9 && a.diveT < 0) { a.diveT = 0.2; a.diveDx = 0; a.diveDz = 0; a.stats.dives++; }
         a.swingT = 0; a.swingHigh = s.p.y > 1.3;
         const shot = botChooseShot(m, a);

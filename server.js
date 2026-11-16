@@ -148,7 +148,7 @@ function startMatch(players, opts, room) {
   const BOT_NAMES = ['Bánh Bao', 'Su Su', 'Kẹo Dẻo', 'Bi Bo', 'Mít', 'Xoài', 'Đậu Phộng', 'Cốm', 'Bơ', 'Tí Nị', 'Chè', 'Hạt Tiêu', 'Bông Gòn', 'Na Na'];
   const pool = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
   const slots = players.map((c, i) => (c ? { name: c.name, char: c.char, hand: c.hand || 'R', ctrl: 'human', assist: 1, gear: Eco.equipped(data.players[c.id], Date.now()) }
-    : { name: pool.pop() + ' (bot)', char: Sim.CHARS[Math.floor(Math.random() * Sim.CHARS.length)].id, hand: Math.random() < 0.18 ? 'L' : 'R', ctrl: 'bot', diff: teamHasHuman(Math.floor(i / per)) ? 2 : 1 }));
+    : { name: pool.pop() + ' (bot)', char: Sim.CHARS[Math.floor(Math.random() * Sim.CHARS.length)].id, hand: Math.random() < 0.18 ? 'L' : 'R', ctrl: 'bot', diff: teamHasHuman(Math.floor(i / per)) ? 3 : 2 }));
   // PvP is level: everyone gets the same hit help (press early is fine) and nobody gets auto-movement
   const sim = Sim.createMatch({ mode: opts.mode, points: opts.points, games: opts.games === 3 ? 3 : 1, venue: opts.venue, slots, hitStop: true, moveAssist: false, autoSave: false });
   const m = { id: 'm' + matchSeq++, sim, players: players.slice(), spectators: new Set(), left: players.map(() => null), room: room ? room.code : null, tick: 0, ended: false, rematch: new Set(), lastIn: players.map(() => ({ h: 0, j: 0, d: 0, e: 0 })) };
@@ -226,7 +226,7 @@ function leaveMatch(c, reason, grace) {
     const a = m.sim.athletes[i];
     // the seat stays theirs: a bot plays it until they come back (rejoin) or the match ends
     m.left[i] = { id: c.id, name: a.name, diff: a.diff };
-    a.ctrl = 'bot'; a.diff = 2; a.name = 'Bot'; a.input = { x: 0, y: 0, hit: false, jump: false, dive: false, emote: 0 };
+    a.ctrl = 'bot'; a.diff = 3; a.name = 'Bot'; a.input = { x: 0, y: 0, hit: false, jump: false, dive: false, emote: 0 };
     if (!m.players.some(Boolean)) {
       // nobody left. After a lost connection the match keeps running for a while so the player can get back in;
       // after a deliberate exit it stops at once (as before), so a room is not blocked by a match nobody is in.
