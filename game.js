@@ -59,7 +59,13 @@ const ACH = [
   { id: 'champ',     ic: '🏆', name: 'Nhà vô địch', desc: 'Vô địch Giải đấu Shuttle Paws.', test: (c) => c.champ },
   { id: 'bo3',       ic: '🎖️', name: 'Bản lĩnh 3 ván', desc: 'Thắng một trận 3 ván.', test: (c) => c.won && c.games > 1 },
 ];
-const isUnlocked = (c) => !c.unlock || achieved[c.unlock];
+// wallet: last state the server sent (gold, owned characters, prices, login streak, quests); cached only for display
+let wallet = store.get('sp.wallet', null);
+const FREE_OWNED = ['cat', 'bunny', 'bear', 'panda'];
+const ownedChars = () => (wallet && wallet.owned) || FREE_OWNED;
+const charPrice = (id) => (wallet && wallet.prices && wallet.prices[id]) || 0;
+// usable = owned (free or bought with gold) or earned through its achievement
+const isUnlocked = (c) => ownedChars().includes(c.id) || !!(c.unlock && achieved[c.unlock]);
 const charById = (id) => S.CHARS.find((c) => c.id === id) || S.CHARS[0];
 if (!isUnlocked(charById(profile.char))) profile.char = 'cat';
 
@@ -2025,6 +2031,48 @@ $('chatBtn').onclick = openChat;
   $('emoteBtn').onclick = () => w.classList.toggle('hidden');
 })();
 
+// ================================================================ economy (the server owns every number; the client only shows them)
+function onWallet(msg) {
+  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft };
+  store.set('sp.wallet', wallet);
+  if (!isUnlocked(charById(profile.char))) { profile.char = 'cat'; saveAll(); Net.profile(); }
+  const g = msg.grant;
+  if (g && g.gold > 0) {
+    Sound.ach();
+    if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast"><i class="coin"></i>+${g.gold} vàng<small>${esc(g.why)}</small></div>`);
+    else toast('+' + g.gold + ' vàng', g.why, 'star');
+  } else if (g && g.why && (screen === 'rewards' || !$('over').classList.contains('hidden'))) toast(g.why, '', 'clock');
+  const b = msg.bought;
+  if (b && b.ok) { profile.char = b.char; infoChar = b.char; saveAll(); Net.profile(); Sound.ach(); toast('Đã mở khoá ' + charById(b.char).name, '−' + b.spent + ' vàng', 'check'); showPreview(true); }
+  else if (b) toast(b.why, '', 'lock');
+  renderWallet();
+}
+function renderWallet() {
+  $('homeGold').textContent = wallet ? wallet.gold : '…';
+  const n = wallet ? (wallet.login.can ? 1 : 0) + wallet.quests.filter((q) => q.prog >= q.goal && !q.claimed).length : 0;
+  $('rewardDot').textContent = n; $('rewardDot').classList.toggle('hidden', !n);
+  if (screen === 'rewards') renderRewards();
+  if (screen === 'chars') renderChars();
+}
+function renderRewards() {
+  const el = $('rewardsBody');
+  if (!wallet) { el.innerHTML = '<p class="tiny">Đang kết nối máy chủ… Vàng và nhiệm vụ cần có mạng.</p>'; return; }
+  const L = wallet.login, done = L.can ? L.streak - 1 : L.streak;
+  const days = L.rewards.map((r, i) => `<div class="login-day${i < done ? ' done' : ''}${L.can && i === L.streak - 1 ? ' now' : ''}"><small>Ngày ${i + 1}</small><b><i class="coin"></i>${r}</b></div>`).join('');
+  const quests = wallet.quests.map((q) => {
+    const ok = q.prog >= q.goal;
+    return `<div class="quest"><div class="q-main"><b>${esc(q.name)}</b><div class="q-bar"><i style="width:${Math.round(q.prog / q.goal * 100)}%"></i></div><small>${q.prog}/${q.goal}</small></div>` +
+      `<button class="pill" data-quest="${q.id}" ${ok && !q.claimed ? '' : 'disabled'}>${q.claimed ? 'Đã nhận' : `<i class="coin"></i>${q.reward}`}</button></div>`;
+  }).join('');
+  el.innerHTML = `<p class="gold-line"><span class="gold-chip"><i class="coin"></i><b>${wallet.gold}</b></span></p>` +
+    `<h3>Quà đăng nhập</h3><div class="login-row">${days}</div>` +
+    `<button class="cta" id="loginClaim" ${L.can ? '' : 'disabled'}>${L.can ? `Nhận quà ngày ${L.streak} · ${L.reward} vàng` : 'Hôm nay đã nhận · mai quay lại nhé'}</button>` +
+    `<h3>Nhiệm vụ hôm nay</h3>${quests}` +
+    `<p class="tiny">Thắng bot: 20–60 vàng tuỳ độ khó · thắng online: 60 vàng. Vàng đấu bot hôm nay còn nhận được: ${wallet.localLeft}.</p>`;
+  $('loginClaim').onclick = () => { Sound.boop(); Net.send({ t: 'claimLogin' }); };
+  el.querySelectorAll('[data-quest]').forEach((b) => { b.onclick = () => { Sound.boop(); Net.send({ t: 'claimQuest', id: b.dataset.quest }); }; });
+}
+
 // ================================================================ events
 const LABELS = { perfect: ['Perfect!', 'perfect'], good: ['Tốt', 'good'], late: ['Muộn!', 'bad'], early: ['Sớm!', 'bad'], smash: ['ĐẬP!', 'smash'], save: ['Cứu!', 'good'] };
 function handleEvent(e) {
@@ -2129,6 +2177,7 @@ function finishMatch(res) {
   if (tourMsg) $('rematchInfo').innerHTML = tourMsg;
   if (me >= 0) {
     if (won) Sound.win(); else Sound.lose();
+    if (session.kind === 'local') Net.send({ t: 'localResult', win: won, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
     P.longest = Math.max(P.longest, res.longest || 0);
@@ -3569,7 +3618,7 @@ function cycleCam() {
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
 }
 $('camBtn').onclick = cycleCam;
-const SCREENS = ['home', 'bot', 'tour', 'chars', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
+const SCREENS = ['home', 'bot', 'tour', 'chars', 'rewards', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
 let screen = 'home';
 function hideScreens() { for (const s of SCREENS) $('s-' + s).classList.add('hidden'); showPreview(false); }
 let charsBack = 'home';
@@ -3581,7 +3630,7 @@ function go(name) {
   for (const s of SCREENS) $('s-' + s).classList.toggle('hidden', s !== name);
   $('searching').classList.add('hidden'); $('over').classList.add('hidden');
   showPreview(true);
-  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, stats: renderStats, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
+  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, rewards: renderRewards, stats: renderStats, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { Sound.init(); Sound.boop(); go(b.dataset.go); }));
 
@@ -3595,6 +3644,7 @@ function seg(id, getter, setter) {
 function renderHome() {
   const c = charById(profile.char);
   $('homeFace').innerHTML = faceImg(c.id); $('homeName').textContent = profile.name; $('homeChar').textContent = c.name + ' · ' + c.kind;
+  renderWallet();
   $('homeStats').textContent = `${P.matches} trận · ${P.wins} thắng · ${Object.keys(achieved).length}/${ACH.length} thành tích`;
   $('homeTour').textContent = tour.cups ? `${tour.cups} cúp · đang ở ${TOUR[tour.round].name}` : tour.round ? `Đang ở ${TOUR[tour.round].name} · cố lên!` : '5 vòng đấu loại trực tiếp · giành cúp vô địch';
 }
@@ -3681,14 +3731,16 @@ function renderChars() {
     grid.appendChild(b);
   });
   const c = charById(infoChar), ok = isUnlocked(c);
-  const req = c.unlock ? ACH.find((a) => a.id === c.unlock) : null;
+  const req = c.unlock ? ACH.find((a) => a.id === c.unlock) : null, price = charPrice(c.id);
   const bars = [['Tốc độ', 'spd'], ['Bật nhảy', 'jmp'], ['Lực đập', 'pow'], ['Tầm với', 'rch'], ['Khéo léo', 'ctl'], ['Thể lực', 'sta']]
     .map(([n, k]) => `<span>${n}</span><div class="bar"><i style="width:${c.stats[k] * 20}%"></i></div>`).join('');
   $('stageName').innerHTML = `${esc(c.name)}<small>${esc(c.kind)}${ok ? '' : ' · ' + icon('lock') + ' Chưa mở khoá'}</small>`;
   $('charsDone').textContent = charsBack === 'bot' ? 'Chọn & vào trận' : charsBack === 'room' ? 'Chọn & về phòng' : 'Chọn';
   $('charsDone').disabled = !ok;
   $('charInfo').innerHTML = `<h3>${faceImg(c.id)}${esc(c.name)} <small style="color:var(--ink2)">· ${esc(c.kind)}</small></h3><p>${esc(c.desc)}</p>` +
-    (ok ? '' : `<p>${icon('lock')} Mở khoá: <b>${esc(req ? req.name : '')}</b>, ${esc(req ? req.desc : '')}</p>`) + `<div class="bars">${bars}</div>`;
+    (ok ? '' : (req ? `<p>${icon('lock')} Mở khoá: <b>${esc(req.name)}</b>, ${esc(req.desc)}${price ? ' · hoặc mua bằng vàng' : ''}</p>` : '') +
+      (price ? `<button class="cta" id="charBuy" ${wallet && wallet.gold >= price ? '' : 'disabled'}><i class="coin"></i>Mua · ${price} vàng</button><p class="tiny">Bạn đang có ${wallet ? wallet.gold : 0} vàng${wallet && wallet.gold < price ? ' · còn thiếu ' + (price - wallet.gold) : ''}</p>` : '')) + `<div class="bars">${bars}</div>`;
+  if ($('charBuy')) $('charBuy').onclick = () => { Sound.boop(); Net.send({ t: 'buyChar', id: c.id }); };
 }
 $('nameInput').addEventListener('change', () => { profile.name = $('nameInput').value.trim().slice(0, 18) || randomName(); saveAll(); Net.profile(); });
 $('randName').onclick = () => { profile.name = randomName(); $('nameInput').value = profile.name; saveAll(); Net.profile(); Sound.boop(); };
@@ -3775,6 +3827,7 @@ const Net = {
   status(text, ok) { const el = $('netStatus'); el.textContent = text; el.classList.toggle('ok', ok); },
   onMsg(msg) {
     switch (msg.t) {
+      case 'wallet': onWallet(msg); break;
       case 'welcome':
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);
@@ -3950,6 +4003,7 @@ document.body.classList.toggle('tswap', !!settings.touchSwap);   // touch contro
 resize();
 const roomParam = new URLSearchParams(location.search).get('room');
 if (roomParam) { Net.pendingJoin = roomParam.toUpperCase(); go('online'); } else go('home');
+Net.connect();   // the wallet (gold, owned characters, rewards) lives on the server, so connect from the start
 window.__sp = () => session && { kind: session.kind, state: session.m.state, score: session.m.score.slice(), me: session.me, last: session.m.shuttle.last, rally: session.m.rally, over: session.over };
 window.__spDebug = { Net, startLocal, go, contactFit: fitMatchRacket, matchClips: () => ({ enabled: matchClipsEnabled, clips: session ? session.models.map(md => md.matchClip || null) : [] }),
   lab: { THREE, scene, buildCharacter, charById, setVenue, disposeTree, hideScreens, camera, setFree: (c) => { freeCam = c; }, chars: S.CHARS }, setCam: (o) => { camOverride = o; }, speed: (k) => { debugSpeed = k; }, pose: (p) => { debugPose = p; }, meter: () => (tm.shown ? tm.t : null),

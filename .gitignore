@@ -25,3 +25,4 @@ data.json
 node_modules/
 __pycache__/
 *.pyc
+!/economy.js

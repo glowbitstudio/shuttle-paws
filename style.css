@@ -776,3 +776,23 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
   .touchui #hint{top:auto;bottom:calc(24px + env(safe-area-inset-bottom));max-width:34vw;opacity:.9}
   .touchui #serveClock{top:max(48px,calc(env(safe-area-inset-top) + 46px));right:max(8px,env(safe-area-inset-right))}
 }
+
+/* ---- economy: wallet chip, rewards screen, buy button */
+.wallet-row{display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 12px}
+.gold-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.28);border:2px solid rgba(255,215,106,.55);color:#ffd76a;font-weight:900;font-size:17px}
+.coin{display:inline-block;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc531 55%,#d99200);box-shadow:inset 0 -2px 0 rgba(0,0,0,.22);vertical-align:-2px;margin-right:4px;flex:none}
+#rewardDot{display:inline-block;margin-left:7px;min-width:20px;height:20px;border-radius:10px;background:#ff4d6a;color:#fff;font-size:12px;font-style:normal;line-height:20px;text-align:center;padding:0 4px;vertical-align:1px}
+#rewardDot.hidden{display:none}
+#rewardsBody h3{margin:16px 0 8px}
+.gold-line{text-align:center;margin:0}
+.login-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.login-day{text-align:center;border-radius:12px;padding:8px 2px;background:var(--card,rgba(255,255,255,.1));border:2px solid transparent}
+.login-day small{display:block;opacity:.8;font-size:11px}.login-day b{font-size:14px;white-space:nowrap}
+.login-day.done{opacity:.45}.login-day.now{border-color:#ffd76a;box-shadow:0 0 0 3px rgba(255,215,106,.2)}
+.quest{display:flex;align-items:center;gap:10px;background:var(--card,rgba(255,255,255,.1));border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.quest .q-main{flex:1;min-width:0}.quest small{opacity:.8}
+.q-bar{height:8px;border-radius:4px;background:rgba(0,0,0,.3);margin:5px 0 2px;overflow:hidden}.q-bar i{display:block;height:100%;background:#ffd76a;border-radius:4px}
+.pill:disabled,.cta:disabled{opacity:.5;cursor:default}
+#charBuy{margin:8px 0 4px;font-size:18px;padding:10px}
+@media (max-width:520px){.login-row{grid-template-columns:repeat(4,1fr)}}
+

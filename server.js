@@ -8,6 +8,7 @@ const { WebSocketServer } = require('ws');
 const zlib = require('zlib');
 const ZIP_EXT = new Set(['.js', '.css', '.html', '.json', '.svg', '.webmanifest']);
 const Sim = require('./sim.js');
+const Eco = require('./economy.js');
 
 const PORT = +process.env.PORT || 3040;
 const ROOT = __dirname;
@@ -64,6 +65,8 @@ const send = (c, msg) => { if (c && c.ws.readyState === 1) c.ws.send(JSON.string
 const clean = (s, n) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
 const code5 = () => { let c; do c = Math.random().toString(36).slice(2, 7).toUpperCase(); while (rooms.has(c)); return c; };
 const validChar = (id) => (Sim.CHARS.some((c) => c.id === id) ? id : 'cat');
+// a character that has to be bought can only be used by its owner
+const ownedChar = (c, id) => { const v = validChar(id), p = data.players[c.id]; return p && Eco.canUse(p, v, Date.now()) ? v : 'cat'; };
 
 function onlineCount() { return clients.size; }
 
@@ -164,6 +167,8 @@ function endMatch(m) {
     p.played = (p.played || 0) + 1;
     if (a.team === w) p.wins = (p.wins || 0) + 1;
     p.name = c.name;
+    const grant = Eco.grantOnline(p, a.team === w, Date.now());   // gold + quest progress for a finished online match
+    if (c.match === m.id) send(c, Object.assign(Eco.view(p, Date.now()), { grant }));
   });
   save();
   const summary = { t: 'over', id: m.id, winner: w, score: m.sim.score, games: m.sim.games, gameScores: m.sim.gameScores, stats: m.sim.athletes.map((a) => ({ name: a.name, ...a.stats })), longest: m.sim.longest };
@@ -197,14 +202,22 @@ const handlers = {
     if (!rec || rec.secret !== secret) { id = crypto.randomUUID(); secret = crypto.randomBytes(18).toString('hex'); data.players[id] = { secret, name: '', wins: 0, played: 0 }; save(); }
     c.id = id;
     c.name = clean(msg.name, 18) || 'Khách';
-    c.char = validChar(msg.char); c.hand = msg.hand === 'L' ? 'L' : 'R';
+    Eco.ensure(data.players[id], Date.now(), validChar(msg.char));
+    c.char = ownedChar(c, msg.char); c.hand = msg.hand === 'L' ? 'L' : 'R';
     c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     data.players[id].name = c.name;
     send(c, { t: 'welcome', id, secret, online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
+    send(c, Eco.view(data.players[id], Date.now())); save();
   },
+  // ---- economy: every change is made here, from the server's own record
+  wallet(c) { send(c, Eco.view(data.players[c.id], Date.now())); },
+  localResult(c, msg) { const p = data.players[c.id], grant = Eco.grantLocal(p, msg, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  claimLogin(c) { const p = data.players[c.id], grant = Eco.claimLogin(p, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  claimQuest(c, msg) { const p = data.players[c.id], grant = Eco.claimQuest(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  buyChar(c, msg) { const p = data.players[c.id], bought = Eco.buyChar(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { bought })); },
   profile(c, msg) {
     if (msg.name) c.name = clean(msg.name, 18) || c.name;
-    if (msg.char) c.char = validChar(msg.char);
+    if (msg.char) c.char = ownedChar(c, msg.char);
     if (msg.hand) c.hand = msg.hand === 'L' ? 'L' : 'R';
     if (msg.assist !== undefined) c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     const r = c.room && rooms.get(c.room); if (r) broadcastRoom(r);
