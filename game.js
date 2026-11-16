@@ -2121,7 +2121,7 @@ function renderWallet() {
   if (screen === 'rewards') renderRewards();
   if (screen === 'chars') renderChars();
   if (screen === 'gear') { renderGear(); showPreview(true); }
-  if (screen === 'home') { const c = charById(profile.char); $('homeChar').textContent = c.name + ' · ' + c.kind + ' · Sức mạnh ' + S.powerOf(c.id, myGear()); }
+  if (screen === 'home') { const c = charById(profile.char); $('homeChar').textContent = c.name + ' · Sức mạnh ' + S.powerOf(c.id, myGear()); }
 }
 function renderRewards() {
   const el = $('rewardsBody');
@@ -3243,9 +3243,10 @@ const shuttleNdc = new THREE.Vector3();
 function updateCamera(dt, t) {
   const portrait = viewH > viewW;
   let tx, ty, tz, lx, ly, lz;
-  if (!session && (screen === 'chars' || screen === 'gear')) {
-    const side = portrait ? 0 : 1.35;
-    tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (portrait ? 7.2 : 5.6); lx = side; ly = portrait ? -1.0 : 1.2; lz = 3.2;
+  if (!session && (screen === 'chars' || screen === 'gear' || screen === 'home')) {
+    const side = portrait ? 0 : screen === 'home' ? 0.55 : 1.35;
+    const lob = portrait && screen === 'home';   // lobby on a tall screen: the character stands just above the buttons, a little closer
+    tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (lob ? 6.3 : portrait ? 7.2 : 5.6); lx = side; ly = lob ? 0.35 : portrait ? -1.0 : 1.2; lz = 3.2;
   } else if (!session) {
     const a = t * 0.15;
     tx = Math.sin(a) * 2.4; ty = 2.6; tz = 3.2 + Math.cos(a) * 1.0 + 4.4; lx = 0; ly = 1.2; lz = 3.2;
@@ -3635,7 +3636,7 @@ function frame(now) {
   }
   if (preview) {
     const st = t - previewSwing;
-    preview.root.rotation.y = screen === 'chars' || screen === 'gear' ? -0.35 + Math.sin(t * 0.7) * 0.35 : Math.sin(t * 0.8) * 0.5;
+    preview.root.rotation.y = screen === 'chars' || screen === 'gear' || screen === 'home' ? -0.35 + Math.sin(t * 0.7) * 0.35 : Math.sin(t * 0.8) * 0.5;
     preview.body.position.y = Math.abs(Math.sin(t * 3)) * 0.1 + (st < 0.6 ? Math.sin(st / 0.6 * Math.PI) * 0.45 : 0);
     if (preview.podium) { const sg = preview.podium.userData.stars; sg.rotation.y = t * 0.5; sg.children.forEach((c, i) => { c.position.y = 0.6 + (i % 3) * 0.5 + Math.sin(t * 2 + i) * 0.12; c.rotation.y = t * 3; }); }
     if (st < 0.7) setArm(preview, 'arm', swingPose(true, st / 0.7), 0, rdt);
@@ -3713,10 +3714,10 @@ function seg(id, getter, setter) {
 
 function renderHome() {
   const c = charById(profile.char);
-  $('homeFace').innerHTML = faceImg(c.id); $('homeName').textContent = profile.name; $('homeChar').textContent = c.name + ' · ' + c.kind;
+  $('homeFace').innerHTML = faceImg(c.id); $('homeName').textContent = profile.name; $('homeChar').textContent = c.name + ' · Sức mạnh ' + S.powerOf(c.id, myGear());
   renderWallet();
   $('homeStats').textContent = `${P.matches} trận · ${P.wins} thắng · ${Object.keys(achieved).length}/${ACH.length} thành tích`;
-  $('homeTour').textContent = tour.cups ? `${tour.cups} cúp · đang ở ${TOUR[tour.round].name}` : tour.round ? `Đang ở ${TOUR[tour.round].name} · cố lên!` : '5 vòng đấu loại trực tiếp · giành cúp vô địch';
+  $('homeTour').textContent = tour.cups ? `${tour.cups} cúp · đang ở ${TOUR[tour.round].name}` : tour.round ? `Đang ở ${TOUR[tour.round].name} · cố lên!` : '5 vòng đấu loại trực tiếp';
 }
 
 function renderTour() {
