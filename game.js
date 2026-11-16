@@ -1152,7 +1152,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   root.add(body); body.scale.setScalar((scale || 1.0) * (1 + (P.size - 1) * 0.5));   // species size differences kept subtle
   const mBody = toon(c.body), mBelly = toon(c.belly), mDark = toon(0x2b2220), mEarIn = toon(c.earIn);
   const mEar = c.earCol ? toon(c.earCol) : mBody;
-  const mJersey = toon(teamColor), mTrim = toon(0xffffff), mShorts = toon(GL.shorts !== undefined ? GL.shorts : shadeHex(teamColor, -0.62)), mKit = toon(GL.shirt !== undefined ? GL.shirt : V.accent);
+  const mJersey = toon(teamColor), mTrim = toon(0xffffff), mShorts = toon(GL.shorts !== undefined ? GL.shorts : shadeHex(teamColor, -0.62)), mKit = GL.shirt !== undefined ? mJersey : toon(V.accent), mShirt = GL.shirt !== undefined ? toon(GL.shirt) : mJersey;   // a worn shirt colours the whole shirt; its trims then carry the team colour
   const mShoe = GL.shoes !== undefined ? toon(GL.shoes) : mTrim, mWristG = GL.wrist !== undefined ? toon(GL.wrist) : null;
   const limbMat = c.patches ? mDark : mBody;
   const pawMat = P.darkPaws ? toon(P.darkPaws) : limbMat;
@@ -1176,7 +1176,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     thigh.rotation.order = 'ZYX';
     const legMat = P.darkPaws ? pawMat : limbMat;
     add(new THREE.SphereGeometry(0.098, 14, 8), mShorts, 0, 0.0, 0, thigh);                 // hip ball: no gap under the shorts when the thigh swings
-    const lg = add(new THREE.CylinderGeometry(0.1, 0.106, 0.12, 16), mShorts, 0, 0.02, 0, thigh); lg.rotation.z = s * 0.08;   // shorts leg
+    const lgLen = 0.08 + Math.min(L1 * 0.9, 0.12);                                           // shorts leg: down to just above the knee, flared, so it reads as shorts and not briefs
+    const lg = add(new THREE.CylinderGeometry(0.1, 0.122, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
+    const lgHem = add(new THREE.TorusGeometry(0.121, 0.009, 6, 20), mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem);   // white leg hem
     add(new THREE.CapsuleGeometry(0.078, Math.max(0.01, L1 - 0.04), 4, 12), legMat, 0, -L1 / 2, -0.005, thigh);   // thigh
     const knee = new THREE.Group(); knee.position.set(0, -L1, 0); thigh.add(knee);
     add(new THREE.SphereGeometry(0.074, 12, 8), legMat, 0, 0, -0.008, knee);                   // knee cap: smooth bend, no kink
@@ -1199,7 +1201,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const U = (geo, mat, x, y, z) => add(geo, mat, x, y, z, up);
   const tc = 0.52 + (ty - 1.08) * 0.27;            // torso centre: grows upward so the bottom stays on the shorts
   const shorts = add(new THREE.CylinderGeometry(0.225, 0.215, 0.1, 18), mShorts, 0, 0.37, 0, upH); shorts.scale.set(tx, 1, 0.88 * tz);
-  const torso = U(new THREE.SphereGeometry(0.27, 20, 16), mJersey, 0, tc, 0); torso.scale.set(tx, ty, tz);
+  const torso = U(new THREE.SphereGeometry(0.27, 20, 16), mShirt, 0, tc, 0); torso.scale.set(tx, ty, tz);
   const hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(0.11 / (0.27 * ty), 2)) + 0.004, 0.012, 6, 30), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mKit, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
   if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
@@ -1540,8 +1542,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const shX = clamp(0.27 * tx, 0.23, 0.33), shY = tc + 0.13;
   const mkArm = (side) => {
     const sh = new THREE.Group(); sh.position.set(shX * side, shY, 0.0); up.add(sh);
-    add(new THREE.SphereGeometry(0.076, 14, 10), V.kit === 'sleeves' ? mKit : mJersey, 0, 0, 0, sh);   // sleeve
-    const cuff = add(new THREE.TorusGeometry(0.058, 0.012, 6, 18), V.kit === 'sleeves' ? mJersey : mKit, 0, -0.045, 0, sh); cuff.rotation.x = Math.PI / 2; noOL(cuff);   // sleeve hem
+    add(new THREE.SphereGeometry(0.076, 14, 10), V.kit === 'sleeves' ? mKit : mShirt, 0, 0, 0, sh);   // sleeve
+    const cuff = add(new THREE.TorusGeometry(0.058, 0.012, 6, 18), V.kit === 'sleeves' ? mShirt : mKit, 0, -0.045, 0, sh); cuff.rotation.x = Math.PI / 2; noOL(cuff);   // sleeve hem
     add(new THREE.CapsuleGeometry(0.046, 0.095, 4, 12), limbMat, 0, -0.088, 0, sh);              // upper arm
     const el = new THREE.Group(); el.position.set(0, -0.165, 0); sh.add(el);
     add(new THREE.SphereGeometry(0.047, 12, 8), limbMat, 0, 0, 0, el);                          // elbow
