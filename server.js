@@ -74,7 +74,7 @@ function roomView(r) {
   return {
     code: r.code, mode: r.mode, points: r.points, games: r.games || 1, venue: r.venue, open: r.open, host: r.host,
     state: r.match ? 'playing' : 'lobby',
-    slots: r.slots.map((c) => (c ? { id: c.id, name: c.name, char: c.char } : null)),
+    slots: r.slots.map((c) => (c ? { id: c.id, name: c.name, char: c.char, power: Sim.powerOf(c.char, Eco.equipped(data.players[c.id], Date.now())) } : null)),
     bench: r.bench.map((c) => ({ id: c.id, name: c.name, char: c.char })),
   };
 }
@@ -147,7 +147,7 @@ function startMatch(players, opts, room) {
   const teamHasHuman = (t) => players.some((c, i) => c && Math.floor(i / per) === t);
   const BOT_NAMES = ['Bánh Bao', 'Su Su', 'Kẹo Dẻo', 'Bi Bo', 'Mít', 'Xoài', 'Đậu Phộng', 'Cốm', 'Bơ', 'Tí Nị', 'Chè', 'Hạt Tiêu', 'Bông Gòn', 'Na Na'];
   const pool = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
-  const slots = players.map((c, i) => (c ? { name: c.name, char: c.char, hand: c.hand || 'R', ctrl: 'human', assist: 1 }
+  const slots = players.map((c, i) => (c ? { name: c.name, char: c.char, hand: c.hand || 'R', ctrl: 'human', assist: 1, gear: Eco.equipped(data.players[c.id], Date.now()) }
     : { name: pool.pop() + ' (bot)', char: Sim.CHARS[Math.floor(Math.random() * Sim.CHARS.length)].id, hand: Math.random() < 0.18 ? 'L' : 'R', ctrl: 'bot', diff: teamHasHuman(Math.floor(i / per)) ? 2 : 1 }));
   // PvP is level: everyone gets the same hit help (press early is fine) and nobody gets auto-movement
   const sim = Sim.createMatch({ mode: opts.mode, points: opts.points, games: opts.games === 3 ? 3 : 1, venue: opts.venue, slots, hitStop: true, moveAssist: false, autoSave: false });
@@ -166,7 +166,7 @@ function startMatch(players, opts, room) {
 function startMsg(m, you) {
   return { t: 'start', id: m.id, mode: m.sim.opts.mode, points: m.sim.opts.points, games: m.sim.opts.games, venue: m.sim.opts.venue, you,
     // diff (bots only) lets clients predict when a server bot will hit; optional field, older clients ignore it
-    slots: m.sim.athletes.map((a) => (a.ctrl === 'bot' ? { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl, diff: a.diff } : { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl })), room: m.room };
+    slots: m.sim.athletes.map((a) => (a.ctrl === 'bot' ? { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl, diff: a.diff } : { name: a.name, char: a.char, hand: a.hand, ctrl: a.ctrl, gear: a.gear })), room: m.room };
 }
 function tickMatch(m) {
   if (m.ended) return;
@@ -276,6 +276,8 @@ const handlers = {
   localResult(c, msg) { const p = data.players[c.id], grant = Eco.grantLocal(p, msg, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimLogin(c) { const p = data.players[c.id], grant = Eco.claimLogin(p, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimQuest(c, msg) { const p = data.players[c.id], grant = Eco.claimQuest(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  buyGear(c, msg) { const p = data.players[c.id], boughtGear = Eco.buyGear(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { boughtGear })); },
+  equip(c, msg) { const p = data.players[c.id]; Eco.equip(p, clean(msg.slot, 10), msg.id ? clean(msg.id, 20) : null, Date.now()); save(); send(c, Eco.view(p, Date.now())); },
   buyChar(c, msg) { const p = data.players[c.id], bought = Eco.buyChar(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { bought })); },
   profile(c, msg) {
     if (msg.name) c.name = clean(msg.name, 18) || c.name;

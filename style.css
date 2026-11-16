@@ -820,8 +820,31 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
    name + buy button sit just above the panel; the confirm button stays in view while the list scrolls */
 @media (max-width:820px), (orientation:portrait){
   .screen.stage .panel.side{max-height:52vh}
-  .screen.stage .stage-name{top:auto;bottom:calc(52vh + 20px);font-size:24px}
+  body .stage-name{top:auto;bottom:calc(52vh + 20px);font-size:24px}
   .stage-buy{font-size:16px;padding:7px 18px;margin-top:6px}
 }
 .panel.side #charsDone{position:sticky;bottom:0;z-index:2}
 .panel.side #charsDone:disabled{opacity:1;filter:grayscale(.75) brightness(.7)}
+
+/* ---- gear / shop */
+.menu-row{grid-template-columns:repeat(6,1fr)}
+@media (max-width:640px){.menu-row{grid-template-columns:repeat(3,1fr)}}
+.gear-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px}
+#gearTabs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:10px}
+#gearTabs button{position:relative;border:0;border-radius:12px;padding:8px 2px;font-family:var(--display);font-weight:800;font-size:13px;color:#fff;background:rgba(255,255,255,.1);cursor:pointer}
+#gearTabs button.on{background:linear-gradient(180deg,#ffd76a,#ffb531);color:#3b2a00}
+#gearTabs .has{position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:#5fe08a}
+.gear-item{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:7px;border-radius:14px;background:var(--card,rgba(255,255,255,.08));border:2px solid transparent;cursor:pointer}
+.gear-item.try{border-color:rgba(255,255,255,.55)}.gear-item.worn{border-color:#5fe08a}
+.gear-item .sw{flex:none;width:30px;height:30px;border-radius:9px;border:2px solid rgba(255,255,255,.6);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.gear-item .gi{flex:1;min-width:0}.gear-item .gi small{display:block;opacity:.8;font-size:12px;line-height:1.25;margin-top:2px}
+.gear-item .rar{margin-left:7px;font-size:11px;font-weight:800;opacity:.9}
+.gear-item.r0 .rar{color:#cfd3ff}.gear-item.r1 .rar{color:#7fc4ff}.gear-item.r2 .rar{color:#e3a3ff}
+.gear-item .mods{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.gear-item .mods em{font-style:normal;font-size:12px;font-weight:800;padding:1px 7px;border-radius:999px}
+.mods .up,.bars b.up{color:#7ff0a8}.mods .dn,.bars b.dn{color:#ff9c9c}
+.mods .up{background:rgba(95,224,138,.16)}.mods .dn{background:rgba(255,120,120,.16)}
+.gear-item .pill{flex:none}.gear-item .pill.buy{background:linear-gradient(180deg,#ffe08a,#ffb531);color:#3b2a00}
+#gearStats{grid-template-columns:auto 1fr 44px}#gearStats b{font-size:12px;text-align:right}
+.slot .pw{margin-left:8px;font-size:11px;font-weight:800;opacity:.75}
+

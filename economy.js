@@ -2,6 +2,7 @@
 // Shuttle Paws economy (server side only; never served to clients). Everything a player owns lives in the server's
 // player record under `eco` and only changes through the functions below, so a client cannot give itself gold or characters.
 // Local (vs bot) matches run in the browser and cannot be verified here: their rewards are small, rate-limited and capped per day.
+const Sim = require('./sim.js');
 const DAY_MS = 86400000, TZ_MS = 7 * 3600000;                       // days roll over at midnight Vietnam time
 const dayOf = (now) => Math.floor((now + TZ_MS) / DAY_MS);
 
@@ -30,6 +31,8 @@ function ensure(p, now, char) {
     if (MUST_OWN.includes(char)) p.eco.owned.push(char);            // players from before the shop keep the character they had picked
   }
   const e = p.eco;
+  if (!e.items) e.items = [];
+  if (!e.equip) e.equip = {};
   if (e.quests.day !== d) e.quests = { day: d, prog: {}, claimed: [] };
   if (e.local.day !== d) e.local = { day: d, gold: 0, last: e.local.last || 0 };
   return e;
@@ -40,6 +43,7 @@ function view(p, now) {
   const next = e.login.day === d - 1 ? e.login.streak % LOGIN_REWARDS.length + 1 : 1;   // the streak day a claim today would be
   return {
     t: 'wallet', gold: e.gold, owned: e.owned.slice(), prices: PRICES, free: FREE_CHARS,
+    items: e.items.slice(), equip: Object.assign({}, e.equip),
     login: { can: canLogin, streak: canLogin ? next : e.login.streak, reward: canLogin ? LOGIN_REWARDS[next - 1] : 0, rewards: LOGIN_REWARDS },
     quests: QUESTS.map((q) => ({ id: q.id, name: q.name, goal: q.goal, reward: q.reward, prog: Math.min(q.goal, e.quests.prog[q.key] || 0), claimed: e.quests.claimed.includes(q.id) })),
     localLeft: Math.max(0, LOCAL_DAILY_CAP - e.local.gold),
@@ -90,4 +94,24 @@ function buyChar(p, id, now) {
 // may this player use the character online?
 const canUse = (p, id, now) => !MUST_OWN.includes(id) || ensure(p, now).owned.includes(id);
 
-module.exports = { ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };
+// ---- gear: owned items and what is worn (one per slot). The catalogue (prices, stats) is in sim.js.
+function buyGear(p, id, now) {
+  const e = ensure(p, now), g = Sim.gearById(id);
+  if (!g || e.items.includes(g.id)) return { ok: false, why: 'Không mua được món này' };
+  if (e.gold < g.price) return { ok: false, why: 'Chưa đủ vàng (thiếu ' + (g.price - e.gold) + ')' };
+  e.gold -= g.price; e.items.push(g.id); e.equip[g.slot] = g.id;      // worn straight away
+  return { ok: true, item: g.id, spent: g.price, why: 'Đã mua ' + g.name };
+}
+// wear an owned item, or take a slot off (id = null)
+function equip(p, slot, id, now) {
+  const e = ensure(p, now);
+  if (!Sim.GEAR_SLOTS.some((s) => s[0] === slot)) return { ok: false };
+  if (id === null || id === undefined || id === '') { delete e.equip[slot]; return { ok: true }; }
+  const g = Sim.gearById(id);
+  if (!g || g.slot !== slot || !e.items.includes(g.id)) return { ok: false };
+  e.equip[slot] = g.id; return { ok: true };
+}
+// ids worn right now (only owned, known items)
+function equipped(p, now) { const e = ensure(p, now); return Object.values(e.equip).filter((id) => e.items.includes(id) && Sim.gearById(id)); }
+
+module.exports = { buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };

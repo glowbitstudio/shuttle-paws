@@ -123,6 +123,7 @@
       </div>
       <div class="menu-row">
         <button class="mini-btn" data-go="chars"><i><svg class="ico" aria-hidden="true"><use href="#i-paw"/></svg></i><span>Nhân vật</span></button>
+        <button class="mini-btn" data-go="gear"><i><svg class="ico" aria-hidden="true"><use href="#i-shirt"/></svg></i><span>Trang bị</span></button>
         <button class="mini-btn" data-go="ach"><i><svg class="ico" aria-hidden="true"><use href="#i-medal"/></svg></i><span>Thành tích</span></button>
         <button class="mini-btn" data-go="stats"><i><svg class="ico" aria-hidden="true"><use href="#i-chart"/></svg></i><span>Thống kê</span></button>
         <button class="mini-btn" data-go="settings"><i><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg></i><span>Cài đặt</span></button>
@@ -177,10 +178,20 @@
       <div class="char-info" id="charInfo"></div>
       <button class="cta" id="charsDone">Chọn</button>
     </div>
-    <div class="stage-name" id="stageName"></div>
   </section>
+  <div class="stage-name hidden" id="stageName"></div>
 
   <!-- Achievements -->
+  <section id="s-gear" class="screen stage hidden">
+    <div class="panel side">
+      <header><button class="back" data-go="home">‹</button><h2>Trang bị</h2></header>
+      <div class="gear-head"><span class="gold-chip"><i class="coin"></i><b id="gearGold">…</b></span><small class="tiny">Bấm một món để thử lên nhân vật</small></div>
+      <div id="gearTabs"></div>
+      <div id="gearList"></div>
+      <div class="char-info"><div class="bars" id="gearStats"></div></div>
+    </div>
+  </section>
+
   <section id="s-rewards" class="screen hidden">
     <div class="panel wide">
       <header><button class="back" data-go="home">‹</button><h2>Quà &amp; nhiệm vụ</h2></header>

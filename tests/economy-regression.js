@@ -49,9 +49,35 @@ let b = {}; E.ensure(b, T0, 'cat');
 assert(!E.buyChar(b, 'fox', T0).ok); assert(!E.buyChar(b, 'cat', T0).ok); assert(!E.buyChar(b, 'constructor', T0).ok); assert(!E.buyChar(b, 'nobody', T0).ok);
 b.eco.gold = 700; const bought = E.buyChar(b, 'fox', T0); assert(bought.ok); assert.equal(b.eco.gold, 100); assert(E.canUse(b, 'fox', T0)); assert(!E.buyChar(b, 'fox', T0).ok);
 assert(b.eco.gold >= 0);
+// ---- gear catalogue: 3 items in each of the 6 slots, unique ids, every item has a plus and a minus, net value by rarity
+assert.equal(S.GEAR.length, 18); assert.equal(new Set(S.GEAR.map((g) => g.id)).size, 18);
+for (const [slot] of S.GEAR_SLOTS) assert.deepEqual(S.GEAR.filter((g) => g.slot === slot).map((g) => g.rar), [0, 1, 2], slot);
+for (const g of S.GEAR) {
+  const v = Object.values(g.mods); assert(v.some((x) => x > 0) && v.some((x) => x < 0), g.id + ' must trade something');
+  assert(Math.abs(v.reduce((x, y) => x + y, 0) - [0.25, 0.5, 0.75][g.rar]) < 1e-9, g.id + ' net'); assert(g.price > 0 && g.name && g.desc);
+}
+// no gear = exactly the old numbers; power 1800 for everyone; best set stays under the cap
+for (const c of S.CHARS) { assert.deepEqual(S.charStats(c.id), S.charStats(c.id, [])); assert.equal(S.powerOf(c.id), 1800); }
+const best = S.GEAR.filter((g) => g.rar === 2).map((g) => g.id);
+assert.equal(S.powerOf('cat', best), 2250); assert(Object.values(S.gearMods(best)).every((x) => Math.abs(x) <= S.GEAR_STAT_CAP));
+// one item per slot, unknown ids ignored, the stat really moves in the match
+assert.equal(S.powerOf('cat', ['r_light', 'r_heavy', 'bogus']), 1850);
+assert(S.charStats('cat', ['r_heavy']).power > S.charStats('cat').power); assert(S.charStats('cat', ['r_heavy']).endurance > S.charStats('cat').endurance);
+const gm = S.createMatch({ mode: '1v1', points: 11, venue: 0, slots: [{ name: 'a', char: 'cat', ctrl: 'human', gear: ['s_run', 'nope'] }, { name: 'b', char: 'cat', ctrl: 'bot', diff: 1 }] });
+assert.deepEqual(gm.athletes[0].gear, ['s_run']); assert(gm.athletes[0].st.speed > gm.athletes[1].st.speed); assert.deepEqual(gm.athletes[1].gear, []);
+// ---- buying and wearing
+let w = {}; E.ensure(w, T0, 'cat'); w.eco.gold = 1000;
+assert(!E.buyGear(w, 'r_pro', T0).ok); assert(!E.buyGear(w, 'bogus', T0).ok); assert(!E.equip(w, 'racket', 'r_light', T0).ok);   // too dear, unknown, not owned
+assert(E.buyGear(w, 'r_light', T0).ok); assert.equal(w.eco.gold, 700); assert(!E.buyGear(w, 'r_light', T0).ok);
+assert.deepEqual(E.equipped(w, T0), ['r_light']);                                                           // worn on purchase
+assert(E.buyGear(w, 's_run', T0).ok); assert.deepEqual(E.equipped(w, T0).sort(), ['r_light', 's_run']);
+assert(!E.equip(w, 'shoes', 'r_light', T0).ok); assert(!E.equip(w, 'hat', 's_run', T0).ok);               // wrong slot, unknown slot
+assert(E.equip(w, 'racket', null, T0).ok); assert.deepEqual(E.equipped(w, T0), ['s_run']);
+assert(E.equip(w, 'racket', 'r_light', T0).ok); w.eco.equip.head = 'h_pro'; assert(!E.equipped(w, T0).includes('h_pro'));   // a forged record entry is not honoured
+v = E.view(w, T0); assert.deepEqual(v.items.sort(), ['r_light', 's_run']); assert.equal(v.equip.racket, 'r_light'); assert.equal(w.eco.gold, 400);
 // the module must stay private and the server must route every economy change through it
 const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
 assert(!/PUBLIC = new Set\(\[[^\]]*economy/.test(server), 'economy.js must not be served');
-for (const h of ['localResult', 'claimLogin', 'claimQuest', 'buyChar', 'wallet']) assert(server.includes(h + '(c'), h);
+for (const h of ['localResult', 'claimLogin', 'claimQuest', 'buyChar', 'buyGear', 'equip', 'wallet']) assert(server.includes(h + '(c'), h);
 assert(server.includes('ownedChar(c, msg.char)'));
-console.log('PASS economy: start state, grandfathered character, local grants (min length, rate limit, clamped input, daily cap), online grants, quests, login streak, day boundary, purchases, ownership');
+console.log('PASS economy: start state, grandfathered character, local grants (min length, rate limit, clamped input, daily cap), online grants, quests, login streak, day boundary, purchases, ownership, gear catalogue / stat rules / buying / wearing');
