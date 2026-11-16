@@ -8,7 +8,8 @@ for(const c of S.CHARS) assert(!('tft' in c),c.id+' must not reference an extern
 const baseline=require('./stats-before');
 // 2026-11 balance decision: no character may be stronger through a bigger stat total, so the original 16 records are no longer frozen.
 // Everything except the stat values must still match the original record, and EVERY character's six stats (integers 1..5) must total 18.
-const sansStats=c=>{const o={...c};delete o.stats;return o;};
+// 2026-11-16: the 16 were redrawn in an own house style, so the fur colours are no longer frozen either.
+const sansStats=c=>{const o={...c};delete o.stats;for(const k of ['body','belly','earIn','earCol'])delete o[k];return o;};
 // 2026-11-13: dragon's description was rewritten after stat totals were equalised (it no longer is 'strong all round').
 const sansText=(c)=>{const o=sansStats(c); if(c.id==='dragon') delete o.desc; return o;};
 for(const id of old) assert.deepEqual(sansText(S.CHARS.find(c=>c.id===id)),sansText(baseline.CHARS.find(c=>c.id===id)));
