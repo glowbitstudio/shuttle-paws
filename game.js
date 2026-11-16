@@ -2117,7 +2117,7 @@ function onWallet(msg) {
 function renderWallet() {
   $('homeGold').textContent = wallet ? wallet.gold : '…';
   const n = wallet ? (wallet.login.can ? 1 : 0) + wallet.quests.filter((q) => q.prog >= q.goal && !q.claimed).length : 0;
-  $('rewardDot').textContent = n; $('rewardDot').classList.toggle('hidden', !n);
+  $('rewardDot').textContent = n; $('rewardDot').classList.toggle('hidden', !n); $('rewardsBtn').classList.toggle('can', !!n);
   if (screen === 'rewards') renderRewards();
   if (screen === 'chars') renderChars();
   if (screen === 'gear') { renderGear(); showPreview(true); }
@@ -3830,7 +3830,7 @@ function renderAch() {
   $('achList').innerHTML = ACH.map((a) => {
     const got = achieved[a.id];
     const unlock = S.CHARS.find((c) => c.unlock === a.id);
-    return `<div class="ach ${got ? '' : 'no'}"><div class="ic">${achIcon(a)}</div><div><b>${esc(a.name)}</b><small>${esc(a.desc)}${unlock ? ' · Mở khoá ' + faceImg(unlock.id) + esc(unlock.name) : ''}</small></div>${got ? `<em>${icon('check')} ${new Date(got).toLocaleDateString('vi-VN')}</em>` : ''}</div>`;
+    return `<div class="ach ${got ? '' : 'no'}"><div class="ic">${achIcon(a)}</div><div><b>${esc(a.name)}</b><small>${esc(a.desc)}</small>${unlock ? '<span class="ach-gift">' + faceImg(unlock.id) + 'Mở khoá ' + esc(unlock.name) + '</span>' : ''}</div>${got ? `<em>${icon('check')} ${new Date(got).toLocaleDateString('vi-VN')}</em>` : ''}</div>`;
   }).join('');
 }
 function renderStats() {
