@@ -3584,8 +3584,11 @@ function frameOnline(rdt, now) {
   m.athletes.forEach((a, i) => {
     if (i === session.me) {
       S.applyAthleteSnap(a, latest.a[i]);
-      const ex = Math.min(0.12, Net.rtt / 2);
-      a.x += a.vx * ex; a.z += a.vz * ex;
+      // my own athlete answers the stick at once (predicted locally), then settles onto the server's position
+      const P = session.mePred || (session.mePred = { x: a.x, z: a.z, vx: a.vx, vz: a.vz, t: 0, h: [] });
+      const mvp = paused || session.over ? { x: 0, y: 0 } : readMove();
+      S.predictSelf(P, a, mvp.x, mvp.y, Math.min(0.3, Net.rtt + 0.02), rdt, (m.state === 'rally' || m.state === 'serve') && a.diveT < 0 && a.recoverT <= 0, m.state === 'serve' ? 14 : 6);
+      a.x = P.x; a.z = P.z; a.vx = P.vx; a.vz = P.vz;
       if (session.meSync > 0.001) {   // around a hit: onto the interpolated timeline the shuttle and the hit event are on
         const va = sa.a[i], vb = sb.a[i], w = session.meSync;
         a.x = lerp(a.x, lerp(va[0], vb[0], k), w); a.z = lerp(a.z, lerp(va[1], vb[1], k), w); a.jumpY = lerp(a.jumpY, lerp(va[2], vb[2], k), w);
