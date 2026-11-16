@@ -11,7 +11,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])
     def page(name,vp):
         ctx=b.new_context(viewport=vp,is_mobile=vp['width']<500,has_touch=vp['width']<500);pg=ctx.new_page();pg.set_default_timeout(120000)
-        ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:0,vol:0}));localStorage.setItem('sp.profile',JSON.stringify({name:'%s',char:'cat',id:null,secret:null}));"%name)
+        ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:0,vol:0}));localStorage.setItem('sp.profile',JSON.stringify({name:'%s',char:'cat',id:null,secret:null,named:true}));"%name)
         pg.on('pageerror',lambda e:errs.append(name+' '+str(e)[:300]));pg.on('console',lambda m:errs.append(name+' CONSOLE '+m.text[:200]) if m.type=='error' and 'ERR_FAILED' not in m.text and 'favicon' not in m.text else None)
         pg.route('https://**/*',lambda r:r.abort())
         pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))

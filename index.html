@@ -173,7 +173,6 @@
   <section id="s-chars" class="screen stage hidden">
     <div class="panel side">
       <header><button class="back" id="charsBack">‹</button><h2>Chọn nhân vật</h2></header>
-      <div class="name-row"><input id="nameInput" maxlength="18" placeholder="Tên của bạn"><button class="pill" id="randName"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Tên ngẫu nhiên</button></div>
       <div class="char-grid" id="charGrid"></div>
       <div class="char-info" id="charInfo"></div>
       <button class="cta" id="charsDone">Chọn</button>
@@ -210,6 +209,10 @@
   <section id="s-settings" class="screen hidden">
     <div class="panel wide">
       <header><button class="back" data-go="home">‹</button><h2>Cài đặt</h2></header>
+      <div class="set-group">
+        <div class="label">Tên người chơi</div>
+        <div class="name-row"><input id="nameInput" maxlength="18" placeholder="Tên của bạn"><button class="pill" id="randName"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Tên ngẫu nhiên</button></div>
+      </div>
       <div class="set-group">
         <div class="label">Âm thanh &amp; Đồ hoạ</div>
         <label class="set">Âm lượng <input type="range" id="setVol" min="0" max="1" step="0.05"></label>
@@ -330,6 +333,17 @@
 </div>
 
 <div id="rejoinBar" class="hidden"><span id="rejoinText"></span><button class="pill" id="rejoinBtn">Vào lại trận</button><button id="rejoinX" aria-label="Đóng">×</button></div>
+
+<!-- First launch: pick a name once (it can be changed later in Settings) -->
+<div id="nameAsk" class="panel-wrap hidden">
+  <div class="panel small">
+    <h2>Chào mừng tới Shuttle Paws!</h2>
+    <p class="sub">Bạn muốn được gọi là gì?</p>
+    <div class="name-row"><input id="firstName" maxlength="18" placeholder="Tên của bạn"><button class="pill" id="firstRand"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Ngẫu nhiên</button></div>
+    <button id="firstOk" class="cta">Vào chơi</button>
+    <p class="tiny">Đổi tên sau này trong Cài đặt.</p>
+  </div>
+</div>
 
 <!-- Pause -->
 <div id="pause" class="panel-wrap hidden">

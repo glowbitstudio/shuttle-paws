@@ -3733,7 +3733,6 @@ function renderBot() {
 $('botStart').onclick = () => { Sound.init(); startLocal(Object.assign({}, botOpts)); };
 
 function renderChars() {
-  $('nameInput').value = profile.name;
   const grid = $('charGrid'); grid.innerHTML = '';
   infoChar = infoChar || profile.char;
   S.CHARS.forEach((c) => {
@@ -3763,7 +3762,16 @@ function renderChars() {
       '') + `<div class="bars">${bars}</div>`;
   if ($('charBuy')) $('charBuy').onclick = () => { Sound.boop(); Net.send({ t: 'buyChar', id: c.id }); };
 }
-$('nameInput').addEventListener('change', () => { profile.name = $('nameInput').value.trim().slice(0, 18) || randomName(); saveAll(); Net.profile(); });
+$('nameInput').addEventListener('change', () => { profile.name = $('nameInput').value.trim().slice(0, 18) || randomName(); $('nameInput').value = profile.name; saveAll(); Net.profile(); });
+// first launch: ask for a name once. Players who already have a server identity are not asked again.
+if (profile.named === undefined) profile.named = !!profile.id;
+function askName() {
+  if (profile.named) return;
+  $('firstName').value = profile.name; $('nameAsk').classList.remove('hidden');
+  $('firstRand').onclick = () => { $('firstName').value = randomName(); Sound.init(); Sound.boop(); };
+  const done = () => { profile.name = $('firstName').value.trim().slice(0, 18) || randomName(); profile.named = true; saveAll(); Net.profile(); $('nameAsk').classList.add('hidden'); Sound.init(); Sound.boop(); if (screen === 'home') renderHome(); };
+  $('firstOk').onclick = done; $('firstName').onkeydown = (e) => { if (e.key === 'Enter') done(); };
+}
 $('randName').onclick = () => { profile.name = randomName(); $('nameInput').value = profile.name; saveAll(); Net.profile(); Sound.boop(); };
 
 function renderAch() {
@@ -3785,6 +3793,7 @@ function renderSettings() {
   $('setVol').value = settings.vol;
   $('setFps').checked = settings.fps; $('setMarker').checked = settings.marker; $('setMarkerOnline').checked = settings.markerOnline;
   for (const [id, key] of AID_TOGGLES) $(id).checked = settings[key]; $('setDropLine').checked = settings.dropLine; $('setRing').checked = settings.ring;
+  $('nameInput').value = profile.name;
   $('setHitStop').checked = settings.hitStop; $('setSplit').checked = settings.autoSplit; $('setChat').checked = settings.chat;
   $('setTouch').value = settings.touch; $('setServer').value = settings.server; $('setTouchSwap').checked = !!settings.touchSwap;
   seg('setTouchSize', () => String(settings.touch), (v) => { settings.touch = +v; $('setTouch').value = settings.touch; document.documentElement.style.setProperty('--tscale', settings.touch); saveAll(); });
@@ -4039,6 +4048,7 @@ document.body.classList.toggle('tswap', !!settings.touchSwap);   // touch contro
 resize();
 const roomParam = new URLSearchParams(location.search).get('room');
 if (roomParam) { Net.pendingJoin = roomParam.toUpperCase(); go('online'); } else go('home');
+askName();
 Net.connect();   // the wallet (gold, owned characters, rewards) lives on the server, so connect from the start
 window.__sp = () => session && { kind: session.kind, state: session.m.state, score: session.m.score.slice(), me: session.me, last: session.m.shuttle.last, rally: session.m.rally, over: session.over };
 window.__spDebug = { Net, startLocal, go, contactFit: fitMatchRacket, matchClips: () => ({ enabled: matchClipsEnabled, clips: session ? session.models.map(md => md.matchClip || null) : [] }),
