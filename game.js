@@ -1201,7 +1201,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const U = (geo, mat, x, y, z) => add(geo, mat, x, y, z, up);
   const tc = 0.52 + (ty - 1.08) * 0.27;            // torso centre: grows upward so the bottom stays on the shorts
   const shorts = add(new THREE.CylinderGeometry(0.225, 0.215, 0.1, 18), mShorts, 0, 0.37, 0, upH); shorts.scale.set(tx, 1, 0.88 * tz);
-  const torso = U(new THREE.SphereGeometry(0.27, 20, 16), mShirt, 0, tc, 0); torso.scale.set(tx, ty, tz);
+  const thC = Math.acos(Math.max(-0.98, Math.min(0, (0.345 - tc) / (0.27 * ty))));   // the shirt stops at the waistband; the rounded underside belongs to the shorts (no bodysuit tip between the legs)
+  const torso = U(new THREE.SphereGeometry(0.27, 20, 16, 0, Math.PI * 2, 0, thC), mShirt, 0, tc, 0); torso.scale.set(tx, ty, tz);
+  const seat = add(new THREE.SphereGeometry(0.27, 20, 6, 0, Math.PI * 2, thC, Math.PI - thC), mShorts, 0, tc, 0, upH); seat.scale.set(tx, ty, tz);
   const hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(0.11 / (0.27 * ty), 2)) + 0.004, 0.012, 6, 30), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mKit, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
   if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }

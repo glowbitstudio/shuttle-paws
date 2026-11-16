@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1];OUT=ROOT/sys.argv[2];O
 errs=[]
 with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])
-    for ch,item in (("cat","t_cool"),("bear","t_pro"),("panda","t_comp"),("bunny","p_light")):
+    for ch,item in (("cat","t_cool"),("panda","p_flex"),("bunny","p_light")):
         ctx=b.new_context(viewport={'width':1100,'height':700});pg=ctx.new_page();pg.set_default_timeout(120000)
         ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:0,vol:0}));localStorage.setItem('sp.profile',JSON.stringify({name:'Thu',char:'%s',id:null,secret:null,named:true}));"%ch)
         pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
