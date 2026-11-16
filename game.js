@@ -1327,6 +1327,33 @@ function buildCharacter(c, teamColor, scale, hand) {
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,
     rig: { hips: hipsPv.p, chest: chestPv.p, hipY, ankleY, legs } };
+  // dive clearance, measured once from this model's own meshes: how far the lying body has to be lifted for the torso
+  // to rest on the floor, and how far the head tips back so the face / snout does not go through it
+  {
+    const V = new THREE.Vector3(), sets = { torso: [], head: [] };
+    body.traverse((o) => {
+      if (!o.isMesh || o.userData.isOutline) return;
+      let part = 'torso';
+      for (let q = o; q && q !== body; q = q.parent) {
+        if (q === head) { part = 'head'; break; }
+        if (q === arm || q === free || legs.some((l) => l.thigh === q)) { part = null; break; }
+      }
+      if (part) sets[part].push(o);
+    });
+    const low = (list) => {
+      root.updateMatrixWorld(true); let lo = Infinity;
+      for (const o of list) { const p = o.geometry.attributes.position; for (let i = 0; i < p.count; i++) { V.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); if (V.y < lo) lo = V.y; } }
+      return lo;
+    };
+    const keep = [body.rotation.x, body.position.y, head.rotation.x];
+    body.rotation.x = 1.25; body.position.y = 0.13;
+    let lift = Math.max(0, 0.005 - low(sets.torso)); body.position.y += lift;
+    let bestX = 0, bestLo = -Infinity;
+    for (let hx = 0; hx >= -1.2001; hx -= 0.075) { head.rotation.x = hx; const lo = low(sets.head); if (lo > bestLo) { bestLo = lo; bestX = hx; } if (lo >= 0.005) break; }
+    if (bestLo < 0.005) lift += 0.005 - bestLo;
+    mdl.diveLift = lift; mdl.diveHeadX = bestX;
+    body.rotation.x = keep[0]; body.position.y = keep[1]; head.rotation.x = keep[2]; root.updateMatrixWorld(true);
+  }
   for (const leg of legs) SPAnim.legIK(mdl, leg, new THREE.Vector3(leg.hx, ankleY, 0.03), 0, 0);   // stand: feet flat on the floor
   setArm(mdl, 'arm', POSE.ready, 0, 0); setArm(mdl, 'free', FREE.rest, 0, 0);
   // secondary motion: tail and soft ears lag behind the body like springs (call once per frame after posing)
@@ -2314,7 +2341,7 @@ function animateAthlete(a, md, dt, t, m) {
   let tiltZ = -(side * 0.1 * run) - md.accS * 0.16 + (speed < 0.3 ? Math.sin(t * 1.3 + a.i) * 0.03 : 0);
   if (a.diveT >= 0 || a.recoverT > 0) {
     const k = a.diveT >= 0 ? Math.min(1, a.diveT / 0.12) : Math.min(1, a.recoverT / 0.2);
-    tiltX = 1.25 * k; by = 0.13 * k;   // lifted so belly/face rest on the floor when lying forward
+    tiltX = 1.25 * k; by = (0.13 + (mdl.diveLift || 0)) * k;   // lifted so belly/face rest on the floor when lying forward
   }
   if (m.state === 'point' || m.state === 'gameBreak' || m.state === 'overPending' || m.state === 'over') {
     if (a.mood > 0) by += Math.abs(Math.sin(t * 9)) * 0.25; else tiltX = 0.25;
@@ -2325,6 +2352,11 @@ function animateAthlete(a, md, dt, t, m) {
   // left over from the reach used to push the chest and shoulders 0.3 m under the floor during dives)
   const lying = matchClipsEnabled && (a.diveT >= 0 || a.recoverT > 0) ? (a.diveT >= 0 ? Math.min(1, a.diveT / 0.12) : Math.min(1, a.recoverT / 0.2)) : 0;
   by -= (md.crouch || 0) * (1 - lying); tiltX += ((md.crouch || 0) * 0.9 + Math.max(0, md.lunge || 0) * 0.5) * (1 - lying);
+  // how far the body is actually lying: follows the dive ramp, and on the way up stays with the (slower) body tilt, so
+  // the lift and the raised chin are not dropped while the body is still pitched forward
+  md.lie = Math.max(a.diveT >= 0 ? Math.min(1, a.diveT / 0.12) : a.recoverT > 0 ? Math.min(1, a.recoverT / 0.2) : 0,
+    Math.min(md.lie || 0, Math.min(1, Math.max(0, mdl.body.rotation.x / 1.25))));
+  if (md.lie > 0) by = Math.max(by, (0.13 + (mdl.diveLift || 0)) * md.lie);
   mdl.body.position.y = by;
   mdl.body.rotation.x = damp(mdl.body.rotation.x, tiltX, 14, dt);
   mdl.body.rotation.z = damp(mdl.body.rotation.z, tiltZ, 10, dt);
@@ -2340,6 +2372,7 @@ function animateAthlete(a, md, dt, t, m) {
   // head: small idle drift, droops when tired, glances toward the shuttle
   mdl.head.rotation.z = Math.sin(t * 1.7 + a.i * 2.1) * 0.04 - tiltZ * 0.4;
   mdl.head.rotation.x = damp(mdl.head.rotation.x, S.fatigue(a) * 0.18 - tiltX * 0.3, 4, dt);
+  if (md.lie > 0) mdl.head.rotation.x = Math.min(mdl.head.rotation.x, (mdl.diveHeadX || 0) * md.lie);   // lying: chin up, face stays above the floor
   if (s.live || s.held) {
     const la = Math.atan2(s.p.x - a.x, s.p.z - a.z) - md.yaw;
     const hy = clamp(Math.atan2(Math.sin(la), Math.cos(la)), -0.6, 0.6);
