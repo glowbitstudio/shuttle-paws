@@ -311,6 +311,8 @@
       <header><button class="back" id="leaveRoom">‹</button><h2>Phòng <span id="roomCode" class="code"></span></h2><button class="pill" id="copyLink"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Sao chép link</button></header>
       <p class="sub" id="roomInfo"></p>
       <div class="teams" id="roomTeams"></div>
+      <div class="bench" id="roomBench"></div>
+      <div id="roomAsk" class="hidden"></div>
       <div id="roomHost" class="card">
         <div class="row tight">
           <div class="seg sm" id="rmMode"><button data-v="1v1">1v1</button><button data-v="2v2">2v2</button></div>
@@ -326,6 +328,8 @@
     </div>
   </section>
 </div>
+
+<div id="rejoinBar" class="hidden"><span id="rejoinText"></span><button class="pill" id="rejoinBtn">Vào lại trận</button><button id="rejoinX" aria-label="Đóng">×</button></div>
 
 <!-- Pause -->
 <div id="pause" class="panel-wrap hidden">

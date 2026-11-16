@@ -2031,6 +2031,25 @@ $('chatBtn').onclick = openChat;
   $('emoteBtn').onclick = () => w.classList.toggle('hidden');
 })();
 
+// ---- rejoin: the server keeps the seat (a bot plays it) while the match runs; this bar is the way back in
+function renderRejoin() {
+  const o = Net.rejoin, show = !!(o && o.id) && !(session && !session.over);
+  $('rejoinBar').classList.toggle('hidden', !show);
+  if (show) $('rejoinText').textContent = 'Trận của bạn vẫn đang chạy' + (o.score ? ' · ' + o.score[0] + ' – ' + o.score[1] : '') + ', bot đang đánh thay';
+}
+$('rejoinBtn').onclick = () => { Sound.init(); Sound.boop(); if (Net.rejoin && Net.rejoin.id) Net.send({ t: 'rejoin', id: Net.rejoin.id }); };
+$('rejoinX').onclick = () => { Net.rejoin = null; renderRejoin(); };
+// ---- someone asks to trade seats with me
+let swapAskT = null;
+function showSwapAsk(msg) {
+  const el = $('roomAsk'); clearTimeout(swapAskT);
+  el.innerHTML = `<span><b>${esc(msg.name)}</b> muốn đổi chỗ với bạn</span><button class="pill" data-ok="1">Đồng ý</button><button class="pill" data-ok="0">Không</button>`;
+  el.classList.remove('hidden'); Sound.pop();
+  const done = (ok) => { clearTimeout(swapAskT); el.classList.add('hidden'); Net.send({ t: 'swapReply', from: msg.from, ok }); };
+  el.querySelectorAll('button').forEach((b) => { b.onclick = () => done(b.dataset.ok === '1'); });
+  swapAskT = setTimeout(() => done(false), 20000);
+}
+
 // ================================================================ economy (the server owns every number; the client only shows them)
 function onWallet(msg) {
   wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft };
@@ -2209,7 +2228,7 @@ $('toMenu').onclick = () => {
   $('over').classList.add('hidden');
   endSession();
   if (kind === 'online') { Net.send({ t: 'exitMatch' }); go(Net.room ? 'room' : 'online'); }
-  else if (kind === 'watch') { Net.send({ t: 'unspectate' }); go('online'); }
+  else if (kind === 'watch') { Net.send({ t: 'unspectate' }); go(Net.room ? 'room' : 'online'); }
   else go(wasTour ? 'tour' : 'home');
 };
 
@@ -3626,7 +3645,7 @@ function go(name) {
   if (session && !session.over) return;
   endSession();
   if (name === 'chars' && screen !== 'chars') { charsBack = screen; infoChar = profile.char; }
-  screen = name;
+  screen = name; renderRejoin();
   for (const s of SCREENS) $('s-' + s).classList.toggle('hidden', s !== name);
   $('searching').classList.add('hidden'); $('over').classList.add('hidden');
   showPreview(true);
@@ -3816,8 +3835,9 @@ const Net = {
     ws.onclose = () => {
       const was = this.ok; this.ok = false; this.ws = null; this.room = null;
       this.status('Mất kết nối · đang thử lại…', false);
-      if (session && session.kind !== 'local') { toast('Mất kết nối tới máy chủ'); session.over = true; go('online'); }
-      if (screen === 'online' || screen === 'room' || was) setTimeout(() => this.connect(), Math.min(8000, 1000 * ++this.retry));
+      if (session && session.kind !== 'local') { if (session.kind === 'online' && !session.over) this.autoRejoin = session.netId; toast('Mất kết nối tới máy chủ', this.autoRejoin ? 'Bot đánh thay · sẽ tự vào lại khi có mạng' : ''); session.over = true; go('online'); }
+      this.rejoin = null; renderRejoin();
+      setTimeout(() => this.connect(), Math.min(8000, 1000 * ++this.retry));   // the wallet needs the server on every screen, so always retry
     };
     ws.onerror = () => this.status('Không kết nối được server', false);
   },
@@ -3828,6 +3848,13 @@ const Net = {
   onMsg(msg) {
     switch (msg.t) {
       case 'wallet': onWallet(msg); break;
+      case 'rejoinOffer':
+        this.rejoin = msg.id ? msg : null;
+        // dropped out of a match by a lost connection: go straight back in
+        if (msg.id && this.autoRejoin === msg.id && !session) { toast('Đang vào lại trận…', '', 'refresh'); this.send({ t: 'rejoin', id: msg.id }); }
+        this.autoRejoin = null; renderRejoin();
+        break;
+      case 'swapAsk': if (screen === 'room' && !session) showSwapAsk(msg); else this.send({ t: 'swapReply', from: msg.from, ok: false }); break;
       case 'welcome':
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);
@@ -3858,6 +3885,7 @@ const Net = {
       case 'kicked': this.room = null; toast(msg.reason || 'Bạn đã rời phòng'); if (screen === 'room') go('online'); break;
       case 'start': {
         this.searching = false; $('searching').classList.add('hidden'); $('over').classList.add('hidden');
+        this.rejoin = null; this.autoRejoin = null; $('rejoinBar').classList.add('hidden');
         const view = makeView(msg);
         if (msg.you >= 0) view.athletes[msg.you].assist = 1;   // server plays everyone at the same level online
         beginSession(msg.you >= 0 ? 'online' : 'watch', view, msg.you, { netId: msg.id, snapCam: true });
@@ -3949,19 +3977,25 @@ function renderRoom() {
   const isHost = r.host === profile.id;
   $('roomInfo').textContent = `${r.mode} · tới ${r.points}${(r.games || 1) > 1 ? ' · 3 ván thắng 2' : ' · 1 ván'} · ${r.venue < 0 ? 'Sân ngẫu nhiên' : S.VENUES[r.venue].name} · ${r.open ? 'Phòng mở, ai cũng vào được' : 'Chỉ bạn bè có mã/link'}`;
   const per = r.mode === '2v2' ? 2 : 1;
+  const seated = r.slots.some((s) => s && s.id === profile.id), bench = r.bench || [];
   const slotHtml = (i) => {
     const s = r.slots[i];
-    if (!s) return `<div class="slot open" data-slot="${i}">＋ Chỗ trống <small style="margin-left:auto">(bot nếu trống)</small></div>`;
+    if (!s) return `<div class="slot open" data-slot="${i}">＋ ${seated ? 'Chuyển sang đây' : 'Vào chơi ở đây'} <small style="margin-left:auto">(bot nếu trống)</small></div>`;
     const c = charById(s.char);
     const mine = s.id === profile.id;
-    return `<div class="slot ${mine ? 'mine' : ''}" ${mine ? 'data-me="1"' : ''}><span class="f">${faceImg(c.id)}</span>${esc(s.name)}${mine ? ' (bạn)<span class="chg">đổi</span>' : ''}${s.id === r.host ? '<span class="host">Chủ phòng</span>' : ''}</div>`;
+    return `<div class="slot ${mine ? 'mine' : 'other'}" ${mine ? 'data-me="1"' : `data-slot="${i}"`}><span class="f">${faceImg(c.id)}</span>${esc(s.name)}${mine ? ' (bạn)<span class="chg">đổi</span>' : ''}${s.id === r.host ? '<span class="host">Chủ phòng</span>' : ''}</div>`;
   };
   let a = '', b = '';
   for (let i = 0; i < per; i++) a += slotHtml(i);
   for (let i = per; i < per * 2; i++) b += slotHtml(i);
   $('roomTeams').innerHTML = `<div class="team"><h4>Đội A</h4>${a}</div><div class="team b"><h4>Đội B</h4>${b}</div>`;
+  // the bench: in the room but not playing; they watch the match and can take a seat or ask to trade
+  $('roomBench').innerHTML = `<h4>${icon('eye')}Ngồi xem <small>${bench.length ? '' : '· chưa có ai'}</small>${seated ? '<button class="pill" id="benchDown">Xuống xem</button>' : ''}</h4>` +
+    bench.map((s) => `<span class="who${s.id === profile.id ? ' mine' : ''}">${faceImg(s.char)}${esc(s.name)}${s.id === profile.id ? ' (bạn)' : ''}${s.id === r.host ? ' · chủ phòng' : ''}</span>`).join('') +
+    `<p class="tiny">${seated ? 'Bấm vào chỗ của người khác để đổi chỗ' + (isHost ? '' : ' (họ cần đồng ý)') + ', hoặc bấm chỗ trống để chuyển sang.' : 'Bấm chỗ trống để vào chơi, hoặc bấm vào một người để xin đổi chỗ.'}</p>`;
+  if ($('benchDown')) $('benchDown').onclick = () => { Sound.boop(); Net.send({ t: 'swap', slot: -1 }); };
   const meSlot = $('roomTeams').querySelector('[data-me]'); if (meSlot) meSlot.onclick = () => { Sound.boop(); go('chars'); };
-  $('roomTeams').querySelectorAll('[data-slot]').forEach((el) => { el.onclick = () => Net.send({ t: 'swap', slot: +el.dataset.slot }); });
+  $('roomTeams').querySelectorAll('[data-slot]').forEach((el) => { el.onclick = () => { Sound.boop(); Net.send({ t: 'swap', slot: +el.dataset.slot }); }; });
   $('roomHost').classList.toggle('hidden', !isHost);
   if (isHost) {
     seg('rmMode', () => r.mode, (v) => Net.send({ t: 'roomSet', mode: v }));
@@ -3976,7 +4010,7 @@ function renderRoom() {
   const filled = r.slots.filter(Boolean).length;
   $('roomStart').classList.toggle('hidden', !isHost);
   $('roomStart').textContent = filled < r.slots.length ? `Bắt đầu (bot vào ${r.slots.length - filled} chỗ trống)` : 'Bắt đầu trận';
-  $('roomWait').textContent = isHost ? 'Gửi mã phòng hoặc link cho bạn bè để cùng chơi.' : 'Đang chờ chủ phòng bắt đầu…';
+  $('roomWait').textContent = r.state === 'playing' ? 'Phòng đang thi đấu.' : isHost ? 'Gửi mã phòng hoặc link cho bạn bè để cùng chơi.' : 'Đang chờ chủ phòng bắt đầu…';
 }
 function roomChatLine(from, text) {
   const el = document.createElement('div');

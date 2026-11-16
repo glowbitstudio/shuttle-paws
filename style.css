@@ -796,3 +796,21 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
 #charBuy{margin:8px 0 4px;font-size:18px;padding:10px}
 @media (max-width:520px){.login-row{grid-template-columns:repeat(4,1fr)}}
 
+/* ---- rejoin bar, room bench, seat swap request */
+#rejoinBar{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:max-content;max-width:94vw;
+  padding:8px 10px 8px 16px;border-radius:999px;background:linear-gradient(180deg,#34399a,#232766);border:2px solid rgba(255,215,106,.7);color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#rejoinBar.hidden{display:none}
+#rejoinBar{border-radius:20px}#rejoinText{flex:1;min-width:0;font-size:13px;line-height:1.25}#rejoinBtn{flex:none;white-space:nowrap}
+#rejoinBtn{background:linear-gradient(180deg,#ffd76a,#ffb531);color:#3b2a00}
+#rejoinX{border:0;background:transparent;color:#cfd3ff;font-size:20px;cursor:pointer;padding:0 6px}
+.slot.other{cursor:pointer}.slot .swp{font-size:11px;opacity:.7;margin-left:auto;white-space:nowrap}
+.slot .host+.swp{margin-left:8px}
+.bench{margin:10px 0 4px;padding:10px 12px;border-radius:14px;background:var(--card,rgba(255,255,255,.08));border:2px dashed rgba(255,255,255,.22)}
+.bench h4{margin:0 0 6px;display:flex;align-items:center;gap:8px}.bench h4 small{font-weight:600;opacity:.75}
+.bench .who{display:inline-flex;align-items:center;gap:6px;margin:0 8px 6px 0;padding:4px 10px 4px 4px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:800;font-size:14px}
+.bench .who img{width:26px;height:26px;border-radius:50%}
+.bench .who.mine{outline:2px solid #ffd76a}
+#benchDown{margin-left:auto}
+#roomAsk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border-radius:14px;background:rgba(255,215,106,.16);border:2px solid rgba(255,215,106,.6)}
+#roomAsk.hidden{display:none}#roomAsk span{flex:1;min-width:150px}
+

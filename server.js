@@ -75,6 +75,7 @@ function roomView(r) {
     code: r.code, mode: r.mode, points: r.points, games: r.games || 1, venue: r.venue, open: r.open, host: r.host,
     state: r.match ? 'playing' : 'lobby',
     slots: r.slots.map((c) => (c ? { id: c.id, name: c.name, char: c.char } : null)),
+    bench: r.bench.map((c) => ({ id: c.id, name: c.name, char: c.char })),
   };
 }
 function lobbyView() {
@@ -87,11 +88,13 @@ function lobbyView() {
     })),
   };
 }
-function broadcastRoom(r) { for (const c of r.slots) if (c) send(c, { t: 'room', room: roomView(r) }); }
+const BENCH_MAX = 8;
+const members = (r) => r.slots.filter(Boolean).concat(r.bench);   // everyone in the room: seated players + the bench (watchers)
+function broadcastRoom(r) { for (const c of members(r)) send(c, { t: 'room', room: roomView(r) }); }
 function roomChat(r, from, text) {
   const msg = { t: 'chat', from, text, room: r.code };
-  for (const c of r.slots) if (c) send(c, msg);
-  if (r.match) for (const c of r.match.spectators) send(c, msg);
+  const got = new Set(members(r)); for (const c of got) send(c, msg);
+  if (r.match) for (const c of r.match.spectators) if (!got.has(c)) send(c, msg);
 }
 
 // ------------------------------------------------------------------ rooms
@@ -101,8 +104,9 @@ function leaveRoom(c) {
   if (!r) return;
   const i = r.slots.indexOf(c);
   if (i >= 0) r.slots[i] = null;
-  if (!r.slots.some(Boolean)) { rooms.delete(r.code); return; }
-  if (r.host === c.id) r.host = r.slots.find(Boolean).id;
+  r.bench = r.bench.filter((b) => b !== c);
+  if (!members(r).length) { rooms.delete(r.code); return; }
+  if (r.host === c.id) r.host = members(r)[0].id;
   broadcastRoom(r);
 }
 function resizeSlots(r) {
@@ -110,7 +114,27 @@ function resizeSlots(r) {
   const people = r.slots.filter(Boolean);
   r.slots = new Array(n).fill(null);
   people.slice(0, n).forEach((p, i) => { r.slots[n === 4 ? [0, 2, 1, 3][i] : i] = p; });
-  for (const p of people.slice(n)) { p.room = null; send(p, { t: 'kicked', reason: 'Phòng đã đổi sang 1v1.' }); }
+  for (const p of people.slice(n)) {   // no seat left: down to the bench (or out if that is full too)
+    if (r.bench.length < BENCH_MAX) r.bench.push(p); else { p.room = null; send(p, { t: 'kicked', reason: 'Phòng đã đổi sang 1v1.' }); }
+  }
+}
+
+// seat helpers: where someone is (seat index, or -1 = bench), put them somewhere, trade two members' places
+function place(r, c, to) {
+  const i = r.slots.indexOf(c); if (i >= 0) r.slots[i] = null;
+  r.bench = r.bench.filter((b) => b !== c);
+  if (to >= 0) r.slots[to] = c; else r.bench.push(c);
+}
+function trade(r, a, b) {
+  const ia = r.slots.indexOf(a), ib = r.slots.indexOf(b);
+  place(r, a, -1); place(r, b, -1); r.bench = r.bench.filter((x) => x !== a && x !== b);
+  if (ib >= 0) r.slots[ib] = a; else r.bench.push(a);
+  if (ia >= 0) r.slots[ia] = b; else r.bench.push(b);
+}
+function watchMatch(c, m) {
+  if (c.spectating) { const o = matches.get(c.spectating); if (o) o.spectators.delete(c); }
+  c.spectating = m.id; m.spectators.add(c);
+  send(c, startMsg(m, -1));
 }
 
 // ------------------------------------------------------------------ matches
@@ -127,7 +151,7 @@ function startMatch(players, opts, room) {
     : { name: pool.pop() + ' (bot)', char: Sim.CHARS[Math.floor(Math.random() * Sim.CHARS.length)].id, hand: Math.random() < 0.18 ? 'L' : 'R', ctrl: 'bot', diff: teamHasHuman(Math.floor(i / per)) ? 2 : 1 }));
   // PvP is level: everyone gets the same hit help (press early is fine) and nobody gets auto-movement
   const sim = Sim.createMatch({ mode: opts.mode, points: opts.points, games: opts.games === 3 ? 3 : 1, venue: opts.venue, slots, hitStop: true, moveAssist: false, autoSave: false });
-  const m = { id: 'm' + matchSeq++, sim, players: players.slice(), spectators: new Set(), room: room ? room.code : null, tick: 0, ended: false, rematch: new Set(), lastIn: players.map(() => ({ h: 0, j: 0, d: 0, e: 0 })) };
+  const m = { id: 'm' + matchSeq++, sim, players: players.slice(), spectators: new Set(), left: players.map(() => null), room: room ? room.code : null, tick: 0, ended: false, rematch: new Set(), lastIn: players.map(() => ({ h: 0, j: 0, d: 0, e: 0 })) };
   matches.set(m.id, m);
   if (room) room.match = m;
   players.forEach((c, i) => {
@@ -135,6 +159,7 @@ function startMatch(players, opts, room) {
     c.match = m.id; c.slot = i; c.spectating = null;
     send(c, startMsg(m, i));
   });
+  if (room) for (const b of room.bench) watchMatch(b, m);   // the bench watches the room's match
   m.timer = setInterval(() => tickMatch(m), 1000 / 60);
   return m;
 }
@@ -158,7 +183,8 @@ function tickMatch(m) {
 // hit events carry the sim clock (optional field `c`) so clients can line the stroke up with the snapshot stream
 function stripEv(e) { return e.type === 'hit' ? Object.assign({ c: Math.round(this * 1000) / 1000 }, e) : e; }
 function endMatch(m) {
-  m.ended = true; clearInterval(m.timer);
+  m.ended = true; clearInterval(m.timer); clearTimeout(m.graceTimer);
+  for (const l of m.left) if (l) for (const o of clients) if (o.id === l.id && !o.match) send(o, { t: 'rejoinOffer', id: null });   // too late to rejoin
   const w = m.sim.winner;
   m.sim.athletes.forEach((a, i) => {
     const c = m.players[i];
@@ -179,7 +205,17 @@ function endMatch(m) {
   if (room) { room.match = null; broadcastRoom(room); }
   setTimeout(() => { if (matches.get(m.id) === m && !m.restarted) matches.delete(m.id); }, 60000);
 }
-function leaveMatch(c, reason) {
+const REJOIN_GRACE_MS = 90000;
+// tell a player about a running match they can get back into (or, with no such match, that there is none)
+function rejoinOffer(c) {
+  for (const m of matches.values()) {
+    if (m.ended) continue;
+    const i = m.left.findIndex((l, k) => l && l.id === c.id && !m.players[k]);
+    if (i >= 0) { send(c, { t: 'rejoinOffer', id: m.id, score: m.sim.score, names: m.sim.athletes.map((a, k) => (k === i ? m.left[i].name : a.name)) }); return; }
+  }
+  send(c, { t: 'rejoinOffer', id: null });
+}
+function leaveMatch(c, reason, grace) {
   const m = c.match && matches.get(c.match);
   c.match = null;
   if (!m) return;
@@ -188,8 +224,16 @@ function leaveMatch(c, reason) {
   m.players[i] = null;
   if (!m.ended) {
     const a = m.sim.athletes[i];
+    // the seat stays theirs: a bot plays it until they come back (rejoin) or the match ends
+    m.left[i] = { id: c.id, name: a.name, diff: a.diff };
     a.ctrl = 'bot'; a.diff = 2; a.name = 'Bot'; a.input = { x: 0, y: 0, hit: false, jump: false, dive: false, emote: 0 };
-    if (!m.players.some(Boolean)) { m.ended = true; clearInterval(m.timer); matches.delete(m.id); const r = m.room && rooms.get(m.room); if (r) r.match = null; return; }
+    if (!m.players.some(Boolean)) {
+      // nobody left. After a lost connection the match keeps running for a while so the player can get back in;
+      // after a deliberate exit it stops at once (as before), so a room is not blocked by a match nobody is in.
+      const stop = () => { if (m.ended || m.players.some(Boolean)) return; m.ended = true; clearInterval(m.timer); matches.delete(m.id); const r = m.room && rooms.get(m.room); if (r) { r.match = null; broadcastRoom(r); } };
+      if (grace) { clearTimeout(m.graceTimer); m.graceTimer = setTimeout(stop, REJOIN_GRACE_MS); } else stop();
+      return;
+    }
     for (const o of m.players) if (o) send(o, { t: 'notice', text: reason || 'Một người chơi đã rời trận. Bot sẽ thay thế.' });
   }
 }
@@ -208,6 +252,24 @@ const handlers = {
     data.players[id].name = c.name;
     send(c, { t: 'welcome', id, secret, online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
     send(c, Eco.view(data.players[id], Date.now())); save();
+    rejoinOffer(c);
+  },
+  rejoin(c, msg) {
+    const m = matches.get(clean(msg.id, 20));
+    const i = m && !m.ended && !c.match ? m.left.findIndex((l, k) => l && l.id === c.id && !m.players[k]) : -1;
+    if (i < 0) { send(c, { t: 'rejoinOffer', id: null }); send(c, { t: 'error', text: 'Trận đó đã kết thúc.' }); return; }
+    quickQueue = quickQueue.filter((q) => q !== c);
+    if (c.spectating) { const o = matches.get(c.spectating); if (o) o.spectators.delete(c); c.spectating = null; }
+    const a = m.sim.athletes[i], l = m.left[i];
+    a.ctrl = 'human'; a.diff = l.diff || 0; a.name = c.name; a.input = { x: 0, y: 0, hit: false, jump: false, dive: false, emote: 0 };
+    m.left[i] = null; m.players[i] = c; m.lastIn[i] = { h: 0, j: 0, d: 0, e: 0 };
+    clearTimeout(m.graceTimer); m.graceTimer = null;
+    c.match = m.id; c.slot = i;
+    // back into the match's room as well, on the old seat when it is still free
+    const r = m.room && rooms.get(m.room);
+    if (r && !members(r).includes(c)) { leaveRoom(c); if (!r.slots[i]) r.slots[i] = c; else if (r.bench.length < BENCH_MAX) r.bench.push(c); if (members(r).includes(c)) c.room = r.code; }
+    send(c, startMsg(m, i));
+    for (const o of m.players) if (o && o !== c) send(o, { t: 'notice', text: c.name + ' đã vào lại trận.' });
   },
   // ---- economy: every change is made here, from the server's own record
   wallet(c) { send(c, Eco.view(data.players[c.id], Date.now())); },
@@ -246,7 +308,7 @@ const handlers = {
     quickQueue = quickQueue.filter((q) => q !== c);
     leaveRoom(c);
     const mode = msg.mode === '2v2' ? '2v2' : '1v1';
-    const r = { code: code5(), host: c.id, mode, points: msg.points === 21 ? 21 : 11, games: msg.games === 3 ? 3 : 1, venue: Sim.clamp(+msg.venue || 0, -1, Sim.VENUES.length - 1), open: !!msg.open, slots: new Array(mode === '2v2' ? 4 : 2).fill(null), match: null };
+    const r = { code: code5(), host: c.id, mode, points: msg.points === 21 ? 21 : 11, games: msg.games === 3 ? 3 : 1, venue: Sim.clamp(+msg.venue || 0, -1, Sim.VENUES.length - 1), open: !!msg.open, slots: new Array(mode === '2v2' ? 4 : 2).fill(null), bench: [], asks: new Map(), match: null };
     r.slots[0] = c; c.room = r.code;
     rooms.set(r.code, r);
     broadcastRoom(r);
@@ -255,15 +317,17 @@ const handlers = {
     if (c.match) return;
     const r = rooms.get(clean(msg.code, 8).toUpperCase());
     if (!r) { send(c, { t: 'error', text: 'Không tìm thấy phòng này.' }); return; }
-    if (r.slots.includes(c)) { quickQueue = quickQueue.filter((q) => q !== c); broadcastRoom(r); return; }
-    if (r.match) { send(c, { t: 'error', text: 'Phòng đang thi đấu. Hãy vào xem trận.' }); return; }
-    const i = r.slots.indexOf(null);
-    if (i < 0) { send(c, { t: 'error', text: 'Phòng đã đủ người.' }); return; }
+    if (members(r).includes(c)) { quickQueue = quickQueue.filter((q) => q !== c); broadcastRoom(r); return; }
+    // a free seat if the room is waiting; otherwise (full, or a match is on) the bench, from where one can watch and swap in later
+    const i = r.match ? -1 : r.slots.indexOf(null);
+    if (i < 0 && r.bench.length >= BENCH_MAX) { send(c, { t: 'error', text: 'Phòng đã đủ người.' }); return; }
     quickQueue = quickQueue.filter((q) => q !== c);
     leaveRoom(c);
-    r.slots[i] = c; c.room = r.code;
+    if (i >= 0) r.slots[i] = c; else r.bench.push(c);
+    c.room = r.code;
     broadcastRoom(r);
-    roomChat(r, '', c.name + ' đã vào phòng');
+    roomChat(r, '', c.name + (i >= 0 ? ' đã vào phòng' : ' đã vào phòng (ngồi xem)'));
+    if (r.match && !r.match.ended) watchMatch(c, r.match);
   },
   leaveRoom(c) {
     leaveMatch(c, c.name + ' đã rời phòng. Bot sẽ thay thế.');
@@ -284,10 +348,28 @@ const handlers = {
   swap(c, msg) {
     const r = c.room && rooms.get(c.room);
     if (!r || r.match) return;
-    const to = +msg.slot;
-    if (!(to >= 0 && to < r.slots.length) || r.slots[to]) return;
-    r.slots[r.slots.indexOf(c)] = null; r.slots[to] = c;
-    broadcastRoom(r);
+    const to = +msg.slot, from = r.slots.indexOf(c);
+    if (to === -1) {   // step down to the bench
+      if (from < 0 || r.bench.length >= BENCH_MAX) return;
+      r.slots[from] = null; r.bench.push(c); broadcastRoom(r); return;
+    }
+    if (!(to >= 0 && to < r.slots.length) || to === from) return;
+    const other = r.slots[to];
+    if (!other) { place(r, c, to); broadcastRoom(r); return; }
+    if (r.host === c.id) { trade(r, c, other); broadcastRoom(r); return; }   // the host arranges seats directly
+    // anyone else asks; the seat's owner has to agree (swapReply)
+    r.asks.set(c.id, { target: other.id, at: Date.now() });
+    send(other, { t: 'swapAsk', from: c.id, name: c.name });
+    send(c, { t: 'notice', text: 'Đã gửi lời mời đổi chỗ cho ' + other.name });
+  },
+  swapReply(c, msg) {
+    const r = c.room && rooms.get(c.room);
+    if (!r || r.match) return;
+    const fromId = clean(msg.from, 40), ask = r.asks.get(fromId), asker = members(r).find((x) => x.id === fromId);
+    r.asks.delete(fromId);
+    if (!ask || ask.target !== c.id || !asker || Date.now() - ask.at > 30000 || r.slots.indexOf(c) < 0) return;
+    if (!msg.ok) { send(asker, { t: 'notice', text: c.name + ' không đồng ý đổi chỗ' }); return; }
+    trade(r, asker, c); broadcastRoom(r);
   },
   start(c) {
     const r = c.room && rooms.get(c.room);
@@ -331,7 +413,8 @@ const handlers = {
   leaveMatch(c) {
     const m = c.match && matches.get(c.match);
     leaveMatch(c, c.name + ' đã rời trận. Bot sẽ thay thế.');
-    if (m && m.room) { const r = rooms.get(m.room); if (r && r.slots.includes(c)) { send(c, { t: 'room', room: roomView(r) }); } }
+    rejoinOffer(c);
+    if (m && m.room) { const r = rooms.get(m.room); if (r && members(r).includes(c)) { send(c, { t: 'room', room: roomView(r) }); } }
   },
   rematch(c) {
     const m = c.match && matches.get(c.match);
@@ -368,7 +451,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     clients.delete(c);
     quickQueue = quickQueue.filter((q) => q !== c);
-    leaveMatch(c, c.name + ' mất kết nối. Bot sẽ thay thế.');
+    leaveMatch(c, c.name + ' mất kết nối. Bot sẽ thay thế.', true);
     leaveRoom(c);
     if (c.spectating) { const o = matches.get(c.spectating); if (o) o.spectators.delete(c); }
   });
