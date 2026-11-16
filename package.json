@@ -1,0 +1,9 @@
+{
+  "name": "shuttle-paws",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cute 3D badminton game: vs bot + online 1v1/2v2",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}

@@ -26,3 +26,6 @@ node_modules/
 __pycache__/
 *.pyc
 !/economy.js
+!/package.json
+!/package-lock.json
+!/render.yaml
