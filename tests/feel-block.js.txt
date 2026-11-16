@@ -1,0 +1,152 @@
+// ================================================================ match feel (presentation only: nothing here changes the simulation,
+// so local and online play identically). Pooled, no per-frame allocation.
+//  - impact effects per shot type (ring + sparks + flash), dust for jump / landing / dive, mark where the shuttle lands
+//  - lens punch on hard hits, phone vibration on the player's own hits
+//  - tension at game / match point (vignette, heartbeat, crowd), rally milestones, slow motion on the deciding point (local play)
+const Feel = (() => {
+  const RING_N = 12, SPARK_N = 160, FLASH_N = 4;
+  const mk = (geo) => { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })); m.frustumCulled = false; m.visible = false; m.renderOrder = 5; scene.add(m); return m; };
+  const ringGeo = new THREE.RingGeometry(0.82, 1, 36), discGeo = new THREE.CircleGeometry(1, 20);
+  const rings = Array.from({ length: RING_N }, () => ({ o: mk(ringGeo), t: 0, dur: 0, r0: 0, r1: 0, a: 0, flat: false }));
+  const flashes = Array.from({ length: FLASH_N }, () => ({ o: mk(discGeo), t: 0, dur: 0, r: 0 }));
+  const sGeo = new THREE.BufferGeometry(), sPos = new Float32Array(SPARK_N * 3).fill(-50), sCol = new Float32Array(SPARK_N * 3);
+  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3)); sGeo.setAttribute('color', new THREE.BufferAttribute(sCol, 3));
+  const sparks = new THREE.Points(sGeo, new THREE.PointsMaterial({ size: 0.13, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  sparks.frustumCulled = false; sparks.visible = false; sparks.renderOrder = 5; scene.add(sparks);
+  const sp = Array.from({ length: SPARK_N }, () => ({ vx: 0, vy: 0, vz: 0, t: 0, dur: 0, g: 0, r: 0, gg: 0, b: 0 }));
+  let ri = 0, fi = 0, si = 0, live = 0;
+  const col = new THREE.Color();
+  function ring(x, y, z, color, r0, r1, dur, alpha, flat) {
+    const r = rings[ri++ % RING_N]; r.t = r.dur = dur; r.r0 = r0; r.r1 = r1; r.a = alpha; r.flat = !!flat;
+    r.o.position.set(x, y, z); r.o.material.color.setHex(color); r.o.visible = true; live = Math.max(live, dur);
+    if (flat) r.o.rotation.set(-Math.PI / 2, 0, 0);
+  }
+  function flash(x, y, z, color, rad, dur) {
+    if (settings.gfx === 0) return;
+    const f = flashes[fi++ % FLASH_N]; f.t = f.dur = dur; f.r = rad; f.o.position.set(x, y, z); f.o.material.color.setHex(color); f.o.visible = true; live = Math.max(live, dur);
+  }
+  // n sparks from a point: velocity = dir * speed (+ random spread), g = gravity
+  function burst(x, y, z, color, n, speed, spread, dur, g, dx = 0, dy = 0, dz = 0) {
+    if (settings.gfx === 0) n = Math.ceil(n / 2);
+    col.setHex(color);
+    for (let k = 0; k < n; k++) {
+      const i = si++ % SPARK_N, p = sp[i];
+      sPos[i * 3] = x; sPos[i * 3 + 1] = y; sPos[i * 3 + 2] = z;
+      p.vx = dx * speed * rand(0.4, 1) + rand(-1, 1) * spread; p.vy = dy * speed * rand(0.4, 1) + rand(-1, 1) * spread; p.vz = dz * speed * rand(0.4, 1) + rand(-1, 1) * spread;
+      p.t = p.dur = dur * rand(0.6, 1); p.g = g; p.r = col.r; p.gg = col.g; p.b = col.b;
+    }
+    sparks.visible = true; live = Math.max(live, dur);
+  }
+  const buzz = (ms) => { if (!isTouch) return; try { if (navigator.vibrate) navigator.vibrate(ms); } catch (err) { /* not allowed */ } };
+  // ---- tension
+  const vig = document.createElement('div'); vig.id = 'tension'; document.body.appendChild(vig);
+  const st = document.createElement('style');
+  st.textContent = '#tension{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 52%,rgba(20,6,40,.5) 100%)}' +
+    '#tension.on{opacity:1;animation:tensePulse 1.05s ease-in-out infinite}#tension.mp{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 48%,rgba(120,10,30,.5) 100%)}' +
+    '@keyframes tensePulse{0%,100%{opacity:.55}18%{opacity:1}36%{opacity:.7}}';
+  document.head.appendChild(st);
+  const S0 = { gp: 0, gpPrev: 0, beat: 0, slowT: 0, slowK: 1, fov: 0, jy: [], milestone: 0 };   // gp: 0 none, 1 game point, 2 match point
+  function setTension(level) { S0.gp = level; vig.classList.toggle('on', level > 0); vig.classList.toggle('mp', level > 1); }
+  function slow(k, dur) { if (session && session.kind === 'local') { S0.slowK = k; S0.slowT = dur; } }
+  const SHOT = {   // ring colour, start radius, end radius, time, sparks, spark speed
+    smash: [0xff7a2e, 0.25, 1.45, 0.3, 26, 9],
+    drive: [0x7fe3ff, 0.18, 0.9, 0.22, 12, 7],
+    clear: [0x8fb4ff, 0.2, 1.05, 0.42, 8, 3.5],
+    lift:  [0x8fb4ff, 0.2, 0.95, 0.42, 6, 3],
+    drop:  [0x8dffc0, 0.1, 0.5, 0.36, 6, 1.2],
+    net:   [0x8dffc0, 0.08, 0.42, 0.36, 5, 1],
+  };
+  function hit(e, m, me) {
+    const mine = e.i === me, q = clamp(e.q === undefined ? 0.6 : e.q, 0, 1), v = m.shuttle.v;
+    let dx = v.x, dy = v.y, dz = v.z; const L = Math.hypot(dx, dy, dz);
+    if (L > 0.5) { dx /= L; dy /= L; dz /= L; } else { dx = 0; dy = 0.2; dz = e.z > 0 ? -1 : 1; }
+    const c = SHOT[e.shot] || [0xffffff, 0.1, 0.5, 0.25, 4, 2];
+    const k = e.shot === 'smash' ? 0.75 + 0.5 * q : 1;
+    ring(e.x, e.y, e.z, c[0], c[1], c[2] * k, c[3], e.shot === 'smash' ? 0.95 : 0.7);
+    if (e.shot === 'smash') {
+      ring(e.x, e.y, e.z, 0xfff1c9, 0.1, 0.8 * k, 0.18, 0.9); flash(e.x, e.y, e.z, 0xffe2a8, 0.55 * k, 0.1);
+      burst(e.x, e.y, e.z, 0xffb347, c[4], c[5] * k, 1.6, 0.42, 6, dx, dy, dz);
+      S0.fov = Math.min(S0.fov, -(mine ? 3.2 : 2) * (0.6 + 0.4 * q));
+      if (mine) buzz(q > 0.85 ? 38 : 24);
+      if (S0.gp === 2) slow(0.42, 0.45);
+    } else if (e.shot === 'drive') {
+      flash(e.x, e.y, e.z, 0xd6f6ff, 0.3, 0.08); burst(e.x, e.y, e.z, 0xbdefff, c[4], c[5], 0.9, 0.3, 2, dx, dy, dz);
+      S0.fov = Math.min(S0.fov, -1.1); if (mine) buzz(14);
+    } else if (e.shot === 'clear' || e.shot === 'lift') {
+      burst(e.x, e.y, e.z, 0xcfe0ff, c[4], c[5], 0.7, 0.5, 3, dx, dy, dz); if (mine) buzz(10);
+    } else if (e.shot === 'drop' || e.shot === 'net') {
+      burst(e.x, e.y, e.z, 0xd8ffe9, c[4], c[5], 0.45, 0.7, 1.2, dx, dy, dz); if (mine) buzz(6);
+    } else if (mine) buzz(8);
+    if (e.label === 'perfect') {
+      ring(e.x, e.y, e.z, 0xffd23f, 0.15, 1.0, 0.34, 0.95); burst(e.x, e.y, e.z, 0xffe680, 14, 3.4, 2.4, 0.55, 3, 0, 0.5, 0);
+      if (mine) buzz([12, 30, 18]);
+    }
+    if (e.label === 'save') { ring(e.x, 0.05, e.z, 0x7fe3ff, 0.2, 1.3, 0.4, 0.8, true); excite = Math.min(1, excite + 0.5); Sound.ooh(); }
+    // crowd follows the rally: louder the longer it goes, milestone call-outs
+    const n = m.rally || 0;
+    excite = Math.max(excite, Math.min(0.62, n * 0.035) + (S0.gp ? 0.2 : 0));
+    if (n >= 10 && n % 10 === 0 && n !== S0.milestone) { S0.milestone = n; popup('Rally ' + n + '!', 'gp'); excite = Math.min(1, excite + 0.4); Sound.ooh(); }
+  }
+  function dust(x, z, r, n, dx = 0, dz = 0) {
+    ring(x, 0.045, z, 0xfff2dc, 0.12, r, 0.32, 0.5, true);
+    burst(x, 0.08, z, 0xe9dcc6, n, 2.2, 0.9, 0.4, 5, dx, 0.25, dz);
+  }
+  function onEvent(e, m, me) {
+    switch (e.type) {
+      case 'jump': { const a = m.athletes[e.i]; if (a) dust(a.x, a.z, 0.55, 5); break; }
+      case 'dive': { const a = m.athletes[e.i]; if (a) { dust(a.x + (a.diveDx || 0) * 0.5, a.z + (a.diveDz || 0) * 0.5, 0.9, 12, a.diveDx || 0, a.diveDz || 0); if (e.i === me) buzz(16); } break; }
+      case 'land': ring(e.x, 0.04, e.z, e.inside === false ? 0xff5a5a : 0xffffff, 0.06, 0.5, 0.45, 0.85, true); burst(e.x, 0.06, e.z, 0xffffff, 5, 1.6, 0.7, 0.3, 5, 0, 0.6, 0); break;
+      case 'serve': S0.milestone = 0; break;
+      case 'point': {
+        const over = m.state === 'overPending' || m.state === 'over';
+        const wasDeciding = S0.gp === 2;
+        setTension(over ? 0 : e.gamePoint >= 0 ? (e.matchPoint ? 2 : 1) : 0);
+        if (wasDeciding || over) { slow(0.4, 0.7); S0.fov = Math.min(S0.fov, -4); }
+        buzz(e.team === session.myTeam ? [20, 40, 30] : 30);
+        break;
+      }
+      case 'game': case 'gameStart': case 'over': setTension(0); break;
+    }
+  }
+  function tick(dt, m) {
+    // landing dust (there is no event for an athlete touching down)
+    if (m) for (const a of m.athletes) { const p = S0.jy[a.i] || 0; if (p > 0.3 && a.jumpY === 0) dust(a.x, a.z, 0.7, 7); S0.jy[a.i] = a.jumpY > 0 ? Math.max(p, a.jumpY) : 0; }
+    if (S0.gp && m && (m.state === 'rally' || m.state === 'serve')) { S0.beat -= dt; if (S0.beat <= 0) { S0.beat = S0.gp > 1 ? 0.8 : 1.05; Sound.heart(); } }
+    if (S0.slowT > 0) S0.slowT -= dt;
+    S0.fov = damp(S0.fov, 0, 7, dt);
+    if (live <= 0) return;
+    live -= dt;
+    for (const r of rings) {
+      if (r.t <= 0) continue;
+      r.t -= dt; const k = 1 - Math.max(0, r.t) / r.dur, e = 1 - (1 - k) * (1 - k);
+      r.o.scale.setScalar(r.r0 + (r.r1 - r.r0) * e); r.o.material.opacity = r.a * (1 - k);
+      if (!r.flat) r.o.quaternion.copy(camera.quaternion);
+      if (r.t <= 0) r.o.visible = false;
+    }
+    for (const f of flashes) {
+      if (f.t <= 0) continue;
+      f.t -= dt; const k = 1 - Math.max(0, f.t) / f.dur;
+      f.o.scale.setScalar(f.r * (0.5 + k)); f.o.material.opacity = 0.9 * (1 - k); f.o.quaternion.copy(camera.quaternion);
+      if (f.t <= 0) f.o.visible = false;
+    }
+    let any = false;
+    for (let i = 0; i < SPARK_N; i++) {
+      const p = sp[i]; if (p.t <= 0) continue;
+      p.t -= dt;
+      if (p.t <= 0) { sPos[i * 3 + 1] = -50; sCol[i * 3] = sCol[i * 3 + 1] = sCol[i * 3 + 2] = 0; continue; }
+      any = true; p.vy -= p.g * dt; const dr = 1 - dt * 2.2; p.vx *= dr; p.vz *= dr;
+      sPos[i * 3] += p.vx * dt; sPos[i * 3 + 1] = Math.max(0.03, sPos[i * 3 + 1] + p.vy * dt); sPos[i * 3 + 2] += p.vz * dt;
+      const f = p.t / p.dur; sCol[i * 3] = p.r * f; sCol[i * 3 + 1] = p.gg * f; sCol[i * 3 + 2] = p.b * f;
+    }
+    sGeo.attributes.position.needsUpdate = true; sGeo.attributes.color.needsUpdate = true;
+    if (!any) sparks.visible = false;
+  }
+  function reset() {
+    setTension(0); S0.slowT = 0; S0.fov = 0; S0.jy.length = 0; S0.milestone = 0; live = 0;
+    for (const r of rings) { r.t = 0; r.o.visible = false; } for (const f of flashes) { f.t = 0; f.o.visible = false; }
+    for (let i = 0; i < SPARK_N; i++) { sp[i].t = 0; sPos[i * 3 + 1] = -50; } sGeo.attributes.position.needsUpdate = true; sparks.visible = false;
+  }
+  return { hit, onEvent, tick, reset, timeScale: () => (S0.slowT > 0 ? S0.slowK : 1), fov: () => S0.fov,
+    state: () => ({ gp: S0.gp, slow: S0.slowT > 0, fov: S0.fov, rings: rings.filter((r) => r.t > 0).length, sparks: sp.filter((p) => p.t > 0).length }) };
+})();
+
