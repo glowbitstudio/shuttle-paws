@@ -793,7 +793,9 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
 .quest .q-main{flex:1;min-width:0}.quest small{opacity:.8}
 .q-bar{height:8px;border-radius:4px;background:rgba(0,0,0,.3);margin:5px 0 2px;overflow:hidden}.q-bar i{display:block;height:100%;background:#ffd76a;border-radius:4px}
 .pill:disabled,.cta:disabled{opacity:.5;cursor:default}
-#charBuy{margin:8px 0 4px;font-size:18px;padding:10px}
+.stage-buy{pointer-events:auto;display:inline-flex;align-items:center;margin-top:10px;border:0;border-radius:999px;padding:9px 22px;font-family:var(--display);font-size:18px;font-weight:900;color:#3b2a00;background:linear-gradient(180deg,#ffe08a,#ffb531);box-shadow:0 4px 0 #b97a00,0 8px 18px rgba(0,0,0,.3);cursor:pointer;-webkit-text-stroke:0;text-shadow:none}
+.stage-buy:disabled{opacity:.65;cursor:default}.stage-buy:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 0 #b97a00}
+.stage-name small.need{font-size:13px;margin-top:6px}
 @media (max-width:520px){.login-row{grid-template-columns:repeat(4,1fr)}}
 
 /* ---- rejoin bar, room bench, seat swap request */
@@ -814,3 +816,12 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
 #roomAsk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border-radius:14px;background:rgba(255,215,106,.16);border:2px solid rgba(255,215,106,.6)}
 #roomAsk.hidden{display:none}#roomAsk span{flex:1;min-width:150px}
 
+/* character select on phones / portrait: the panel takes the lower half so the character on the stage stays visible;
+   name + buy button sit just above the panel; the confirm button stays in view while the list scrolls */
+@media (max-width:820px), (orientation:portrait){
+  .screen.stage .panel.side{max-height:52vh}
+  .screen.stage .stage-name{top:auto;bottom:calc(52vh + 20px);font-size:24px}
+  .stage-buy{font-size:16px;padding:7px 18px;margin-top:6px}
+}
+.panel.side #charsDone{position:sticky;bottom:0;z-index:2}
+.panel.side #charsDone:disabled{opacity:1;filter:grayscale(.75) brightness(.7)}

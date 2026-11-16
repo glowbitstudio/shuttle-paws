@@ -3753,12 +3753,14 @@ function renderChars() {
   const req = c.unlock ? ACH.find((a) => a.id === c.unlock) : null, price = charPrice(c.id);
   const bars = [['Tốc độ', 'spd'], ['Bật nhảy', 'jmp'], ['Lực đập', 'pow'], ['Tầm với', 'rch'], ['Khéo léo', 'ctl'], ['Thể lực', 'sta']]
     .map(([n, k]) => `<span>${n}</span><div class="bar"><i style="width:${c.stats[k] * 20}%"></i></div>`).join('');
-  $('stageName').innerHTML = `${esc(c.name)}<small>${esc(c.kind)}${ok ? '' : ' · ' + icon('lock') + ' Chưa mở khoá'}</small>`;
+  // the buy button sits under the character on the stage (not in the side panel, where it pushed the list into scrolling)
+  $('stageName').innerHTML = `${esc(c.name)}<small>${esc(c.kind)}${ok ? '' : ' · ' + icon('lock') + ' Chưa mở khoá'}</small>` +
+    (!ok && price ? `<button class="stage-buy" id="charBuy" ${wallet && wallet.gold >= price ? '' : 'disabled'}><i class="coin"></i>Mua · ${price} vàng</button><small class="need">Bạn có ${wallet ? wallet.gold : 0} vàng${wallet && wallet.gold < price ? ' · còn thiếu ' + (price - wallet.gold) : ''}</small>` : '');
   $('charsDone').textContent = charsBack === 'bot' ? 'Chọn & vào trận' : charsBack === 'room' ? 'Chọn & về phòng' : 'Chọn';
   $('charsDone').disabled = !ok;
   $('charInfo').innerHTML = `<h3>${faceImg(c.id)}${esc(c.name)} <small style="color:var(--ink2)">· ${esc(c.kind)}</small></h3><p>${esc(c.desc)}</p>` +
     (ok ? '' : (req ? `<p>${icon('lock')} Mở khoá: <b>${esc(req.name)}</b>, ${esc(req.desc)}${price ? ' · hoặc mua bằng vàng' : ''}</p>` : '') +
-      (price ? `<button class="cta" id="charBuy" ${wallet && wallet.gold >= price ? '' : 'disabled'}><i class="coin"></i>Mua · ${price} vàng</button><p class="tiny">Bạn đang có ${wallet ? wallet.gold : 0} vàng${wallet && wallet.gold < price ? ' · còn thiếu ' + (price - wallet.gold) : ''}</p>` : '')) + `<div class="bars">${bars}</div>`;
+      '') + `<div class="bars">${bars}</div>`;
   if ($('charBuy')) $('charBuy').onclick = () => { Sound.boop(); Net.send({ t: 'buyChar', id: c.id }); };
 }
 $('nameInput').addEventListener('change', () => { profile.name = $('nameInput').value.trim().slice(0, 18) || randomName(); saveAll(); Net.profile(); });
