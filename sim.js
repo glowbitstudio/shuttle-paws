@@ -42,7 +42,7 @@ const CHARS = [
 ];
 // ---- gear. Every item trades something for something (no pure buffs); rarer items trade on better terms.
 // mods are in character-stat points (the same 1..5 scale as CHARS.stats). Net value per item: common +0.25, rare +0.5, epic +0.75.
-const GEAR_SLOTS = [['racket', 'Vợt'], ['shoes', 'Giày'], ['shirt', 'Áo'], ['shorts', 'Quần'], ['wrist', 'Băng tay'], ['head', 'Đội đầu']];
+const GEAR_SLOTS = [['racket', 'Vợt'], ['shoes', 'Giày'], ['shirt', 'Áo'], ['shorts', 'Quần'], ['wrist', 'Băng tay'], ['head', 'Đội đầu'], ['neck', 'Cổ'], ['back', 'Lưng']];
 const GEAR_RARITY = ['Thường', 'Hiếm', 'Sử thi'];
 const GEAR = [
   { id: 'r_light', slot: 'racket', rar: 0, price: 300,  col: 0x4fb8e8, name: 'Vợt nhẹ',            mods: { ctl: 0.75, pow: -0.5 }, desc: 'Vung nhanh, đặt cầu chuẩn hơn nhưng đập yếu đi.' },
@@ -59,10 +59,16 @@ const GEAR = [
   { id: 'p_pro',   slot: 'shorts', rar: 2, price: 2200, col: 0xf2c230, name: 'Quần thi đấu',       mods: { jmp: 1, spd: 0.25, ctl: -0.5 }, desc: 'Bật rất cao; tiếp đất mạnh nên kém khéo.' },
   { id: 'w_band',  slot: 'wrist',  rar: 0, price: 300,  col: 0xffffff, name: 'Băng thấm mồ hôi',   mods: { ctl: 0.75, pow: -0.5 }, desc: 'Tay khô, cầm chắc; hơi cộm khi đập.' },
   { id: 'w_weight',slot: 'wrist',  rar: 1, price: 900,  col: 0x3a3a46, name: 'Băng tạ',            mods: { pow: 1, ctl: -0.5 }, desc: 'Nặng tay: đập mạnh, khó đánh tinh tế.' },
-  { id: 'w_pro',   slot: 'wrist',  rar: 2, price: 2200, col: 0xf2c230, name: 'Băng cổ tay pro',    mods: { ctl: 1, rch: 0.25, sta: -0.5 }, desc: 'Cổ tay vững và với xa hơn; bó nên mau mỏi.' },
-  { id: 'h_band',  slot: 'head',   rar: 0, price: 300,  col: 0xe8503a, name: 'Băng đầu',           mods: { sta: 0.75, ctl: -0.5 }, desc: 'Mồ hôi không vào mắt, đỡ mệt; hơi vướng tầm nhìn.' },
-  { id: 'h_focus', slot: 'head',   rar: 1, price: 900,  col: 0x2f8f6a, name: 'Băng tập trung',     mods: { ctl: 1, jmp: -0.5 }, desc: 'Đánh chuẩn hơn; chặt nên ngại bật cao.' },
-  { id: 'h_pro',   slot: 'head',   rar: 2, price: 2200, col: 0xf2c230, name: 'Băng nhà vô địch',   mods: { rch: 0.75, ctl: 0.5, spd: -0.5 }, desc: 'Đọc cầu sớm, với xa; tự tin quá nên chậm chân.' },
+  { id: 'w_pro',   slot: 'wrist',  rar: 2, price: 2200, col: 0xf2c230, name: 'Bao tay thi đấu',    mods: { ctl: 1, rch: 0.25, sta: -0.5 }, desc: 'Cổ tay vững và với xa hơn; bó nên mau mỏi.' },
+  { id: 'h_band',  slot: 'head',   rar: 0, price: 300,  col: 0xe8503a, name: 'Khăn buộc đầu',      mods: { sta: 0.75, ctl: -0.5 }, desc: 'Mồ hôi không vào mắt, đỡ mệt; hơi vướng tầm nhìn.' },
+  { id: 'h_focus', slot: 'head',   rar: 1, price: 900,  col: 0x2f8f6a, name: 'Mũ lưỡi trai',       mods: { ctl: 1, jmp: -0.5 }, desc: 'Đánh chuẩn hơn; chặt nên ngại bật cao.' },
+  { id: 'h_pro',   slot: 'head',   rar: 2, price: 2200, col: 0xf2c230, name: 'Vương miện vô địch', mods: { rch: 0.75, ctl: 0.5, spd: -0.5 }, desc: 'Đọc cầu sớm, với xa; tự tin quá nên chậm chân.' },
+  { id: 'n_towel', slot: 'neck',   rar: 0, price: 300,  col: 0xffffff, name: 'Khăn lau mồ hôi',    mods: { sta: 0.75, spd: -0.5 }, desc: 'Lau khô nhanh, đỡ mệt; vướng cổ nên chạy chậm hơn.' },
+  { id: 'n_chain', slot: 'neck',   rar: 1, price: 900,  col: 0x4fd6e0, name: 'Dây chuyền may mắn', mods: { ctl: 0.5, rch: 0.5, pow: -0.5 }, desc: 'Bình tĩnh và với xa hơn; ngại đập hết lực.' },
+  { id: 'n_medal', slot: 'neck',   rar: 2, price: 2200, col: 0xf2c230, name: 'Huy chương vàng',    mods: { pow: 1, rch: 0.25, jmp: -0.5 }, desc: 'Khí thế nhà vô địch; nặng cổ nên bật kém hơn.' },
+  { id: 'b_pack',  slot: 'back',   rar: 0, price: 300,  col: 0x2fa8a0, name: 'Balo nước',          mods: { sta: 0.75, jmp: -0.5 }, desc: 'Luôn có nước uống; đeo balo nên khó bật cao.' },
+  { id: 'b_bag',   slot: 'back',   rar: 1, price: 900,  col: 0xd9483b, name: 'Túi vợt dự phòng',   mods: { pow: 1, spd: -0.5 }, desc: 'Vợt căng dây mới, đập mạnh; nặng lưng nên chậm chân.' },
+  { id: 'b_wings', slot: 'back',   rar: 2, price: 2200, col: 0xfff3c4, name: 'Đôi cánh nhỏ',       mods: { jmp: 1, spd: 0.25, ctl: -0.5 }, desc: 'Bật cao như bay; đà lớn nên khó đánh tinh tế.' },
 ];
 const GEAR_STAT_CAP = 2;                                   // gear can move one stat by at most +-2 points in total
 const STAT_KEYS = ['spd', 'jmp', 'pow', 'rch', 'ctl', 'sta'];

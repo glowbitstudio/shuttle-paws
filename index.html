@@ -125,6 +125,7 @@
     <div class="lobby-char">
       <button data-go="chars"><i><svg class="ico" aria-hidden="true"><use href="#i-paw"/></svg></i>Nhân vật</button>
       <button data-go="gear"><i><svg class="ico" aria-hidden="true"><use href="#i-shirt"/></svg></i>Trang bị</button>
+      <button data-go="shop"><i class="coin"></i>Cửa hàng</button>
     </div>
     <div class="lobby-play">
       <button class="big-btn orange" data-go="bot"><i><svg class="ico" aria-hidden="true"><use href="#i-bot"/></svg></i>Đấu với Bot<small>1v1 hoặc 2v2</small></button>
@@ -176,12 +177,22 @@
 
   <!-- Achievements -->
   <section id="s-gear" class="screen stage hidden">
+    <div class="panel side wd">
+      <header><button class="back" data-go="home">‹</button><h2>Trang bị</h2><button class="pill buy" data-go="shop">Cửa hàng</button></header>
+      <div class="wd-title"><b id="wdSlotName"></b><small id="wdCount"></small><span id="wdPower"></span></div>
+      <div id="wdInv" class="wd-inv"></div>
+      <div id="wdDetail"></div>
+      <div class="char-info"><div class="bars" id="gearStats"></div></div>
+    </div>
+  </section>
+  <div id="wdSlots" class="wd-slots hidden"></div>
+
+  <section id="s-shop" class="screen stage hidden">
     <div class="panel side">
-      <header><button class="back" data-go="home">‹</button><h2>Trang bị</h2></header>
-      <div class="gear-head"><span class="gold-chip"><i class="coin"></i><b id="gearGold">…</b></span><small class="tiny">Bấm một món để thử lên nhân vật</small></div>
+      <header><button class="back" data-go="home">‹</button><h2>Cửa hàng</h2><span class="gold-chip"><i class="coin"></i><b id="gearGold">…</b></span></header>
+      <p class="tiny shop-hint">Bấm một món để thử lên nhân vật. Mua xong vào <b>Trang bị</b> để mặc hoặc đổi.</p>
       <div id="gearTabs"></div>
       <div id="gearList"></div>
-      <div class="char-info"><div class="bars" id="gearStats"></div></div>
     </div>
   </section>
 

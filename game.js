@@ -124,6 +124,48 @@ function queuePortrait(id) {
 // <img> of a character's face; fills in as soon as its portrait is rendered
 const faceImg = (id, cls) => { const u = portraitCache.get(id); if (u === undefined) queuePortrait(id); return `<img class="pt${cls ? ' ' + cls : ''}" data-pt="${id}" alt="" src="${u || BLANK_IMG}">`; };
 
+// ---- gear icons: the item worn by the player's own character, framed on the part of the body it belongs to (cached as data URLs)
+const gearIconCache = new Map(), gearIconQueue = [];
+function renderGearIcon(key) {
+  const [id, ch] = key.split('@'), it = S.gearById(id), slot = it.slot;
+  if (!portraitR) renderPortrait('cat');     // sets up the shared little renderer
+  const mdl = buildCharacter(charById(ch), 0xff7a59, 1, 'R', [id]);
+  scene.remove(mdl.root); portraitScene.add(mdl.root);
+  if (slot !== 'racket') mdl.wrist.visible = false;
+  else { mdl.root.visible = false; portraitScene.add(mdl.wrist); mdl.wrist.position.set(0, 0, 0); mdl.wrist.rotation.set(Math.PI, 0.25, 0.4); mdl.wrist.updateMatrixWorld(true); }   // the racket alone, head up
+  mdl.root.rotation.y = slot === 'back' ? Math.PI - 0.5 : slot === 'wrist' ? -0.5 : 0.42;
+  mdl.root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const parts = slot === 'racket' ? [mdl.wrist] : slot === 'shoes' ? mdl.feet : slot === 'shirt' ? [mdl.gear.torso] : slot === 'shorts' ? [mdl.gear.shorts] : slot === 'wrist' ? [mdl.gear.wristGear[0]]
+    : slot === 'head' ? [mdl.head] : slot === 'neck' ? [mdl.gear.neck] : [mdl.gear.back, mdl.gear.torso];
+  for (const p of parts) box.expandByObject(p);
+  if (slot === 'shorts') box.min.y -= 0.2;
+  if (slot === 'neck') { box.min.y -= 0.16; box.max.y += 0.04; }
+  if (slot === 'shirt') box.expandByScalar(0.09);
+  if (slot === 'wrist') box.expandByScalar(0.07);
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), r = Math.max(0.12, Math.max(sz.x, sz.y) * 0.56);
+  const dist = r / Math.tan(THREE.MathUtils.degToRad(12));
+  portraitCam.position.set(c.x + dist * 0.1, c.y + dist * (slot === 'shoes' ? 0.3 : 0.12), c.z + dist); portraitCam.lookAt(c);
+  portraitR.render(portraitScene, portraitCam);
+  const url = portraitR.domElement.toDataURL('image/png');
+  if (slot === 'racket') { portraitScene.remove(mdl.wrist); disposeTree(mdl.wrist); }
+  portraitScene.remove(mdl.root); disposeTree(mdl.root);
+  return url;
+}
+function drainGearIcons() {
+  const key = gearIconQueue[0]; if (!key) return;
+  let url = '';
+  try { url = renderGearIcon(key); } catch (e) { console.warn('gear icon', key, e); }
+  gearIconCache.set(key, url); gearIconQueue.shift();
+  document.querySelectorAll(`img[data-gi="${key}"]`).forEach((im) => { im.src = url || BLANK_IMG; });
+  if (gearIconQueue.length) setTimeout(drainGearIcons, 0);
+}
+const gearIconImg = (id) => {
+  const key = id + '@' + profile.char, u = gearIconCache.get(key);
+  if (u === undefined && !gearIconQueue.includes(key)) { gearIconQueue.push(key); if (gearIconQueue.length === 1) setTimeout(drainGearIcons, 0); }
+  return `<img class="gi-ic" data-gi="${key}" alt="" src="${u || BLANK_IMG}">`;
+};
+
 // ================================================================ audio
 const Sound = (() => {
   let ctx = null, master = null, noiseBuf = null;
@@ -1184,6 +1226,20 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     const br = place(0, 0.83, 0.57, 1.09); mk(new THREE.CapsuleGeometry(0.013, 0.05, 2, 6), rimM, 0, 0, 0, br).rotation.z = Math.PI / 2;
     return gr;
   }
+  if (kind === 'visor') {   // sun visor: band + a wide brim over the brow
+    ring(0.46, 0.13, team); ring(0.52, 0.03, acc, 1.045);
+    const brim = mk(new THREE.CylinderGeometry(0.78, 0.78, 0.05, 28, 1, false, -1.05, 2.1), team, 0, 0.36, 0.5, fit, true); brim.rotation.x = 0.22;
+    const edge = mk(new THREE.TorusGeometry(0.78, 0.03, 6, 24, 2.1), acc, 0, 0.36, 0.5, fit); edge.rotation.set(Math.PI / 2 + 0.22, 0, Math.PI / 2 - 1.05);
+    return gr;
+  }
+  if (kind === 'crown') {   // small crown worn on top: band, five points, gems
+    const top = new THREE.Group(); top.position.set(0, 0.84, 0.05); top.rotation.x = -0.1; top.scale.setScalar(1.3); fit.add(top); if (!fit.parent) gr.add(fit);
+    mk(new THREE.CylinderGeometry(0.4, 0.36, 0.2, 24, 1, true), team, 0, 0.1, 0, top, true);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mk(new THREE.ConeGeometry(0.105, 0.24, 4), team, Math.sin(a) * 0.37, 0.31, Math.cos(a) * 0.37, top, true).rotation.y = a + Math.PI / 4;
+      mk(new THREE.SphereGeometry(0.05, 8, 6), toon(i % 2 ? 0xff5e7a : 0x5ad1ff), Math.sin(a + 0.52) * 0.385, 0.1, Math.cos(a + 0.52) * 0.385, top); }
+    mk(new THREE.TorusGeometry(0.37, 0.035, 6, 24), acc, 0, 0.0, 0, top).rotation.x = Math.PI / 2;
+    return gr;
+  }
   // 'band' / 'bandana': fitted sweatband with a thin accent stripe
   ring(0.44, 0.11, team); ring(0.44, 0.028, acc, 1.045);
   if (kind === 'bandana') {   // knot and two tails at the back
@@ -1195,7 +1251,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
 // in-match player size: the racket at full stretch reaches ~2.1 m, matching the sim's hit zone (REACH_H)
 const PLAYER_SCALE = 0.92;
 function buildCharacter(c, teamColor, scale, hand, gearIds) {
-  const GL = {}; { const set = S.gearSet(gearIds); for (const k in set) GL[k] = set[k].col; }   // worn gear: one colour per slot
+  const GL = {}, GI = {}; { const set = S.gearSet(gearIds); for (const k in set) { GL[k] = set[k].col; GI[k] = set[k].id; } }   // worn gear: colour and item id per slot
   const h = hand === 'L' ? 1 : -1;   // racket side: +x = left hand, -x = right hand (model faces +z)
   const P = Object.assign({ size: 1, torso: [1, 1.08, 0.88], head: 1.18, sq: [1.08, 0.95, 0.98], lift: 0, headY: 0, snout: 'cat', eye: 'big', foot: 1 }, SHAPES[c.id] || {});
   teamColor = teamColor || 0xff7a59;
@@ -1228,17 +1284,47 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     thigh.rotation.order = 'ZYX';
     const legMat = P.darkPaws ? pawMat : limbMat;
     add(new THREE.SphereGeometry(0.098, 14, 8), mShorts, 0, 0.0, 0, thigh);                 // hip ball: no gap under the shorts when the thigh swings
-    const lgLen = 0.08 + Math.min(L1 * 0.9, 0.12);                                           // shorts leg: down to just above the knee, flared, so it reads as shorts and not briefs
-    const lg = add(new THREE.CylinderGeometry(0.1, 0.122, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
-    const lgHem = add(new THREE.TorusGeometry(0.121, 0.009, 6, 20), mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem);   // white leg hem
-    add(new THREE.CapsuleGeometry(0.078, Math.max(0.01, L1 - 0.04), 4, 12), legMat, 0, -L1 / 2, -0.005, thigh);   // thigh
+    // shorts leg. Default: to just above the knee, flared. Gear: p_light = short running cut, p_flex = tights over the knee, p_pro = long and baggy with a side stripe
+    const pk = GI.shorts, tight = pk === 'p_flex';
+    const lgLen = 0.08 + (pk === 'p_light' ? Math.min(L1 * 0.4, 0.05) : Math.min(L1 * 0.9, 0.12)), lgR = tight ? 0.092 : pk === 'p_pro' ? 0.138 : pk === 'p_light' ? 0.116 : 0.122;
+    const lg = add(new THREE.CylinderGeometry(tight ? 0.096 : 0.1, lgR, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
+    if (!tight) { const lgHem = add(new THREE.TorusGeometry(lgR - 0.001, pk === 'p_pro' ? 0.013 : 0.009, 6, 20), pk === 'p_pro' ? toon(0x2a1f5a) : mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem); }
+    if (pk === 'p_pro') { const st = add(new THREE.BoxGeometry(0.012, lgLen * 0.92, 0.05), toon(0x2a1f5a), s * 0.118, 0.08 - lgLen / 2, 0, thigh); st.rotation.z = s * 0.2; noOL(st); }
+    if (pk === 'p_light') { const sl = add(new THREE.SphereGeometry(0.03, 8, 6), mTrim, s * 0.108, 0.08 - lgLen + 0.03, 0.01, thigh); sl.scale.set(0.35, 1.2, 1.3); noOL(sl); }
+    add(new THREE.CapsuleGeometry(tight ? 0.081 : 0.078, Math.max(0.01, L1 - 0.04), 4, 12), tight ? mShorts : legMat, 0, -L1 / 2, -0.005, thigh);   // thigh
     const knee = new THREE.Group(); knee.position.set(0, -L1, 0); thigh.add(knee);
-    add(new THREE.SphereGeometry(0.074, 12, 8), legMat, 0, 0, -0.008, knee);                   // knee cap: smooth bend, no kink
+    add(new THREE.SphereGeometry(tight ? 0.077 : 0.074, 12, 8), tight ? mShorts : legMat, 0, 0, -0.008, knee);                   // knee cap: smooth bend, no kink
+    if (tight) { const kr = add(new THREE.TorusGeometry(0.07, 0.011, 6, 18), toon(0x9fd0ff), 0, -0.05, -0.01, knee); kr.rotation.x = Math.PI / 2; noOL(kr); }
     add(new THREE.CapsuleGeometry(0.066, Math.max(0.01, L2 - 0.03), 4, 12), legMat, 0, -L2 / 2, -0.012, knee);    // shin, a little slimmer
     const ankle = new THREE.Group(); ankle.position.set(0, -L2, 0); knee.add(ankle); ankle.userData.side = s;
+    const sk = GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
     if (P.webbed) {
       const shoe = add(new THREE.SphereGeometry(0.1, 14, 10), mOrange, 0, -0.04, 0.05, ankle); shoe.scale.set(1.25, 0.42, 1.7);
       for (const t of [-1, 0, 1]) add(new THREE.SphereGeometry(0.035, 8, 6), mOrange, t * 0.07, -0.05, 0.2, ankle).scale.set(1, 0.6, 1.2);
+      if (sk) {   // webbed feet wear the gear as ankle wraps
+        noOL(add(new THREE.CylinderGeometry(0.074, 0.08, sk === 's_pro' ? 0.085 : 0.055, 16), mShoe, 0, sk === 's_pro' ? 0.045 : 0.03, -0.01, ankle));
+        if (sk === 's_spring') { const r = add(new THREE.TorusGeometry(0.08, 0.014, 6, 18), toon(0xffd23f), 0, 0.005, -0.01, ankle); r.rotation.x = Math.PI / 2; noOL(r); }
+        if (sk === 's_run') { const r = add(new THREE.TorusGeometry(0.076, 0.008, 6, 18), mTrim, 0, 0.04, -0.01, ankle); r.rotation.x = Math.PI / 2; noOL(r); }
+        if (sk === 's_pro') wing();
+      }
+    } else if (sk) {
+      const fz = 0.02 + (P.foot - 1) * 0.06, lowY = sk === 's_run' ? 0.52 : 0.62;
+      const sock = add(new THREE.CylinderGeometry(0.074, 0.08, 0.06, 18), mTrim, 0, 0.04, -0.02, ankle); noOL(sock);
+      const shoe = add(new THREE.SphereGeometry(0.1, 18, 12), mShoe, 0, -0.02, fz, ankle); shoe.scale.set(0.95, lowY, 1.45 * P.foot);
+      const toe = add(new THREE.SphereGeometry(0.06, 10, 8), sk === 's_pro' ? toon(0xffffff) : mShoe, 0, -0.035, fz + 0.1 * P.foot, ankle); toe.scale.set(1.25, 0.75, 1.0); noOL(toe);
+      if (sk === 's_run') {         // low and sleek: thin white sole, racing stripe on the outside
+        const sole = add(new THREE.CylinderGeometry(0.098, 0.098, 0.018, 18), mTrim, 0, -0.064, fz, ankle); sole.scale.set(0.95, 1, 1.45 * P.foot); noOL(sole);
+        for (const dz of [-0.02, 0.035]) { const st = add(new THREE.SphereGeometry(0.03, 8, 6), mTrim, s * 0.088, -0.015, fz + dz, ankle); st.scale.set(0.3, 1.25, 0.5); st.rotation.x = -0.5; noOL(st); }
+      } else if (sk === 's_spring') {   // thick bouncy sole with an air bubble at the heel
+        const sole = add(new THREE.CylinderGeometry(0.102, 0.106, 0.05, 18), toon(0xffd23f), 0, -0.07, fz, ankle); sole.scale.set(0.97, 1, 1.47 * P.foot); noOL(sole);
+        const bub = add(new THREE.SphereGeometry(0.038, 10, 8), toon(0x5ad1ff), 0, -0.068, fz - 0.115 * P.foot, ankle); noOL(bub);
+        const lace = add(new THREE.SphereGeometry(0.03, 10, 8), mTrim, 0, 0.012, fz + 0.045, ankle); lace.scale.set(1.3, 0.45, 1.4); noOL(lace);
+      } else {                      // s_pro: high-top with a white toe cap and a little wing
+        const sole = add(new THREE.CylinderGeometry(0.098, 0.098, 0.028, 18), toon(0x2a1f5a), 0, -0.062, fz, ankle); sole.scale.set(0.95, 1, 1.45 * P.foot); noOL(sole);
+        noOL(add(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 18), mShoe, 0, 0.045, -0.015, ankle));
+        const cuffR = add(new THREE.TorusGeometry(0.08, 0.012, 6, 18), toon(0x2a1f5a), 0, 0.094, -0.015, ankle); cuffR.rotation.x = Math.PI / 2; noOL(cuffR);
+        wing();
+      }
     } else {
       const sock = add(new THREE.CylinderGeometry(0.074, 0.08, 0.06, 18), mTrim, 0, 0.04, -0.02, ankle); noOL(sock);
       const fz = 0.02 + (P.foot - 1) * 0.06;
@@ -1258,7 +1344,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const seat = add(new THREE.SphereGeometry(0.27, 20, 6, 0, Math.PI * 2, thC, Math.PI - thC), mShorts, 0, tc, 0, upH); seat.scale.set(tx, ty, tz);
   const hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(0.11 / (0.27 * ty), 2)) + 0.004, 0.012, 6, 30), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mKit, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
-  if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
+  if (GI.shirt) { /* gear shirt: its own pattern, added below */ }
+  else if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
   else if (V.kit === 'sash') { const sa = U(new THREE.TorusGeometry(0.262, 0.022, 6, 26), mKit, 0, tc + 0.02, 0); sa.rotation.set(Math.PI / 2, 0.62 * -h, 0); sa.scale.set(tx * 1.02, tz * 1.02, ty); noOL(sa); }
   const idx = Math.max(0, S.CHARS.findIndex((x) => x.id === c.id));
   const num = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26), new THREE.MeshBasicMaterial({ map: jerseyNumberTex([7, 3, 10, 5, 9, 1, 4, 8, 2, 11, 6, 12, 23, 13, 99, 88][idx] || idx + 1, '#' + shadeHex(teamColor, -0.45).toString(16).padStart(6, '0')), transparent: true, depthWrite: false }));
@@ -1531,7 +1618,56 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   if (cutters.length) softShell(skull, new THREE.SphereGeometry(0.34, 64, 40), cutters.map(sdfOf).filter(Boolean), 0.02, 0.08);
   if (softSkin.length) { const sk = [sdfOf(skull)]; for (const [m, r0, r1] of softSkin) softShell(m, m.geometry.clone(), sk, r0, r1); }
   fuse(eyeRim, mLid); fuse(eyeIris, mIris); fuse(eyePupil, mPupil); fuse(eyeGlint, basic(0xffffff)); fuse(cheek, toon(0xff9a7a)); if (eyeLo.length) fuse(eyeLo, toon(V.irisLo));
-  const headGear = GL.head !== undefined ? buildHeadGear(V.gear === 'none' ? 'band' : V.gear, GL.head, GL.head, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
+  // ---- gear: shirt patterns, neck and back items (all hang on the chest, so they follow the upper body)
+  const surfZ = (y) => 0.27 * tz * Math.sqrt(Math.max(0.02, 1 - Math.pow((y - tc) / (0.27 * ty), 2)));   // torso front at height y
+  const hoop = (y, tube, mat) => { const r = U(new THREE.TorusGeometry(0.27 * Math.sqrt(Math.max(0.02, 1 - Math.pow((y - tc) / (0.27 * ty), 2))) + 0.003, tube, 6, 28), mat, 0, y, 0); r.rotation.x = Math.PI / 2; r.scale.set(tx, tz, 1); return noOL(r); };
+  if (GI.shirt === 't_cool') { hoop(tc + 0.075, 0.011, mTrim); hoop(tc + 0.0, 0.011, mTrim); hoop(tc - 0.07, 0.011, mTrim); }
+  else if (GI.shirt === 't_comp') {   // dark compression top: neon seams down both sides and a neon collar
+    const neon = toon(0x7dff9a);
+    for (const sd of [-1, 1]) { const sm = U(new THREE.TorusGeometry(0.272, 0.011, 6, 26, Math.PI * 0.86), neon, 0, tc, 0); sm.rotation.set(0, sd * 0.62, -Math.PI * 0.43); sm.scale.set(tz * 1.02, ty * 1.01, 1); noOL(sm); }
+    hoop(tc + 0.2, 0.012, neon);
+  } else if (GI.shirt === 't_pro') {   // champion jersey: dark chest band, white piping, star on the chest
+    const navy = toon(0x2a1f5a); hoop(tc + 0.045, 0.034, navy); hoop(tc + 0.085, 0.008, mTrim); hoop(tc + 0.005, 0.008, mTrim);
+    const sy = tc + 0.15, star = U(new THREE.CircleGeometry(0.036, 5), basic(0xffffff), -0.085 * h, sy, surfZ(sy) * 0.93 + 0.012); star.rotation.set(-0.35, -0.3 * h, Math.PI / 10); noOL(star);
+  }
+  const neckG = new THREE.Group(); neckG.name = 'neckGear'; up.add(neckG);
+  const backG = new THREE.Group(); backG.name = 'backGear'; up.add(backG);
+  const NK = (geo, mat, x, y, z, ol) => { const m = add(geo, mat, x, y, z, neckG); if (!ol) noOL(m); return m; }, BK = (geo, mat, x, y, z, ol) => { const m = add(geo, mat, x, y, z, backG); if (!ol) noOL(m); return m; };
+  const cy = tc + 0.27 * ty - 0.07;                 // collar height
+  if (GI.neck === 'n_towel') {      // towel round the neck, both ends hanging on the chest
+    const tw = toon(0xffffff), r = NK(new THREE.TorusGeometry(0.15, 0.042, 8, 22), tw, 0, cy + 0.005, 0, true); r.rotation.x = Math.PI / 2; r.scale.set(1, 0.9, 0.8);
+    for (const sd of [-1, 1]) { const y = cy - 0.1, e = NK(new THREE.CapsuleGeometry(0.04, 0.11, 3, 8), tw, sd * 0.085, y, surfZ(y) * 0.86 + 0.03, true); e.rotation.set(0.25, 0, -sd * 0.1); e.scale.z = 0.55;
+      const st = NK(new THREE.BoxGeometry(0.082, 0.014, 0.012), toon(0x4fb8e8), sd * 0.085, y - 0.055, surfZ(y - 0.055) * 0.86 + 0.052); st.rotation.x = 0.25; }
+  } else if (GI.neck === 'n_chain') {   // thin gold chain with a gem pendant
+    const ch = NK(new THREE.TorusGeometry(0.155, 0.008, 6, 28), toon(0xf2c230), 0, cy - 0.025, 0.02); ch.rotation.x = Math.PI / 2 + 0.42; ch.scale.set(1, 1.12, 1);
+    const py = cy - 0.1; NK(new THREE.OctahedronGeometry(0.034), toon(GL.neck), 0, py, surfZ(py) * 0.9 + 0.035).scale.set(0.8, 1.15, 0.6);
+  } else if (GI.neck === 'n_medal') {   // ribbon in a V and a gold medal on the chest
+    for (const sd of [-1, 1]) { const y = cy - 0.085, rb = NK(new THREE.BoxGeometry(0.036, 0.2, 0.01), toon(sd > 0 ? 0xd9483b : 0x3f6fd9), sd * 0.055, y, surfZ(y) * 0.9 + 0.03); rb.rotation.set(0.3, 0, sd * 0.5); }
+    const my = cy - 0.185, md = NK(new THREE.CylinderGeometry(0.058, 0.058, 0.016, 20), toon(0xf2c230), 0, my, surfZ(my) * 0.93 + 0.04, true); md.rotation.x = Math.PI / 2 - 0.25;
+    const ms = NK(new THREE.CircleGeometry(0.03, 5), basic(0xfff3c4), 0, my + 0.002, surfZ(my) * 0.93 + 0.05); ms.rotation.set(-0.25, 0, Math.PI / 10);
+  }
+  const bz = -surfZ(tc + 0.03);                     // torso back
+  if (GI.back === 'b_pack') {       // small backpack with a water bottle in the side pocket
+    const bp = BK(new THREE.SphereGeometry(0.15, 14, 10), toon(GL.back), 0, tc + 0.03, bz - 0.05, true); bp.scale.set(1.0, 1.15, 0.62);
+    const fl = BK(new THREE.SphereGeometry(0.12, 12, 8), toon(shadeHex(GL.back, 0.25)), 0, tc + 0.1, bz - 0.085); fl.scale.set(1.0, 0.55, 0.5);
+    BK(new THREE.SphereGeometry(0.018, 8, 6), toon(0xffd23f), 0, tc + 0.06, bz - 0.145);
+    BK(new THREE.CapsuleGeometry(0.03, 0.09, 3, 8), toon(0x8fe07a), 0.165, tc - 0.01, bz - 0.04, true); BK(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 8), toon(0xffffff), 0.165, tc + 0.085, bz - 0.04);
+    for (const sd of [-1, 1]) { const stp = BK(new THREE.TorusGeometry(0.272, 0.014, 6, 24), toon(shadeHex(GL.back, -0.3)), sd * 0.105, tc + 0.02, 0); stp.rotation.y = Math.PI / 2; stp.scale.set(tz * 1.02, ty * 0.96, 1); }
+  } else if (GI.back === 'b_bag') {   // racket bag slung across the back
+    const bag = BK(new THREE.CapsuleGeometry(0.085, 0.42, 4, 12), toon(GL.back), 0, tc + 0.05, bz - 0.075, true); bag.rotation.z = -0.6 * h; bag.scale.z = 0.7;
+    for (const k of [-0.13, 0.13]) { const bd = BK(new THREE.TorusGeometry(0.087, 0.012, 6, 16), toon(0xffffff), -Math.sin(-0.6 * h) * k, tc + 0.05 + Math.cos(0.6) * k, bz - 0.075); bd.rotation.set(Math.PI / 2, 0, 0); bd.rotation.z = -0.6 * h; bd.rotation.order = 'ZXY'; bd.scale.z = 1; }
+    const hd = BK(new THREE.CylinderGeometry(0.014, 0.014, 0.16, 8), toon(0x3a3a46), Math.sin(0.6 * h) * 0.34, tc + 0.05 + Math.cos(0.6) * 0.34, bz - 0.075); hd.rotation.z = -0.6 * h;
+    const stp = BK(new THREE.TorusGeometry(0.266, 0.016, 6, 26), toon(shadeHex(GL.back, -0.35)), 0, tc + 0.02, 0); stp.rotation.set(Math.PI / 2, 0.62 * h, 0); stp.scale.set(tx * 1.03, tz * 1.03, ty);
+  } else if (GI.back === 'b_wings') {   // a pair of little feathered wings
+    for (const sd of [-1, 1]) {
+      const wg2 = new THREE.Group(); wg2.position.set(sd * 0.08, tc + 0.1, bz - 0.03); wg2.rotation.set(0.15, sd * 0.5, -sd * 0.25); backG.add(wg2);
+      for (const [x, y, len, rot] of [[0.1, 0.1, 0.2, 0.9], [0.15, 0.03, 0.19, 1.35], [0.15, -0.05, 0.16, 1.8], [0.1, -0.1, 0.12, 2.25]]) {
+        const f = add(new THREE.SphereGeometry(0.05, 10, 8), toon(GL.back), sd * x, y, -0.02, wg2); f.scale.set(0.62, len / 0.1, 0.3); f.rotation.z = -sd * rot; }
+      const rt = add(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff), sd * 0.03, 0, 0, wg2); rt.scale.set(1, 1.1, 0.5); noOL(rt);
+    }
+  }
+  const headGear = GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
+    : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
   const wristGear = [];
   // back / tails
   const back = -0.26 * tz;
@@ -1596,15 +1732,25 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const shX = clamp(0.27 * tx, 0.23, 0.33), shY = tc + 0.13;
   const mkArm = (side) => {
     const sh = new THREE.Group(); sh.position.set(shX * side, shY, 0.0); up.add(sh);
-    add(new THREE.SphereGeometry(0.076, 14, 10), V.kit === 'sleeves' ? mKit : mShirt, 0, 0, 0, sh);   // sleeve
-    const cuff = add(new THREE.TorusGeometry(0.058, 0.012, 6, 18), V.kit === 'sleeves' ? mShirt : mKit, 0, -0.045, 0, sh); cuff.rotation.x = Math.PI / 2; noOL(cuff);   // sleeve hem
-    add(new THREE.CapsuleGeometry(0.046, 0.095, 4, 12), limbMat, 0, -0.088, 0, sh);              // upper arm
+    const tk = GI.shirt, longSl = tk === 't_comp';   // t_cool: sleeveless; t_comp: long sleeves to the elbow; t_pro: dark cuffs
+    add(new THREE.SphereGeometry(0.076, 14, 10), tk === 't_cool' ? limbMat : tk ? mShirt : V.kit === 'sleeves' ? mKit : mShirt, 0, 0, 0, sh);   // sleeve
+    if (tk !== 't_cool') { const cuff = add(new THREE.TorusGeometry(0.058, tk === 't_pro' ? 0.016 : 0.012, 6, 18), tk === 't_pro' ? toon(0x2a1f5a) : tk === 't_comp' ? toon(0x7dff9a) : V.kit === 'sleeves' ? mShirt : mKit, 0, longSl ? -0.15 : -0.045, 0, sh); cuff.rotation.x = Math.PI / 2; cuff.scale.setScalar(longSl ? 0.86 : 1); noOL(cuff); }   // sleeve hem
+    add(new THREE.CapsuleGeometry(longSl ? 0.049 : 0.046, 0.095, 4, 12), longSl ? mShirt : limbMat, 0, -0.088, 0, sh);              // upper arm
     const el = new THREE.Group(); el.position.set(0, -0.165, 0); sh.add(el);
     add(new THREE.SphereGeometry(0.047, 12, 8), limbMat, 0, 0, 0, el);                          // elbow
     add(new THREE.CapsuleGeometry(0.042, 0.085, 4, 12), P.darkPaws ? pawMat : limbMat, 0, -0.07, 0, el); // forearm
     if (P.armStripes) for (const y of [-0.03, -0.075]) { const r = add(new THREE.TorusGeometry(0.043, 0.01, 4, 12), mDark, 0, y, 0, el); r.rotation.x = Math.PI / 2; noOL(r); }
     const wg = new THREE.Group(); wg.name = 'wristGear'; el.add(wg); wristGear.push(wg);
-    if (V.wrist === 'double') for (const y of [-0.1, -0.128]) noOL(add(new THREE.CylinderGeometry(0.05, 0.05, 0.016, 14), mWristG || mKit, 0, y, 0, wg));
+    if (GI.wrist === 'w_band') {          // thick terry band with a red stripe
+      noOL(add(new THREE.CylinderGeometry(0.056, 0.056, 0.056, 16), mWristG, 0, -0.11, 0, wg)); noOL(add(new THREE.CylinderGeometry(0.0575, 0.0575, 0.012, 16), toon(0xe8503a), 0, -0.11, 0, wg));
+    } else if (GI.wrist === 'w_weight') {   // heavy training cuff with bolts
+      add(new THREE.CylinderGeometry(0.066, 0.066, 0.075, 16), mWristG, 0, -0.105, 0, wg);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; noOL(add(new THREE.SphereGeometry(0.012, 6, 5), toon(0xffd23f), Math.sin(a) * 0.066, -0.105, Math.cos(a) * 0.066, wg)); }
+      for (const y of [-0.07, -0.14]) { const r = add(new THREE.TorusGeometry(0.066, 0.008, 6, 18), toon(0x8a8fa8), 0, y, 0, wg); r.rotation.x = Math.PI / 2; noOL(r); }
+    } else if (GI.wrist === 'w_pro') {     // forearm sleeve with dark bands
+      noOL(add(new THREE.CapsuleGeometry(0.047, 0.085, 4, 12), mWristG, 0, -0.07, 0, wg));
+      for (const y of [-0.03, -0.125]) { const r = add(new THREE.TorusGeometry(0.048, 0.009, 6, 18), toon(0x2a1f5a), 0, y, 0, wg); r.rotation.x = Math.PI / 2; noOL(r); }
+    } else if (V.wrist === 'double') for (const y of [-0.1, -0.128]) noOL(add(new THREE.CylinderGeometry(0.05, 0.05, 0.016, 14), mWristG || mKit, 0, y, 0, wg));
     else noOL(add(new THREE.CylinderGeometry(0.05, 0.05, V.wrist === 'tape' ? 0.06 : 0.04, 14), mWristG || (V.wrist === 'tape' ? mTrim : mKit), 0, V.wrist === 'tape' ? -0.108 : -0.115, 0, wg));
     const paw = add(new THREE.SphereGeometry(0.06, 14, 12), V.pads ? toon(V.pads) : pawMat, 0, -0.155, 0, el); paw.scale.set(1.05, 1.0, 1.12);
     const wr = new THREE.Group(); wr.position.set(0, -0.155, 0); el.add(wr);
@@ -1619,16 +1765,20 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const collar2 = add(new THREE.CylinderGeometry(0.021, 0.024, 0.025, 12), mJersey, 0, -0.16, 0, wrist); noOL(collar2);
   add(new THREE.CylinderGeometry(0.011, 0.008, 0.34, 8), toon(0x3a3a46), 0, -0.34, 0, wrist);   // shaft
   const throat = add(new THREE.ConeGeometry(0.032, 0.09, 8), mJersey, 0, -0.53, 0, wrist); noOL(throat); // T-joint
-  const frame = add(new THREE.TorusGeometry(0.15, 0.016, 8, 32), toon(GL.racket !== undefined ? GL.racket : 0x2f2f3a), 0, -0.71, 0, wrist); frame.scale.set(0.8, 1.12, 1);   // string face looks forward (toward the net) like a forehand grip
-  const paint = add(new THREE.TorusGeometry(0.15, 0.007, 6, 32, Math.PI * 0.9), mJersey, 0, -0.71, 0, wrist); paint.scale.set(0.84, 1.16, 1.12); paint.rotation.set(0, 0, Math.PI * 1.05); noOL(paint);
-  const strings = add(new THREE.CircleGeometry(0.145, 22), new THREE.MeshBasicMaterial({ map: stringTex, color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }), 0, -0.71, 0, wrist);
-  strings.scale.set(0.8, 1.12, 1);
+  // racket head. Gear: r_light = slim teardrop, r_heavy = thick frame with weights at the top, r_pro = black and gold with tinted strings
+  const rk = GI.racket, fTube = rk === 'r_light' ? 0.011 : rk === 'r_heavy' ? 0.025 : rk === 'r_pro' ? 0.018 : 0.016, fSx = rk === 'r_light' ? 0.72 : rk === 'r_heavy' ? 0.86 : 0.8, fSy = rk === 'r_light' ? 1.2 : rk === 'r_heavy' ? 1.08 : 1.12;
+  const frame = add(new THREE.TorusGeometry(0.15, fTube, 8, 32), toon(rk === 'r_pro' ? 0x23202e : GL.racket !== undefined ? GL.racket : 0x2f2f3a), 0, -0.71, 0, wrist); frame.scale.set(fSx, fSy, 1);   // string face looks forward (toward the net) like a forehand grip
+  const paint = add(new THREE.TorusGeometry(0.15, rk === 'r_pro' ? 0.011 : 0.007, 6, 32, Math.PI * (rk === 'r_pro' ? 1.25 : 0.9)), rk === 'r_pro' ? toon(GL.racket) : rk ? mTrim : mJersey, 0, -0.71, 0, wrist); paint.scale.set(fSx * 1.05, fSy * 1.035, 1.12); paint.rotation.set(0, 0, Math.PI * (rk === 'r_pro' ? 0.875 : 1.05)); noOL(paint);
+  if (rk === 'r_heavy') for (const sd of [-1, 1]) noOL(add(new THREE.SphereGeometry(0.03, 10, 8), toon(0x3a3a46), sd * 0.085, -0.71 - 0.135, 0, wrist));
+  if (rk === 'r_pro') { const gl = add(new THREE.TorusGeometry(0.15, 0.03, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.22, depthWrite: false }), 0, -0.71, 0, wrist); gl.scale.set(fSx, fSy, 0.4); noOL(gl); noOL(add(new THREE.CylinderGeometry(0.0125, 0.0095, 0.34, 8), toon(GL.racket), 0, -0.34, 0, wrist)); }
+  const strings = add(new THREE.CircleGeometry(0.145, 22), new THREE.MeshBasicMaterial({ map: stringTex, color: rk === 'r_pro' ? 0xffe9a8 : rk === 'r_light' ? 0xd8f3ff : rk === 'r_heavy' ? 0xffd0c8 : 0xffffff, transparent: true, opacity: rk ? 0.92 : 0.8, side: THREE.DoubleSide, depthWrite: false }), 0, -0.71, 0, wrist);
+  strings.scale.set(fSx, fSy, 1);
   addOutlines(body, 0.018);
   root.traverse((m) => { if (m.isMesh && !m.userData.isOutline && !(m.material && m.material.transparent)) m.castShadow = true; });
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,
     rig: { hips: hipsPv.p, chest: chestPv.p, hipY, ankleY, legs },
-    gear: { headGear, wristGear, shoes: feet } };   // detachable groups for the later gear system
+    gear: { headGear, wristGear, shoes: feet, neck: neckG, back: backG, torso, shorts } };   // detachable groups for the later gear system
   // dive clearance, measured once from this model's own meshes: how far the lying body has to be lifted for the torso
   // to rest on the floor, and how far the head tips back so the face / snout does not go through it
   {
@@ -2117,34 +2267,71 @@ function previewGear() {
   return g ? worn.filter((id) => S.gearById(id).slot !== g.slot).concat(g.id) : worn;
 }
 const STAT_NAMES = { spd: 'Tốc độ', jmp: 'Bật nhảy', pow: 'Lực đập', rch: 'Tầm với', ctl: 'Khéo léo', sta: 'Thể lực' };
-function renderGear() {
-  const c = charById(profile.char), worn = myGear(), set = S.gearSet(worn), shown = previewGear();
-  const gold = wallet ? wallet.gold : 0, items = (wallet && wallet.items) || [];
-  $('gearGold').textContent = wallet ? wallet.gold : '…';
-  $('gearTabs').innerHTML = S.GEAR_SLOTS.map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}${set[k] ? '<i class="has"></i>' : ''}</button>`).join('');
-  const mods = (g) => Object.entries(g.mods).map(([k, v]) => `<em class="${v > 0 ? 'up' : 'dn'}">${v > 0 ? '+' : '−'}${Math.abs(v)} ${STAT_NAMES[k]}</em>`).join('');
-  $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Trang bị cần có mạng.</p>' : S.GEAR.filter((g) => g.slot === gearSlot).map((g) => {
-    const own = items.includes(g.id), on = set[g.slot] && set[g.slot].id === g.id;
-    const btn = own ? `<button class="pill" data-act="${on ? 'off' : 'on'}">${on ? 'Tháo' : 'Mặc'}</button>` : `<button class="pill buy" data-act="buy" ${gold >= g.price ? '' : 'disabled'}><i class="coin"></i>${g.price}</button>`;
-    return `<div class="gear-item r${g.rar}${on ? ' worn' : ''}${gearTry === g.id ? ' try' : ''}" data-item="${g.id}"><i class="sw" style="background:#${g.col.toString(16).padStart(6, '0')}"></i>` +
-      `<div class="gi"><b>${esc(g.name)}</b><span class="rar">${S.GEAR_RARITY[g.rar]}${on ? ' · đang mặc' : own ? ' · đã có' : ''}</span><div class="mods">${mods(g)}</div><small>${esc(g.desc)}</small></div>${btn}</div>`;
-  }).join('');
+const gearModChips = (mods) => Object.entries(mods).filter(([, v]) => Math.abs(v) > 1e-9).map(([k, v]) => `<em class="${v > 0 ? 'up' : 'dn'}">${v > 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100) / 100} ${STAT_NAMES[k]}</em>`).join('');
+function renderGearStats(c, shown) {
   const eff = S.effStats(c.id, shown);
   $('gearStats').innerHTML = Object.keys(STAT_NAMES).map((k) => {
     const d = Math.round((eff[k] - c.stats[k]) * 100) / 100;
     return `<span>${STAT_NAMES[k]}</span><div class="bar"><i style="width:${Math.min(100, eff[k] / 7 * 100)}%"></i></div><b class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d > 0 ? '+' + d : d < 0 ? '−' + Math.abs(d) : ''}</b>`;
   }).join('');
-  const trying = gearTry && !(set[S.gearById(gearTry).slot] && set[S.gearById(gearTry).slot].id === gearTry);
-  $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${trying ? ' · đang thử ' + esc(S.gearById(gearTry).name) : ''}</small>`;
-  $('gearTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderGear(); }; });
+}
+// Wardrobe: wear what you already own. Slot tiles stand round the character; the panel lists the owned items of the chosen slot
+// and compares the picked one with what is worn now.
+function renderGear() {
+  const c = charById(profile.char), worn = myGear(), set = S.gearSet(worn), shown = previewGear(), items = (wallet && wallet.items) || [];
+  const slotName = (S.GEAR_SLOTS.find((s) => s[0] === gearSlot) || ['', ''])[1], cur = set[gearSlot] || null;
+  $('wdSlots').innerHTML = S.GEAR_SLOTS.map(([k, n]) => { const it = set[k]; return `<button class="wd-slot${k === gearSlot ? ' on' : ''}${it ? ' r' + it.rar : ' empty'}" data-slot="${k}">${it ? gearIconImg(it.id) : '<i>+</i>'}<span>${n}</span></button>`; }).join('');
+  const own = S.GEAR.filter((it) => it.slot === gearSlot && items.includes(it.id));
+  $('wdSlotName').textContent = slotName; $('wdCount').textContent = wallet ? `${own.length}/${S.GEAR.filter((it) => it.slot === gearSlot).length} món đã có` : '';
+  $('wdInv').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Trang bị cần có mạng.</p>'
+    : own.length ? own.map((it) => `<button class="wd-item r${it.rar}${cur && cur.id === it.id ? ' worn' : ''}${gearTry === it.id ? ' on' : ''}" data-item="${it.id}">${gearIconImg(it.id)}<span>${esc(it.name)}</span>${cur && cur.id === it.id ? '<em>Đang mặc</em>' : ''}</button>`).join('')
+    : `<div class="wd-none"><p>Bạn chưa có món nào cho ô <b>${esc(slotName)}</b>.</p><button class="pill buy" id="wdToShop">Đến cửa hàng</button></div>`;
+  const pick = gearTry && S.gearById(gearTry).slot === gearSlot ? S.gearById(gearTry) : cur;
+  if (!pick) $('wdDetail').innerHTML = '';
+  else {
+    const isWorn = !!cur && cur.id === pick.id;
+    let cmp = '';
+    if (!isWorn && cur) {
+      const diff = {}; for (const k of Object.keys(STAT_NAMES)) { const d = (pick.mods[k] || 0) - (cur.mods[k] || 0); if (Math.abs(d) > 1e-9) diff[k] = d; }
+      cmp = `<div class="wd-cmp"><small>So với <b>${esc(cur.name)}</b> đang mặc:</small><div class="mods">${gearModChips(diff) || '<em>Như nhau</em>'}</div></div>`;
+    } else if (!isWorn) cmp = '<div class="wd-cmp"><small>Ô này đang trống — mặc vào là được cộng nguyên chỉ số của món.</small></div>';
+    $('wdDetail').innerHTML = `<div class="wd-card r${pick.rar}"><div class="wd-big">${gearIconImg(pick.id)}</div><div class="gi"><b>${esc(pick.name)}</b><span class="rar">${S.GEAR_RARITY[pick.rar]}</span>` +
+      `<div class="mods">${gearModChips(pick.mods)}</div><small>${esc(pick.desc)}</small></div></div>${cmp}` +
+      `<button class="cta" id="wdAct" data-act="${isWorn ? 'off' : 'on'}">${isWorn ? 'Tháo ra' : 'Mặc vào'}</button>`;
+    $('wdAct').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: pick.slot, id: isWorn ? null : pick.id }); gearTry = null; };
+  }
+  renderGearStats(c, shown);
+  const trying = pick && !(cur && cur.id === pick.id);
+  $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${trying ? ' · đang thử ' + esc(pick.name) : ''}</small>`;
+  $('wdPower').textContent = 'Sức mạnh ' + S.powerOf(c.id, shown);
+  $('wdSlots').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderGear(); }; });
+  $('wdInv').querySelectorAll('.wd-item').forEach((b) => {
+    const id = b.dataset.item;
+    b.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderGear(); };
+    b.ondblclick = () => { Sound.boop(); gearTry = null; Net.send({ t: 'equip', slot: gearSlot, id }); };
+  });
+  if ($('wdToShop')) $('wdToShop').onclick = () => { Sound.boop(); const s = gearSlot; go('shop'); gearSlot = s; renderShop(); showPreview(true); };
+}
+// Shop: buy new items (they can be tried on first). Wearing and taking off happens in the wardrobe.
+function renderShop() {
+  const c = charById(profile.char), shown = previewGear(), set = S.gearSet(myGear());
+  const gold = wallet ? wallet.gold : 0, items = (wallet && wallet.items) || [];
+  $('gearGold').textContent = wallet ? wallet.gold : '…';
+  $('gearTabs').innerHTML = S.GEAR_SLOTS.map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
+  $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR.filter((it) => it.slot === gearSlot).map((it) => {
+    const own = items.includes(it.id), on = set[it.slot] && set[it.slot].id === it.id;
+    const btn = own ? `<span class="own">${on ? 'Đang mặc' : 'Đã có'}</span>` : `<button class="pill buy" data-act="buy" ${gold >= it.price ? '' : 'disabled'}><i class="coin"></i>${it.price}</button>`;
+    return `<div class="gear-item r${it.rar}${gearTry === it.id ? ' try' : ''}" data-item="${it.id}"><span class="ic">${gearIconImg(it.id)}</span>` +
+      `<div class="gi"><b>${esc(it.name)}</b><span class="rar">${S.GEAR_RARITY[it.rar]}</span><div class="mods">${gearModChips(it.mods)}</div><small>${esc(it.desc)}</small></div>${btn}</div>`;
+  }).join('');
+  const tryIt = gearTry && S.gearById(gearTry);
+  $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${tryIt ? ' · đang thử ' + esc(tryIt.name) : ''}</small>`;
+  $('gearTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderShop(); }; });
   $('gearList').querySelectorAll('.gear-item').forEach((row) => {
-    const id = row.dataset.item, g = S.gearById(id);
-    row.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderGear(); };
+    const id = row.dataset.item;
+    row.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderShop(); };
     const b = row.querySelector('button');
-    b.onclick = (ev) => {
-      ev.stopPropagation(); Sound.boop(); gearTry = null;
-      if (b.dataset.act === 'buy') Net.send({ t: 'buyGear', id }); else Net.send({ t: 'equip', slot: g.slot, id: b.dataset.act === 'on' ? id : null });
-    };
+    if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); gearTry = null; Net.send({ t: 'buyGear', id }); };
   });
 }
 
@@ -2173,6 +2360,7 @@ function renderWallet() {
   if (screen === 'rewards') renderRewards();
   if (screen === 'chars') renderChars();
   if (screen === 'gear') { renderGear(); showPreview(true); }
+  if (screen === 'shop') { renderShop(); showPreview(true); }
   if (screen === 'home') { const c = charById(profile.char); $('homeChar').textContent = c.name + ' · Sức mạnh ' + S.powerOf(c.id, myGear()); }
 }
 function renderRewards() {
@@ -3307,10 +3495,15 @@ const shuttleNdc = new THREE.Vector3();
 function updateCamera(dt, t) {
   const portrait = viewH > viewW;
   let tx, ty, tz, lx, ly, lz;
-  if (!session && (screen === 'chars' || screen === 'gear' || screen === 'home')) {
+  if (!session && (screen === 'chars' || screen === 'gear' || screen === 'shop' || screen === 'home')) {
     const side = portrait ? 0 : screen === 'home' ? 0.55 : 1.35;
     const lob = portrait && screen === 'home';   // lobby on a tall screen: the character stands just above the buttons, a little closer
     tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (lob ? 6.3 : portrait ? 7.2 : 5.6); lx = side; ly = lob ? 0.35 : portrait ? -1.0 : 1.2; lz = 3.2;
+    if (screen === 'gear' || screen === 'shop') {   // dressing room: move in on the part of the body being dressed ([look height, distance])
+      const f = gearSlot === 'head' ? [1.62, 4.4] : gearSlot === 'shoes' ? [0.62, 3.5] : gearSlot === 'racket' ? [1.4, 5.2] : gearSlot === 'shorts' ? [0.95, 3.7] : gearSlot === 'wrist' ? [1.1, 3.6] : [1.25, 3.9];
+      const d = f[1] * (portrait ? 1.5 : 1);
+      tz = 3.2 + d; ty = f[0] + 0.4; ly = f[0] - (portrait ? 0.3 * d : 0); tx = lx = portrait ? 0 : 1.35 * d / 5.6;
+    }
   } else if (!session) {
     const a = t * 0.15;
     tx = Math.sin(a) * 2.4; ty = 2.6; tz = 3.2 + Math.cos(a) * 1.0 + 4.4; lx = 0; ly = 1.2; lz = 3.2;
@@ -3704,7 +3897,8 @@ function frame(now) {
   }
   if (preview) {
     const st = t - previewSwing;
-    preview.root.rotation.y = screen === 'chars' || screen === 'gear' || screen === 'home' ? -0.35 + Math.sin(t * 0.7) * 0.35 : Math.sin(t * 0.8) * 0.5;
+    previewTurn = damp(previewTurn, (screen === 'gear' || screen === 'shop') && gearSlot === 'back' ? Math.PI : 0, 6, rdt);   // back items: the character turns round to show them
+    preview.root.rotation.y = (screen === 'chars' || screen === 'gear' || screen === 'shop' || screen === 'home' ? -0.35 + Math.sin(t * 0.7) * 0.35 : Math.sin(t * 0.8) * 0.5) + previewTurn;
     preview.body.position.y = Math.abs(Math.sin(t * 3)) * 0.1 + (st < 0.6 ? Math.sin(st / 0.6 * Math.PI) * 0.45 : 0);
     if (preview.podium) { const sg = preview.podium.userData.stars; sg.rotation.y = t * 0.5; sg.children.forEach((c, i) => { c.position.y = 0.6 + (i % 3) * 0.5 + Math.sin(t * 2 + i) * 0.12; c.rotation.y = t * 3; }); }
     if (st < 0.7) setArm(preview, 'arm', swingPose(true, st / 0.7), 0, rdt);
@@ -3726,13 +3920,13 @@ function frame(now) {
 // ================================================================ UI screens
 let preview = null;
 let infoChar = null;
-let previewSwing = -1;
+let previewSwing = -1, previewTurn = 0;
 function showPreview(on) {
   if (preview) { scene.remove(preview.root); disposeTree(preview.root); if (preview.podium) { scene.remove(preview.podium); disposeTree(preview.podium); } preview = null; }
   if (on && !session) {
     setVenue(0);
     const id = screen === 'chars' && infoChar ? infoChar : profile.char;
-    preview = buildCharacter(charById(id), 0xff7a59, 1.35, settings.hand, screen === 'gear' ? previewGear() : id === profile.char ? myGear() : []); preview.root.position.set(0, 0.32, 3.2);
+    preview = buildCharacter(charById(id), 0xff7a59, 1.35, settings.hand, screen === 'gear' || screen === 'shop' ? previewGear() : id === profile.char ? myGear() : []); preview.root.position.set(0, 0.32, 3.2);
     const pod = new THREE.Group(); pod.position.set(0, 0, 3.2);
     const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.22, 48), toon(0x2b2340)); p1.position.y = 0.11; pod.add(p1);
     const p2 = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.18, 0.12, 48), toon(0xfff6ea)); p2.position.y = 0.27; p2.receiveShadow = true; pod.add(p2);
@@ -3756,20 +3950,21 @@ function cycleCam() {
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
 }
 $('camBtn').onclick = cycleCam;
-const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'rewards', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
+const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'shop', 'rewards', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
 let screen = 'home';
-function hideScreens() { for (const s of SCREENS) $('s-' + s).classList.add('hidden'); $('stageName').classList.add('hidden'); showPreview(false); }
+function hideScreens() { for (const s of SCREENS) $('s-' + s).classList.add('hidden'); $('stageName').classList.add('hidden'); $('wdSlots').classList.add('hidden'); showPreview(false); }
 let charsBack = 'home';
 function go(name) {
   if (session && !session.over) return;
   endSession();
   if (name === 'chars' && screen !== 'chars') { charsBack = screen; infoChar = profile.char; }
   screen = name; gearTry = null; renderRejoin();
-  $('stageName').classList.toggle('hidden', name !== 'chars' && name !== 'gear');
+  $('stageName').classList.toggle('hidden', name !== 'chars' && name !== 'gear' && name !== 'shop'); $('stageName').classList.toggle('wd', name === 'gear');
+  $('wdSlots').classList.toggle('hidden', name !== 'gear'); $('rejoinBar').classList.toggle('lobby', name === 'home');   // at the lobby the rejoin bar sits under the top bar, clear of the buttons
   for (const s of SCREENS) $('s-' + s).classList.toggle('hidden', s !== name);
   $('searching').classList.add('hidden'); $('over').classList.add('hidden');
   showPreview(true);
-  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, rewards: renderRewards, stats: renderStats, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
+  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { Sound.init(); Sound.boop(); go(b.dataset.go); }));
 

@@ -49,8 +49,8 @@ let b = {}; E.ensure(b, T0, 'cat');
 assert(!E.buyChar(b, 'fox', T0).ok); assert(!E.buyChar(b, 'cat', T0).ok); assert(!E.buyChar(b, 'constructor', T0).ok); assert(!E.buyChar(b, 'nobody', T0).ok);
 b.eco.gold = 700; const bought = E.buyChar(b, 'fox', T0); assert(bought.ok); assert.equal(b.eco.gold, 100); assert(E.canUse(b, 'fox', T0)); assert(!E.buyChar(b, 'fox', T0).ok);
 assert(b.eco.gold >= 0);
-// ---- gear catalogue: 3 items in each of the 6 slots, unique ids, every item has a plus and a minus, net value by rarity
-assert.equal(S.GEAR.length, 18); assert.equal(new Set(S.GEAR.map((g) => g.id)).size, 18);
+// ---- gear catalogue: 3 items in each of the 8 slots, unique ids, every item has a plus and a minus, net value by rarity
+assert.equal(S.GEAR.length, 24); assert.equal(new Set(S.GEAR.map((g) => g.id)).size, 24); assert.equal(S.GEAR_SLOTS.length, 8);
 for (const [slot] of S.GEAR_SLOTS) assert.deepEqual(S.GEAR.filter((g) => g.slot === slot).map((g) => g.rar), [0, 1, 2], slot);
 for (const g of S.GEAR) {
   const v = Object.values(g.mods); assert(v.some((x) => x > 0) && v.some((x) => x < 0), g.id + ' must trade something');
@@ -59,7 +59,7 @@ for (const g of S.GEAR) {
 // no gear = exactly the old numbers; power 1800 for everyone; best set stays under the cap
 for (const c of S.CHARS) { assert.deepEqual(S.charStats(c.id), S.charStats(c.id, [])); assert.equal(S.powerOf(c.id), 1800); }
 const best = S.GEAR.filter((g) => g.rar === 2).map((g) => g.id);
-assert.equal(S.powerOf('cat', best), 2250); assert(Object.values(S.gearMods(best)).every((x) => Math.abs(x) <= S.GEAR_STAT_CAP));
+assert.equal(S.powerOf('cat', best), 2400); assert(Object.values(S.gearMods(best)).every((x) => Math.abs(x) <= S.GEAR_STAT_CAP));
 // one item per slot, unknown ids ignored, the stat really moves in the match
 assert.equal(S.powerOf('cat', ['r_light', 'r_heavy', 'bogus']), 1850);
 assert(S.charStats('cat', ['r_heavy']).power > S.charStats('cat').power); assert(S.charStats('cat', ['r_heavy']).endurance > S.charStats('cat').endurance);
