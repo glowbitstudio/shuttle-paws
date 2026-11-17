@@ -2712,7 +2712,12 @@ function animateAthlete(a, md, dt, t, m) {
     v.x = damp(v.x, lungeStep ? lungeStep.x * near : 0, rate, dt); v.z = damp(v.z, lungeStep ? lungeStep.z * near : 0, rate, dt);
     mdl.root.position.set(a.x + v.x, a.jumpY + md.rise, a.z + v.z);
   } else if (md.lungeDir) mdl.root.position.set(a.x + md.lungeDir.x * md.lunge, a.jumpY + md.rise, a.z + md.lungeDir.z * md.lunge);
-  if (a.diveT >= 0 && (a.diveDx || a.diveDz)) yaw = Math.atan2(a.diveDx, a.diveDz);
+  if (a.diveT >= 0 && (a.diveDx || a.diveDz)) {
+    yaw = Math.atan2(a.diveDx, a.diveDz);
+    // diving toward the net from close up: lie along the net instead of through it
+    const sgT = S.sgn(a.team), dl = Math.hypot(a.diveDx, a.diveDz), toNet = -sgT * a.diveDz / dl, most = clamp((Math.abs(a.z) - 0.45) / 1.3, 0, 1);
+    if (toNet > most) { const ph = Math.acos(most), sd = a.diveDx >= 0 ? 1 : -1; yaw = Math.atan2(sd * Math.sin(ph), -sgT * Math.cos(ph)); }
+  }
   let dy = yaw - md.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
   md.yaw += dy * (1 - Math.exp(-12 * dt));
   // Clip-facing is acquired during prediction, not snapped at the hit event.
@@ -2765,6 +2770,13 @@ function animateAthlete(a, md, dt, t, m) {
   md.lie = Math.max(a.diveT >= 0 ? Math.min(1, a.diveT / 0.12) : a.recoverT > 0 ? Math.min(1, a.recoverT / 0.2) : 0,
     Math.min(md.lie || 0, Math.min(1, Math.max(0, mdl.body.rotation.x / 1.25))));
   if (md.lie > 0) by = Math.max(by, (0.13 + (mdl.diveLift || 0)) * md.lie);
+  if (a.team !== undefined) {   // net guard: the room the pose needs in front of it (more when lying toward the net) is kept clear of the net plane
+    const sgT = S.sgn(a.team), toNet = Math.max(0, -sgT * Math.cos(mdl.root.rotation.y));
+    const lean = Math.max(md.lie, clamp(mdl.body.rotation.x / 1.25, 0, 1));   // lying, or just bent forward
+    const need = 0.48 + toNet * (0.26 + lean * 1.15), push = Math.max(0, need - mdl.root.position.z * sgT);
+    md.netPush = push > (md.netPush || 0) ? push : damp(md.netPush || 0, push, 8, dt);
+    mdl.root.position.z += sgT * md.netPush;
+  }
   mdl.body.position.y = by;
   mdl.body.rotation.x = damp(mdl.body.rotation.x, tiltX, 14, dt);
   mdl.body.rotation.z = damp(mdl.body.rotation.z, tiltZ, 10, dt);
