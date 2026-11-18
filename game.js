@@ -4323,11 +4323,14 @@ $('tourReset').onclick = () => { tour.round = 0; saveAll(); renderTour(); Sound.
 $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 
 // Floating scroll indicator: shown at the right edge of whatever element is being scrolled, fades out when the scrolling stops.
-(function () { let tip = null, timer = 0;
+(function () { let tip = null, timer = 0; const sticky = new WeakMap();
   document.addEventListener('scroll', (ev) => { const el = ev.target; if (!el || el.nodeType !== 1 || el.scrollHeight <= el.clientHeight + 2) return;
     if (!tip) { tip = document.createElement('div'); tip.id = 'scrollTip'; document.body.appendChild(tip); }
-    const r = el.getBoundingClientRect(), room = r.height - 12, h = Math.max(26, room * el.clientHeight / el.scrollHeight), p = el.scrollTop / (el.scrollHeight - el.clientHeight);
-    tip.style.height = h + 'px'; tip.style.top = (r.top + 6 + (room - h) * p) + 'px'; tip.style.left = (r.right - 8) + 'px'; tip.classList.add('on');
+    // the track starts under whatever stays pinned at the top (title bar, tab rows), not over it
+    let pin = sticky.get(el); if (!pin || performance.now() - pin.t > 1500) { const list = []; for (const c of el.children) { if (getComputedStyle(c).position === 'sticky') list.push(c); for (const d of c.children) if (getComputedStyle(d).position === 'sticky') list.push(d); } sticky.set(el, pin = { t: performance.now(), list }); }
+    const r = el.getBoundingClientRect(); let top0 = r.top; for (const c of pin.list) { const q = c.getBoundingClientRect(); if (q.height && q.top < r.top + r.height * 0.5) top0 = Math.max(top0, q.bottom); }
+    const room = r.bottom - top0 - 12, h = Math.max(26, room * el.clientHeight / el.scrollHeight), p = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    tip.style.height = h + 'px'; tip.style.top = (top0 + 6 + (room - h) * p) + 'px'; tip.style.left = (r.right - 8) + 'px'; tip.classList.add('on');
     clearTimeout(timer); timer = setTimeout(() => tip.classList.remove('on'), 700); }, true); })();
 const botOpts = Object.assign({ mode: '1v1', diff: 1, points: 11, games: 1, venue: 0 }, store.get('sp.botOpts', {}));
 // What challenger bots have learned from everyone: fetched over HTTP (gzip, cached, 304 when unchanged) only when this player is about
