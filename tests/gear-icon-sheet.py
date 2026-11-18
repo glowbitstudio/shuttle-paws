@@ -11,7 +11,7 @@ with sync_playwright() as p:
     errs=[];pg.on('pageerror',lambda e:errs.append(str(e)[:300]));pg.route('https://**/*',lambda r:r.abort())
     pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
     pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object"');pg.wait_for_timeout(1000)
-    ids=pg.evaluate("()=>__ids()");tiles=[]
+    import os;ids=[i for i in pg.evaluate("()=>__ids()") if os.environ.get("ONLY","") in i];tiles=[]
     for i in ids:
         u=pg.evaluate("([i,c])=>__icon(i,c)",[i,CH]);im=Image.open(io.BytesIO(base64.b64decode(u.split(',')[1]))).convert('RGBA')
         bg=Image.new('RGBA',im.size,(58,64,128,255));bg.alpha_composite(im);tiles.append(bg.convert('RGB'))

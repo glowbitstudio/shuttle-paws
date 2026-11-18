@@ -16,7 +16,7 @@ with sync_playwright() as p:
         pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object" && __w() && __w().login')
         r={};w0=pg.evaluate('()=>({gems:__w().gems,shards:__w().shards})')
         pg.evaluate("()=>__spDebug.go('shop')");pg.wait_for_timeout(1500);pg.click('#gearTabs button[data-slot="sets"]');pg.wait_for_timeout(700);pg.screenshot(path=str(OUT/f'{name}-sets.png'))
-        pg.click('.set-row[data-set="ninja"] button');pg.wait_for_function("__w().items.includes('nj_back')");r['setGems']=w0['gems']-pg.evaluate('()=>__w().gems');r['setWorn']=pg.evaluate("()=>Object.values(__w().equip).filter(i=>i.startsWith('nj_')).length")
+        pg.click('.set-row[data-set="ninja"] button');pg.wait_for_function("__w().items.includes('nj_back')");r['setGems']=w0['gems']-pg.evaluate('()=>__w().gems');r['setWorn']=pg.evaluate("()=>Object.values(__w().equip).filter(i=>i.startsWith('nj_')).length")  # 6 with the set racket
         pg.click('#gearTabs button[data-slot="head"]');pg.wait_for_timeout(700);pg.screenshot(path=str(OUT/f'{name}-shop-head.png'))
         r['setPieceButton']=pg.evaluate("()=>document.querySelector('.gear-item[data-item=\"cb_head\"] button').dataset.act")
         pg.click('.gear-item[data-item="cb_head"] button');pg.wait_for_function("__w().items.includes('cb_head')");r['craftShards']=w0['shards']-pg.evaluate('()=>__w().shards')

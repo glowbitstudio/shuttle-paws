@@ -2160,13 +2160,31 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   add(new THREE.CylinderGeometry(0.011, 0.008, 0.34, 8), toon(0x3a3a46), 0, -0.34, 0, wrist);   // shaft
   const throat = add(new THREE.ConeGeometry(0.032, 0.09, 8), mJersey, 0, -0.53, 0, wrist); noOL(throat); // T-joint
   // racket head. Gear: r_light = slim teardrop, r_heavy = thick frame with weights at the top, r_pro = black and gold with tinted strings
-  const rk = GI.racket, fTube = rk === 'r_light' ? 0.011 : rk === 'r_heavy' ? 0.025 : rk === 'r_pro' ? 0.018 : 0.016, fSx = rk === 'r_light' ? 0.72 : rk === 'r_heavy' ? 0.86 : 0.8, fSy = rk === 'r_light' ? 1.2 : rk === 'r_heavy' ? 1.08 : 1.12;
+  const rkS = ({ bc_racket: ['r_light', 'rings', 0xffffff], wn_racket: ['r_light', 'rings', 0xffffff], dv_racket: ['r_light', 'leaf', 0xff7a9a], be_racket: ['r_light', 'rings', 0x23232b], nj_racket: ['r_light', 'guard', 0xc22a3a], pr_racket: ['r_heavy', 'gem', 0xf2c230], cb_racket: ['r_heavy', 'star', 0xf2c230], ch_racket: ['r_heavy', 'rings', 0xc9d2e0], rk_racket: ['r_heavy', 'spikes', 0xc9d2e0], dt_racket: ['r_light', 'guard', 0x5a3d22], po_racket: ['r_heavy', 'star', 0xf2c230], pk_racket: ['r_heavy', 'leaf', 0x4f8f3a], as_racket: ['r_heavy', 'flame', 0xff8a3d], ry_racket: ['r_pro', 'gem', 0xc22a3a], hr_racket: ['r_heavy', 'star', 0xffd23f], wz_racket: ['r_light', 'star', 0xffe18a], rb_racket: ['r_heavy', 'cog', 0x5ad1ff], dn_racket: ['r_heavy', 'teeth', 0xffffff], fa_racket: ['r_light', 'bow', 0xffffff], an_racket: ['r_light', 'wings', 0xffe18a], sm_racket: ['r_pro', 'guard', 0xf2c230], dm_racket: ['r_pro', 'horns', 0xffb84d] })[GI.racket];   // set rackets: [frame shape, ornament, accent colour]
+  const rk = rkS ? rkS[0] : GI.racket, fTube = rk === 'r_light' ? 0.011 : rk === 'r_heavy' ? 0.025 : rk === 'r_pro' ? 0.018 : 0.016, fSx = rk === 'r_light' ? 0.72 : rk === 'r_heavy' ? 0.86 : 0.8, fSy = rk === 'r_light' ? 1.2 : rk === 'r_heavy' ? 1.08 : 1.12;
   const frame = add(new THREE.TorusGeometry(0.15, fTube, 8, 32), toon(rk === 'r_pro' ? 0x23202e : GL.racket !== undefined ? GL.racket : 0x2f2f3a), 0, -0.71, 0, wrist); frame.scale.set(fSx, fSy, 1);   // string face looks forward (toward the net) like a forehand grip
   const paint = add(new THREE.TorusGeometry(0.15, rk === 'r_pro' ? 0.011 : 0.007, 6, 32, Math.PI * (rk === 'r_pro' ? 1.25 : 0.9)), rk === 'r_pro' ? toon(GL.racket) : rk ? mTrim : mJersey, 0, -0.71, 0, wrist); paint.scale.set(fSx * 1.05, fSy * 1.035, 1.12); paint.rotation.set(0, 0, Math.PI * (rk === 'r_pro' ? 0.875 : 1.05)); noOL(paint);
   if (rk === 'r_heavy') for (const sd of [-1, 1]) noOL(add(new THREE.SphereGeometry(0.03, 10, 8), toon(0x3a3a46), sd * 0.085, -0.71 - 0.135, 0, wrist));
   if (rk === 'r_pro') { const gl = add(new THREE.TorusGeometry(0.15, 0.03, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.22, depthWrite: false }), 0, -0.71, 0, wrist); gl.scale.set(fSx, fSy, 0.4); noOL(gl); noOL(add(new THREE.CylinderGeometry(0.0125, 0.0095, 0.34, 8), toon(GL.racket), 0, -0.34, 0, wrist)); }
   const strings = add(new THREE.CircleGeometry(0.145, 22), new THREE.MeshBasicMaterial({ map: stringTex, color: rk === 'r_pro' ? 0xffe9a8 : rk === 'r_light' ? 0xd8f3ff : rk === 'r_heavy' ? 0xffd0c8 : 0xffffff, transparent: true, opacity: rk ? 0.92 : 0.8, side: THREE.DoubleSide, depthWrite: false }), 0, -0.71, 0, wrist);
   strings.scale.set(fSx, fSy, 1);
+  if (rkS) {   // a set racket: the ornament that makes it that set's racket
+    const W = (geo, mat, x, y, z, ol) => { const m = add(geo, mat, x, y, z, wrist); if (!ol) noOL(m); return m; }, ac = toon(rkS[2]), top = -0.71 - 0.15 * fSy, thr = -0.71 + 0.15 * fSy, D2 = { side: THREE.DoubleSide };
+    switch (rkS[1]) {
+      case 'rings': for (const y of [-0.26, -0.33, -0.4, -0.47]) W(new THREE.TorusGeometry(0.017, 0.008, 5, 12), ac, 0, y, 0).rotation.x = Math.PI / 2; break;
+      case 'guard': W(new THREE.CylinderGeometry(0.055, 0.055, 0.014, 14), ac, 0, -0.185, 0, true); W(new THREE.SphereGeometry(0.022, 8, 6), ac, 0, 0.02, 0); break;
+      case 'gem': W(new THREE.OctahedronGeometry(0.04), ac, 0, thr + 0.03, 0, true).scale.set(0.8, 1.2, 0.6); W(new THREE.TorusGeometry(0.03, 0.007, 5, 12), toon(0xf2c230), 0, thr + 0.03, 0).scale.set(0.9, 1.3, 1); break;
+      case 'star': for (const z of [0.012, -0.012]) W(new THREE.CircleGeometry(0.055, 5), basic(rkS[2], D2), 0, thr + 0.035, z).rotation.z = Math.PI / 10 + Math.PI; break;
+      case 'spikes': for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, sp = W(new THREE.ConeGeometry(0.014, 0.045, 5), ac, Math.sin(a) * 0.15 * fSx * 1.12, -0.71 + Math.cos(a) * 0.15 * fSy * 1.1, 0); sp.rotation.z = -a; } break;
+      case 'teeth': for (let i = -3; i <= 3; i++) { const a = Math.PI + i * 0.3, sp = W(new THREE.ConeGeometry(0.016, 0.05, 4), ac, Math.sin(a) * 0.15 * fSx * 1.1, -0.71 + Math.cos(a) * 0.15 * fSy * 1.1, 0); sp.rotation.z = -a; } break;
+      case 'horns': for (const sd of [-1, 1]) { const hn = W(new THREE.ConeGeometry(0.024, 0.1, 8), ac, sd * 0.07, top - 0.03, 0, true); hn.rotation.z = Math.PI - sd * 0.45; } for (const [x, l] of [[-0.03, 0.06], [0, 0.085], [0.03, 0.06]]) W(new THREE.ConeGeometry(0.016, l, 5), basic(0xff7a1f), x, top - 0.02 - l / 2, 0).rotation.z = Math.PI; break;
+      case 'flame': for (const [x, l, cc] of [[-0.035, 0.08, 0xff7a1f], [0, 0.12, 0xff7a1f], [0.035, 0.08, 0xff7a1f], [0, 0.07, 0xffe18a]]) W(new THREE.ConeGeometry(0.022, l, 6), basic(cc), x, 0.06 + l / 2, cc === 0xffe18a ? 0.012 : 0); W(new THREE.CylinderGeometry(0.028, 0.02, 0.05, 8), toon(0x5a6478), 0, 0.04, 0, true); break;
+      case 'cog': { const cg = W(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 8), toon(0x5a6478), 0, thr + 0.03, 0, true); cg.rotation.x = Math.PI / 2; W(new THREE.SphereGeometry(0.018, 8, 6), basic(rkS[2]), 0, thr + 0.03, 0.014); W(new THREE.SphereGeometry(0.018, 8, 6), basic(rkS[2]), 0, thr + 0.03, -0.014); break; }
+      case 'wings': for (const sd of [-1, 1]) for (const [y, len, rot] of [[0.05, 0.13, 1.0], [0.01, 0.1, 1.5]]) { const w = W(new THREE.SphereGeometry(0.03, 8, 6), toon(0xffffff), sd * (0.02 + Math.sin(rot) * len * 0.5), thr + 0.03 + y - Math.cos(rot) * len * 0.2, 0, true); w.scale.set(0.7, len / 0.06, 0.3); w.rotation.z = -sd * rot; } W(new THREE.TorusGeometry(0.035, 0.007, 5, 14), basic(rkS[2]), 0, top - 0.05, 0).rotation.x = Math.PI / 2; break;
+      case 'leaf': for (const sd of [-1, 1]) { const lf = W(new THREE.SphereGeometry(0.035, 8, 6), ac, sd * 0.035, thr + 0.035, 0, true); lf.scale.set(0.55, 1.4, 0.3); lf.rotation.z = -sd * 0.8; } break;
+      case 'bow': for (const sd of [-1, 1]) { const lb = W(new THREE.ConeGeometry(0.035, 0.065, 4), ac, sd * 0.04, thr + 0.03, 0, true); lb.rotation.z = sd * Math.PI / 2; lb.scale.z = 0.45; } W(new THREE.SphereGeometry(0.016, 8, 6), toon(0xffd23f), 0, thr + 0.03, 0.01); break;
+    }
+  }
   addOutlines(body, 0.018);
   root.traverse((m) => { if (m.isMesh && !m.userData.isOutline && !(m.material && m.material.transparent)) m.castShadow = true; });
   scene.add(root);
@@ -2737,7 +2755,7 @@ function renderGear() {
     : own.length ? own.map((it) => `<button class="wd-item r${it.rar}${cur && cur.id === it.id ? ' worn' : ''}${gearTry === it.id ? ' on' : ''}" data-item="${it.id}">${gearIconImg(it.id)}<span>${esc(it.name)}</span>${cur && cur.id === it.id ? '<em>Đang mặc</em>' : ''}</button>`).join('')
     : `<div class="wd-none"><p>Bạn chưa có món nào cho ô <b>${esc(slotName)}</b>.</p><button class="pill buy" id="wdToShop">Đến cửa hàng</button></div>`;
   const pick = gearTry && S.gearById(gearTry).slot === gearSlot ? S.gearById(gearTry) : cur;
-  const setsHtml = S.setBonus(worn).map((b) => `<div class="wd-cmp wd-set"><small>Bộ <b>${esc(b.name)}</b> ${b.n}/5 · ${b.bonus ? 'đang cộng <b>+' + b.bonus + ' ' + STAT_NAMES[b.stat] + '</b>' : 'mặc 3 món để được cộng ' + STAT_NAMES[b.stat]}</small></div>`).join('');
+  const setsHtml = S.setBonus(worn).map((b) => `<div class="wd-cmp wd-set"><small>Bộ <b>${esc(b.name)}</b> ${b.n}/6 · ${b.bonus ? 'đang cộng <b>+' + b.bonus + ' ' + STAT_NAMES[b.stat] + '</b>' : 'mặc 3 món để được cộng ' + STAT_NAMES[b.stat]}</small></div>`).join('');
   if (!pick) $('wdDetail').innerHTML = setsHtml;
   else {
     const isWorn = !!cur && cur.id === pick.id;
@@ -2803,7 +2821,7 @@ function renderShop() {
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR_SETS.map((st) => {
       const ps = S.GEAR.filter((g) => g.set === st.id), own = ps.filter((g) => items.includes(g.id)).length, cost = Math.ceil((((wallet.rules || {}).setGems) || [60, 150, 320])[ps[0].rar] * (ps.length - own) / ps.length), myGems = wallet.gems || 0;
       return `<div class="gear-item set-row r${ps[0].rar}${gearTrySet === st.id ? ' try' : ''}" data-set="${st.id}"><div class="gi"><b>Bộ ${esc(st.name)}</b><span class="rar">${S.GEAR_RARITY[ps[0].rar]} · có ${own}/${ps.length}</span>` +
-        `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>Mặc 3 món: +0.25 ${STAT_NAMES[st.stat]} · đủ 5 món: +0.5 ${STAT_NAMES[st.stat]}</small></div>` +
+        `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>${STAT_NAMES[st.stat]}: mặc 3 món +0.25 · 5 món +0.5 · đủ ${ps.length} món +0.75</small></div>` +
         (cost ? `<button class="pill buy gemb" data-act="buyset" ${myGems >= cost ? '' : 'disabled'}><i class="gem"></i>${cost}</button>` : '<span class="own">Đã đủ bộ</span>') + '</div>';
     }).join('');
     const ts = gearTrySet && S.GEAR_SETS.find((x) => x.id === gearTrySet);

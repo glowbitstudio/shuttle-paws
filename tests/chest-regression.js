@@ -35,9 +35,9 @@ for (const [id, pay] of [['c0', 'gold'], ['c1', 'gold']]) {
   p.eco.gold = 400; assert(E.buyShards(p, 's0', T0).ok && p.eco.gold === 0 && p.eco.shards === 10); assert(!E.buyShards(p, 's1', T0).ok); p.eco.gems = 10; assert(E.buyShards(p, 's1', T0).ok && p.eco.gems === 0 && p.eco.shards === 35); }
 // sets: whole set for diamonds (owned pieces come off the price); set pieces are not sold one by one for gold
 { const p = P(); E.ensure(p, T0); p.eco.gold = 99999; assert(!E.buyGear(p, 'nj_head', T0).ok, 'set piece not sold for gold'); assert(E.buyGear(p, 'r_light', T0).ok);
-  assert.equal(E.setPrice(p.eco, 'ninja'), 150); assert(!E.buySet(p, 'ninja', T0).ok, 'no diamonds'); p.eco.shards = 60; E.craftGear(p, 'nj_head', T0); assert.equal(E.setPrice(p.eco, 'ninja'), 120);
-  p.eco.gems = 120; const b = E.buySet(p, 'ninja', T0); assert(b.ok && p.eco.gems === 0); assert.equal(S.GEAR.filter((g) => g.set === 'ninja').every((g) => p.eco.items.includes(g.id) && p.eco.equip[g.slot] === g.id), true);
-  assert(!E.buySet(p, 'ninja', T0).ok, 'already complete'); assert(!E.buySet(p, 'nope', T0).ok); const v = E.view(p, T0); assert(v.rules && v.rules.setGems.length === 4 && E.setPrice(P().eco || (E.ensure(p, T0), { items: [] }), 'angel') === 700 && typeof v.shards === 'number' && v.lv && v.sh && v.rules.upSp.length === 5 && v.rules.uniRate.length === 4); }
+  assert.equal(E.setPrice(p.eco, 'ninja'), 180); assert(!E.buySet(p, 'ninja', T0).ok, 'no diamonds'); p.eco.shards = 60; E.craftGear(p, 'nj_head', T0); assert.equal(E.setPrice(p.eco, 'ninja'), 150);
+  p.eco.gems = 150; const b = E.buySet(p, 'ninja', T0); assert(b.ok && p.eco.gems === 0); assert.equal(S.GEAR.filter((g) => g.set === 'ninja').every((g) => p.eco.items.includes(g.id) && p.eco.equip[g.slot] === g.id), true);
+  assert(!E.buySet(p, 'ninja', T0).ok, 'already complete'); assert(!E.buySet(p, 'nope', T0).ok); const v = E.view(p, T0); assert(v.rules && v.rules.setGems.length === 4 && E.setPrice(P().eco || (E.ensure(p, T0), { items: [] }), 'angel') === 820 && typeof v.shards === 'number' && v.lv && v.sh && v.rules.upSp.length === 5 && v.rules.uniRate.length === 4); }
 // diamonds: online win, tournament title once a day, 7th login day
 { const p = P(); E.ensure(p, T0); assert.equal(E.grantOnline(p, true, T0).gems, 1); assert.equal(E.grantOnline(p, false, T0).gems, 0); assert.equal(p.eco.gems, 1);
   const a = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0); assert.equal(a.gems, 10);

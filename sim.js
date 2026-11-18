@@ -185,6 +185,28 @@ const GEAR = [
   { id: 'dm_pants', slot: 'shorts', set: 'demon', rar: 3, price: 5000, col: 0x2a0a10, name: 'Quần bóng đêm', mods: { sta: 1, pow: 0.5, spd: -0.5 }, desc: 'Lì lợm, không biết mệt; nặng nề nên chậm chân.' },
   { id: 'dm_shoes', slot: 'shoes', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Móng quỷ', mods: { jmp: 1, spd: 0.5, ctl: -0.5 }, desc: 'Bám sân rồi bật vọt lên; khó dừng chuẩn.' },
   { id: 'dm_back', slot: 'back', set: 'demon', rar: 3, price: 5000, col: 0x5a1030, name: 'Cánh dơi', mods: { jmp: 1, pow: 0.5, sta: -0.5 }, desc: 'Vọt lên rồi bổ xuống; vỗ cánh nhiều nên mau mệt.' },
+  { id: 'bc_racket', slot: 'racket', set: 'beach', rar: 0, price: 300, col: 0xff8a3d, name: 'Vợt bãi biển', mods: { ctl: 0.75, pow: -0.5 }, desc: 'Nhẹ như đánh chơi trên cát; không dùng để đập mạnh.' },
+  { id: 'wn_racket', slot: 'racket', set: 'winter', rar: 0, price: 300, col: 0xd9483b, name: 'Vợt kẹo gậy', mods: { ctl: 0.75, spd: -0.5 }, desc: 'Ngọt tay, đặt cầu chuẩn; lạnh tay nên chậm.' },
+  { id: 'dv_racket', slot: 'racket', set: 'diver', rar: 0, price: 300, col: 0x23b5c9, name: 'Vợt san hô', mods: { rch: 0.75, pow: -0.5 }, desc: 'Dài tay như bơi sải; mảnh nên đập nhẹ.' },
+  { id: 'be_racket', slot: 'racket', set: 'bee', rar: 0, price: 300, col: 0xffd23f, name: 'Vợt tổ ong', mods: { pow: 0.75, sta: -0.5 }, desc: 'Chích một phát đau điếng; hăng nên mau mệt.' },
+  { id: 'nj_racket', slot: 'racket', set: 'ninja', rar: 1, price: 900, col: 0x2b2f45, name: 'Vợt bóng đêm', mods: { ctl: 1, pow: -0.5 }, desc: 'Ra đòn không tiếng động, cực chuẩn; nhẹ nên thiếu lực.' },
+  { id: 'pr_racket', slot: 'racket', set: 'pirate', rar: 1, price: 900, col: 0x7a5230, name: 'Vợt thuyền trưởng', mods: { pow: 1, ctl: -0.5 }, desc: 'Nặng như mái chèo, đập mạnh; khó tinh tế.' },
+  { id: 'cb_racket', slot: 'racket', set: 'cowboy', rar: 1, price: 900, col: 0x9a6a3a, name: 'Vợt cao bồi', mods: { rch: 1, ctl: -0.5 }, desc: 'Quăng như thòng lọng, với xa; hơi ẩu.' },
+  { id: 'ch_racket', slot: 'racket', set: 'chef', rar: 1, price: 900, col: 0x3a3a46, name: 'Vợt chảo gang', mods: { pow: 1, spd: -0.5 }, desc: 'Vung như lật chảo, rất lực; nặng tay.' },
+  { id: 'rk_racket', slot: 'racket', set: 'rock', rar: 1, price: 900, col: 0x23232b, name: 'Vợt đinh tán', mods: { pow: 1, ctl: -0.5 }, desc: 'Quẩy tới bến; đập bừa nên kém chuẩn.' },
+  { id: 'dt_racket', slot: 'racket', set: 'detective', rar: 1, price: 900, col: 0xc9a66b, name: 'Vợt suy luận', mods: { ctl: 1, pow: -0.5 }, desc: 'Tính trước từng đường cầu; không dùng sức.' },
+  { id: 'po_racket', slot: 'racket', set: 'police', rar: 1, price: 900, col: 0x2f5fd9, name: 'Vợt công lý', mods: { ctl: 1, jmp: -0.5 }, desc: 'Chuẩn mực từng cú đánh; nghiêm nên ít bật.' },
+  { id: 'pk_racket', slot: 'racket', set: 'pumpkin', rar: 1, price: 900, col: 0xff8a1f, name: 'Vợt bí ngô', mods: { rch: 1, sta: -0.5 }, desc: 'Dài và ma quái; cầm lâu mỏi tay.' },
+  { id: 'as_racket', slot: 'racket', set: 'astro', rar: 2, price: 2200, col: 0xf4f6fa, name: 'Vợt phản lực', mods: { pow: 1, jmp: 0.25, ctl: -0.5 }, desc: 'Có động cơ đẩy sau mỗi cú đập; khó điều khiển.' },
+  { id: 'ry_racket', slot: 'racket', set: 'royal', rar: 2, price: 2200, col: 0xf2c230, name: 'Quyền trượng hoàng gia', mods: { ctl: 1, rch: 0.25, spd: -0.5 }, desc: 'Uy nghi, chính xác; nặng nên chậm.' },
+  { id: 'hr_racket', slot: 'racket', set: 'hero', rar: 2, price: 2200, col: 0xe0303a, name: 'Vợt sấm sét', mods: { pow: 1, spd: 0.25, ctl: -0.5 }, desc: 'Giáng xuống như sét; mạnh quá khó kiểm soát.' },
+  { id: 'wz_racket', slot: 'racket', set: 'wizard', rar: 2, price: 2200, col: 0x6a3fd0, name: 'Gậy phép', mods: { ctl: 1, rch: 0.25, pow: -0.5 }, desc: 'Điều cầu bằng phép thuật; không cần sức.' },
+  { id: 'rb_racket', slot: 'racket', set: 'robot', rar: 2, price: 2200, col: 0x8a93a6, name: 'Vợt cơ khí', mods: { pow: 1, sta: 0.25, jmp: -0.5 }, desc: 'Pít-tông trợ lực mỗi cú đánh; nặng nên khó bật.' },
+  { id: 'dn_racket', slot: 'racket', set: 'dino', rar: 2, price: 2200, col: 0x4caf50, name: 'Vợt răng nanh', mods: { pow: 1, rch: 0.25, ctl: -0.5 }, desc: 'Ngoạm lấy cầu mà quật; thô bạo.' },
+  { id: 'fa_racket', slot: 'racket', set: 'fairy', rar: 2, price: 2200, col: 0xff9fd6, name: 'Vợt cánh hoa', mods: { ctl: 1, jmp: 0.25, pow: -0.5 }, desc: 'Nhẹ như cánh hoa, rất khéo; không có lực.' },
+  { id: 'an_racket', slot: 'racket', set: 'angel', rar: 3, price: 5000, col: 0xfffaf0, name: 'Vợt thiên sứ', mods: { ctl: 1, rch: 0.5, pow: -0.5 }, desc: 'Mỗi cú đánh đều được dẫn lối; không nỡ đập mạnh.' },
+  { id: 'sm_racket', slot: 'racket', set: 'samurai', rar: 3, price: 5000, col: 0xa3242f, name: 'Vợt katana', mods: { pow: 1, ctl: 0.5, sta: -0.5 }, desc: 'Một nhát dứt điểm, sắc và chuẩn; dồn sức nên mau mệt.' },
+  { id: 'dm_racket', slot: 'racket', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Vợt địa ngục', mods: { pow: 1, rch: 0.5, ctl: -0.5 }, desc: 'Rực lửa mỗi cú đập; hung bạo khó kiểm soát.' },
 ];
 // outfit sets: wearing 3 pieces of one set adds +0.25 to the set's stat, all 5 pieces +0.5 (inside the same +-2 cap)
 const GEAR_SETS = [{ id: 'beach', name: 'Mùa hè', stat: 'sta' }, { id: 'ninja', name: 'Ninja', stat: 'spd' }, { id: 'pirate', name: 'Hải tặc', stat: 'pow' },
@@ -196,7 +218,7 @@ const GEAR_SETS = [{ id: 'beach', name: 'Mùa hè', stat: 'sta' }, { id: 'ninja'
   { id: 'fairy', name: 'Tiên bướm', stat: 'jmp' }, { id: 'demon', name: 'Ác quỷ', stat: 'pow' }];
 function setBonus(ids) {
   const set = gearSet(ids), n = {}; for (const k in set) if (set[k].set) n[set[k].set] = (n[set[k].set] || 0) + 1;
-  return GEAR_SETS.filter((s) => n[s.id]).map((s) => ({ id: s.id, name: s.name, stat: s.stat, n: n[s.id], bonus: n[s.id] >= 5 ? 0.5 : n[s.id] >= 3 ? 0.25 : 0 }));
+  return GEAR_SETS.filter((s) => n[s.id]).map((s) => ({ id: s.id, name: s.name, stat: s.stat, n: n[s.id], bonus: n[s.id] >= 6 ? 0.75 : n[s.id] >= 5 ? 0.5 : n[s.id] >= 3 ? 0.25 : 0 }));
 }
 const GEAR_STAT_CAP = 2;                                   // gear can move one stat by at most +-2 points in total
 const STAT_KEYS = ['spd', 'jmp', 'pow', 'rch', 'ctl', 'sta'];

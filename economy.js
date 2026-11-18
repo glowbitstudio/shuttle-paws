@@ -125,7 +125,7 @@ const canUse = (p, id, now) => !MUST_OWN.includes(id) || ensure(p, now).owned.in
 // Item shards (e.sh[id]): a duplicate from a chest gives DUP_SHARDS shards of that very item; they upgrade that item (UP_SP per level).
 // Universal shards (e.shards, from packs) stand in for missing item shards at UNI_RATE universal per item shard (by rarity) and craft set pieces.
 const DUP_SHARDS = [10, 10, 10, 10], UP_SP = [10, 20, 30, 50, 80], UNI_RATE = [1, 2, 4, 8], CRAFT_COST = [20, 60, 150, 400];   // by rarity (UP_COST[rarity][level])
-const SET_GEMS = [60, 150, 320, 700];                                    // a complete 5-piece set by rarity; owned pieces are taken off the price
+const SET_GEMS = [75, 180, 380, 820];                                    // a complete 5-piece set by rarity; owned pieces are taken off the price
 const SHARD_PACKS = [{ id: 's0', shards: 5, gold: 400, gems: 0 }, { id: 's1', shards: 25, gold: 0, gems: 10 }, { id: 's2', shards: 80, gold: 0, gems: 28 }];
 const setPrice = (e, sid) => { const ps = Sim.GEAR.filter((g) => g.set === sid), miss = ps.filter((g) => !e.items.includes(g.id)).length; return ps.length ? Math.ceil(SET_GEMS[ps[0].rar] * miss / ps.length) : 0; };
 function buySet(p, sid, now) {

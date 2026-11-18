@@ -971,7 +971,7 @@ body.tswap #tbtns .tb.dive{left:auto;right:calc(max(14px,env(safe-area-inset-rig
 .cp-ic{width:150px;height:150px;margin:8px auto;border-radius:20px;background:var(--rar-bg);border:3px solid var(--rar);padding:6px}.cp-card b{display:block;font-family:var(--display);font-size:22px}.cp-card .rar{color:var(--rar);font-weight:800;font-size:13px}
 .cp-card .mods{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:8px 0}.cp-card .mods em{font-style:normal;font-size:12px;font-weight:800;padding:1px 7px;border-radius:999px}.cp-btn{display:flex;gap:8px;align-items:center;margin-top:10px}.cp-btn .cta{flex:1;margin:0;font-size:18px;padding:10px}
 @keyframes cpIn{from{transform:scale(.6);opacity:0}}
-.set-ics{display:flex;gap:4px;margin:5px 0 3px}.set-ics .ic{width:42px;height:42px;opacity:.5;border-radius:10px}.set-ics .ic.has{opacity:1;border-color:#7ff0a8}
+.set-ics{display:flex;gap:4px;margin:5px 0 3px}.set-ics .ic{width:36px;height:36px;opacity:.5;border-radius:10px}.set-ics .ic.has{opacity:1;border-color:#7ff0a8}
 .gear-item.set-row{align-items:center}.wd-set small b{color:#ffd76a}
 .wd-item,.wd-slot{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}.wd-item img,.wd-slot img{pointer-events:none;-webkit-user-drag:none}
 .wd-ghost{position:fixed;z-index:999;width:84px;height:84px;margin:-46px 0 0 -42px;border-radius:18px;border:3px solid var(--rar);background:var(--rar-bg);pointer-events:none;padding:4px;box-shadow:0 14px 26px rgba(0,0,0,.45);transform:rotate(-6deg) scale(1.06);opacity:.92}
