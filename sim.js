@@ -310,13 +310,22 @@ const DIFF = [
   { name: 'Cao thủ', speed: 4.5, react: 0.04, skill: 0.93, smash: 0.95, jump: true,  judge: 0.97, attack: 2, miss: 0.025 },
 ];
 
-const VENUES = [
-  { id: 'gym',   name: 'Nhà thi đấu Hoa Mai', desc: 'Nhà thi đấu ấm áp. Không có gió.', wind: 'none', max: 0 },
-  { id: 'arena', name: 'Đấu trường Ánh Sao',  desc: 'Sân lớn dưới đèn rọi. Không có gió.', wind: 'none', max: 0 },
-  { id: 'roof',  name: 'Sân thượng Hoàng Hôn', desc: 'Sân trên nóc nhà lúc chiều tà. Gió nhẹ.', wind: 'steady', max: 0.9 },
-  { id: 'beach', name: 'Bờ biển Nắng Vàng',   desc: 'Sân cát cạnh biển. Gió biển thổi ngang đều.', wind: 'steady', max: 1.6 },
-  { id: 'park',  name: 'Công viên Cỏ Xanh',   desc: 'Sân cỏ. Gió giật đổi chiều mỗi pha.', wind: 'gusty', max: 2.0 },
-  { id: 'snow',  name: 'Đỉnh Tuyết Trắng',    desc: 'Sân trên núi tuyết. Gió lạnh thổi từ mọi phía.', wind: 'any', max: 2.4 },
+const VENUES = [   // no wind anywhere: every court plays the same
+  { id: 'bamboo', name: 'Rừng Tre Xanh', desc: 'Sân lát gỗ giữa rừng tre.', wind: 'none', max: 0 },
+  { id: 'lantern', name: 'Phố Đèn Lồng', desc: 'Sân giữa phố cổ treo đèn lồng đỏ.', wind: 'none', max: 0 },
+  { id: 'lotus', name: 'Hồ Sen', desc: 'Sân nổi trên mặt hồ đầy sen.', wind: 'none', max: 0 },
+  { id: 'terrace', name: 'Ruộng Bậc Thang', desc: 'Sân trên lưng đồi mùa lúa chín.', wind: 'none', max: 0 },
+  { id: 'island', name: 'Đảo Dừa', desc: 'Sân cát trắng giữa hàng dừa.', wind: 'none', max: 0 },
+  { id: 'desert', name: 'Sa Mạc Vàng', desc: 'Sân dưới chân kim tự tháp.', wind: 'none', max: 0 },
+  { id: 'ice', name: 'Hang Băng', desc: 'Sân trong hang băng xanh lấp lánh.', wind: 'none', max: 0 },
+  { id: 'volcano', name: 'Núi Lửa', desc: 'Sân đá đen cạnh dòng dung nham.', wind: 'none', max: 0 },
+  { id: 'space', name: 'Trạm Vũ Trụ', desc: 'Sân lơ lửng giữa các vì sao.', wind: 'none', max: 0 },
+  { id: 'neon', name: 'Thành Phố Neon', desc: 'Sân trên nóc nhà giữa phố đêm rực đèn.', wind: 'none', max: 0 },
+  { id: 'candy', name: 'Xứ Kẹo Ngọt', desc: 'Sân giữa rừng kẹo mút.', wind: 'none', max: 0 },
+  { id: 'mushroom', name: 'Rừng Nấm', desc: 'Sân dưới những cây nấm khổng lồ.', wind: 'none', max: 0 },
+  { id: 'castle', name: 'Sân Lâu Đài', desc: 'Sân trong sân lâu đài đá.', wind: 'none', max: 0 },
+  { id: 'sakura', name: 'Vườn Anh Đào', desc: 'Sân giữa mùa hoa anh đào.', wind: 'none', max: 0 },
+  { id: 'ocean', name: 'Thủy Cung', desc: 'Sân dưới đáy biển giữa san hô.', wind: 'none', max: 0 },
 ];
 
 const SHOTS = {
