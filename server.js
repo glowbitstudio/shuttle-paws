@@ -68,6 +68,15 @@ const send = (c, msg) => { if (c && c.ws.readyState === 1) { c.ws.send(JSON.stri
 const BACKUP_KEY = process.env.BACKUP_KEY || '';
 const signBackup = (body) => crypto.createHmac('sha256', BACKUP_KEY).update(body).digest('base64url');
 function sendBackup(c) { if (!BACKUP_KEY || !c.id || !data.players[c.id]) return; const body = Buffer.from(JSON.stringify({ id: c.id, rec: data.players[c.id] })).toString('base64url'); c.ws.send(JSON.stringify({ t: 'backup', v: body + '.' + signBackup(body) })); }
+// The shared challenger memory travels the same way: every client keeps the last signed copy and hands it back at hello, so a server
+// that lost its data picks the memory up again from the first player who connects (the copy with more matches behind it wins).
+function dareTicket() { if (!BACKUP_KEY || !data.dare) return null; const body = Buffer.from(JSON.stringify(data.dare)).toString('base64url'); return body + '.' + signBackup(body); }
+function restoreDare(v) {
+  if (!BACKUP_KEY || typeof v !== 'string' || v.length > 4000) return;
+  const [body, sig] = v.split('.'); if (!body || !sig) return;
+  const a = Buffer.from(sig), b = Buffer.from(signBackup(body)); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return;
+  try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); if (o && o.n > ((data.dare && data.dare.n) || 0)) { data.dare = o; save(); console.log('restored challenger memory, matches:', o.n); } } catch (e) { /* not ours */ }
+}
 function readBackup(v, id, secret) {
   if (!BACKUP_KEY || typeof v !== 'string' || v.length > 60000) return null;
   const [body, sig] = v.split('.'); if (!body || !sig) return null;
@@ -255,6 +264,7 @@ const handlers = {
   hello(c, msg) {
     let id = clean(msg.id, 40), secret = clean(msg.secret, 80);
     if (id && !data.players[id]) { const old = readBackup(msg.backup, id, secret); if (old) { data.players[id] = old; console.log('restored player from backup', id.slice(0, 8)); } }
+    restoreDare(msg.dareT);
     const rec = id && data.players[id];
     if (!rec || rec.secret !== secret) { id = crypto.randomUUID(); secret = crypto.randomBytes(18).toString('hex'); data.players[id] = { secret, name: '', wins: 0, played: 0 }; save(); }
     c.id = id;
@@ -263,7 +273,7 @@ const handlers = {
     c.char = ownedChar(c, msg.char); c.hand = msg.hand === 'L' ? 'L' : 'R';
     c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     data.players[id].name = c.name;
-    send(c, { t: 'welcome', id, secret, dare: data.dare || null, online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
+    send(c, { t: 'welcome', id, secret, dare: data.dare || null, dareT: dareTicket(), online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
     send(c, Eco.view(data.players[id], Date.now())); save();
     rejoinOffer(c);
   },
@@ -292,10 +302,12 @@ const handlers = {
   // What challenger bots learned in one match on a player's machine, folded into a shared memory every challenger match starts from.
   // Reports come from clients, so each one is clamped, a player can send one a minute, and a single report moves the average by 2% at most.
   dareLearn(c, msg) {
+    const P0 = (data.dare && data.dare.pos) || {};
     const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;   // per player, not per connection
     const G = data.dare || (data.dare = { n: 0, front: 0, bad: {} }), a = Math.max(0.02, 1 / (G.n + 1)), num = (v, lo, hi) => Sim.clamp(+v || 0, lo, hi);
     G.front = Math.round(((1 - a) * G.front + a * num(msg.front, -0.8, 1.25)) * 1000) / 1000;
     for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift']) G.bad[k] = Math.round(((1 - a) * (G.bad[k] || 0) + a * num(msg.bad && msg.bad[k], 0, 6)) * 1000) / 1000;
+    G.pos = {}; for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift', 'serve']) G.pos[k] = Math.round(((1 - a) * (P0[k] || 0) + a * num(msg.pos && msg.pos[k], -0.8, 1.25)) * 1000) / 1000;   // where to stand after each shot
     G.n = Math.min(G.n + 1, 1e6); save();
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },

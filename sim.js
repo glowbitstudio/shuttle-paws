@@ -771,10 +771,10 @@ function botChooseShot(m, b) {
   if (b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), n = L.bad[shot] || 0, s = m.shuttle.p, az = Math.abs(b.z);
     if (n >= 2 && s.y >= 1.05 && Math.random() < Math.min(0.8, n * 0.25)) {
-      const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) < n && (x !== 'smash' || (s.y > 1.58 && az < 5.6)) && (x !== 'drive' || s.y >= 1.5) && (x !== 'drop' || s.y >= 1.75));
+      const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) <= n && (x !== 'smash' || (s.y > 1.58 && az < 5.6)) && (x !== 'drive' || s.y >= 1.5) && (x !== 'drop' || s.y >= 1.75));
       if (alt.length) shot = alt[Math.floor(Math.random() * alt.length)];
     }
-    b.lastShot = shot;
+    b.prevShot = b.lastShot || b.prevShot || null; b.lastShot = shot;
   }
   return shot;
 }
@@ -796,8 +796,9 @@ function botLearn(m, winner) {
         if (sign) { botLesson(L, b.lastShot || 'serve', sign); botLesson(L, '_all', sign); L.front = Math.round((L.pos._all || 0) * 50) / 100; }   // the general base moves half as far
       }
       if (b.lastShot) L.bad[b.lastShot] = (L.bad[b.lastShot] || 0) + 1;
+      if (b.prevShot && b.prevShot !== b.lastShot && m.shuttle.lastTeam !== b.team) L.bad[b.prevShot] = (L.bad[b.prevShot] || 0) + 0.4;
     } else if (b.lastShot && L.bad[b.lastShot]) L.bad[b.lastShot] = Math.max(0, L.bad[b.lastShot] - 0.5);   // it worked this time
-    b.lastShot = null;
+    b.lastShot = null; b.prevShot = null;
   }
 }
 function botChooseShot0(m, b) {
