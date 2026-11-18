@@ -403,19 +403,19 @@ function palm(group, x, z, s) {
 // outside the playing area (never between the court and the camera end).
 const MAP_CFG = {
   bamboo:   { sky: 0xcfeed6, fog: [30, 90], ground: 0x8fc27a, court: ['#b98a55', '#d9a86c', '#fff8e8', 0x7a5632, 0x4f8f3a], bench: 0xb98a55, hemi: [0xf4ffe8, 0x7aa860, 1.0], sun: [0xfff6d8, 0.85, [-6, 18, 8]], props: ['bamboo', 'rock', 'cloud'] },
-  lantern:  { sky: 0x1c1a3a, fog: [26, 80], ground: 0x4a3f55, court: ['#6a2a2a', '#a33a34', '#ffe9c4', 0x4a1a1a, 0xf2c230], bench: 0x7a3a2a, hemi: [0xffd9b0, 0x2a2440, 0.85], sun: [0xffc59a, 0.7, [4, 16, 6]], props: ['house', 'lantern', 'star'] },
-  lotus:    { sky: 0xbfe6f7, fog: [34, 100], ground: 0x4fa8c9, court: ['#3f8f7a', '#58b89a', '#ffffff', 0x2a6a5a, 0xff8fb8], bench: 0x8fd6c2, hemi: [0xffffff, 0x7fc4d9, 1.0], sun: [0xfff8e6, 0.9, [6, 18, 6]], props: ['lotus', 'reed', 'cloud'] },
-  terrace:  { sky: 0xffe2b0, fog: [34, 110], ground: 0xc9b64a, court: ['#7a9a3a', '#9cbd4f', '#fffbe0', 0x5a7a2a, 0xd9483b], bench: 0xa87a4a, hemi: [0xfff2d0, 0xa8a050, 1.0], sun: [0xffe0a0, 0.95, [-8, 14, 4]], props: ['terrace', 'hut', 'cloud'] },
-  island:   { sky: 0x8fdcf7, fog: [40, 120], ground: 0xf4e3b0, court: ['#3fa9bf', '#58c4d6', '#ffffff', 0x2f8a9c, 0xff7a59], bench: 0xf6f0d8, hemi: [0xffffff, 0xf0d8a0, 1.05], sun: [0xfff4e0, 1.0, [8, 20, 6]], props: ['palm', 'sea', 'cloud', 'shell'] },
-  desert:   { sky: 0xffd9a0, fog: [40, 120], ground: 0xe6b866, court: ['#c98a4a', '#e0a860', '#fff3d0', 0x9a6a3a, 0x2f8f8a], bench: 0xd9a86c, hemi: [0xfff0d0, 0xd9a050, 1.05], sun: [0xffe8b0, 1.0, [10, 20, 2]], props: ['pyramid', 'cactus', 'rock'] },
-  ice:      { sky: 0x1f3a6a, fog: [26, 80], ground: 0xbfe6ff, court: ['#5f9fd9', '#8fc4f0', '#ffffff', 0x3f6fa8, 0x7fe3ff], bench: 0xdff2ff, hemi: [0xcfeeff, 0x3f6fa8, 0.95], sun: [0xe6f6ff, 0.75, [2, 18, 6]], props: ['iceberg', 'crystal', 'star'] },
-  volcano:  { sky: 0x2a1418, fog: [26, 85], ground: 0x3a2a2a, court: ['#2f2a30', '#4a424a', '#ffb84d', 0x1c181c, 0xff5e2a], bench: 0x5a4a4a, hemi: [0xffb080, 0x2a1414, 0.85], sun: [0xff9a5a, 0.8, [-4, 16, -6]], props: ['volcano', 'lava', 'rock'] },
-  space:    { sky: 0x070a1c, fog: [60, 200], ground: 0x1a2040, court: ['#232a55', '#3a4488', '#7fe3ff', 0x141833, 0xc59bff], bench: 0x3a4488, hemi: [0xbfd0ff, 0x1a2040, 0.85], sun: [0xffffff, 0.9, [4, 20, 8]], props: ['planet', 'star', 'crystal'] },
-  neon:     { sky: 0x120a2a, fog: [30, 100], ground: 0x1f1a3a, court: ['#1f1a4a', '#2f2a7a', '#ff5ad1', 0x120f2a, 0x5ad1ff], bench: 0x2f2a6a, hemi: [0xc9a0ff, 0x1a1030, 0.85], sun: [0xff9af0, 0.7, [-4, 18, 6]], props: ['tower', 'star'] },
-  candy:    { sky: 0xffd6ec, fog: [36, 110], ground: 0xfff0c9, court: ['#ff9fc4', '#ffc4dd', '#b0306a', 0xe0709a, 0x7fe3ff], bench: 0xffffff, hemi: [0xffffff, 0xffc4dd, 1.05], sun: [0xfff4e8, 0.9, [6, 18, 8]], props: ['candy', 'gumdrop', 'cloud'] },
-  mushroom: { sky: 0x2a2148, fog: [26, 85], ground: 0x3f6a4a, court: ['#4a3a6a', '#6a55a0', '#e6fff0', 0x2f2448, 0x7dff9a], bench: 0x6a55a0, hemi: [0xc9b8ff, 0x2a3a2a, 0.9], sun: [0xbfffe0, 0.7, [-6, 16, 4]], props: ['mushroom', 'crystal', 'star'] },
+  lantern:  { sky: 0x1c1a3a, fog: [26, 80], ground: 0x6c5c72, court: ['#8a3a34', '#c44c42', '#ffe9c4', 0x4a1a1a, 0xf2c230], bench: 0x7a3a2a, hemi: [0xffd9b0, 0x2a2440, 1.05], sun: [0xffc59a, 0.9, [4, 16, 6]], props: ['house', 'lantern', 'star'] },
+  lotus:    { sky: 0xbfe6f7, fog: [34, 100], ground: 0x4fa8c9, court: ['#3f8f7a', '#58b89a', '#ffffff', 0x2a6a5a, 0xff8fb8], bench: 0x8fd6c2, hemi: [0xffffff, 0x7fc4d9, 0.95], sun: [0xfff8e6, 0.85, [6, 18, 6]], props: ['lotus', 'reed', 'cloud'] },
+  terrace:  { sky: 0xffe2b0, fog: [34, 110], ground: 0xb8a43a, court: ['#7a9a3a', '#9cbd4f', '#fffbe0', 0x5a7a2a, 0xd9483b], bench: 0xa87a4a, hemi: [0xfff2d0, 0xa8a050, 0.95], sun: [0xffe0a0, 0.9, [-8, 14, 4]], props: ['terrace', 'hut', 'cloud'] },
+  island:   { sky: 0x8fdcf7, fog: [40, 120], ground: 0xc4a763, court: ['#3fa9bf', '#58c4d6', '#ffffff', 0x2f8a9c, 0xff7a59], bench: 0xf6f0d8, hemi: [0xffffff, 0xf0d8a0, 0.95], sun: [0xfff4e0, 0.9, [8, 20, 6]], props: ['palm', 'sea', 'cloud', 'shell'] },
+  desert:   { sky: 0xffd9a0, fog: [40, 120], ground: 0xd6a650, court: ['#c98a4a', '#e0a860', '#fff3d0', 0x9a6a3a, 0x2f8f8a], bench: 0xd9a86c, hemi: [0xfff0d0, 0xd9a050, 0.98], sun: [0xffe8b0, 0.92, [10, 20, 2]], props: ['pyramid', 'cactus', 'rock'] },
+  ice:      { sky: 0x1f3a6a, fog: [26, 80], ground: 0x86b8de, court: ['#5f9fd9', '#8fc4f0', '#ffffff', 0x3f6fa8, 0x7fe3ff], bench: 0xdff2ff, hemi: [0xcfeeff, 0x3f6fa8, 0.9], sun: [0xe6f6ff, 0.75, [2, 18, 6]], props: ['iceberg', 'crystal', 'star'] },
+  volcano:  { sky: 0x2a1418, fog: [26, 85], ground: 0x5c4238, court: ['#4a3f48', '#6e5d6a', '#ffc266', 0x1c181c, 0xff5e2a], bench: 0x5a4a4a, hemi: [0xffb080, 0x2a1414, 1.1], sun: [0xff9a5a, 1.0, [-4, 16, -6]], props: ['volcano', 'lava', 'rock'] },
+  space:    { sky: 0x070a1c, fog: [60, 200], ground: 0x2c3464, court: ['#2f3870', '#4c5ab0', '#9ff0ff', 0x141833, 0xc59bff], bench: 0x3a4488, hemi: [0xbfd0ff, 0x1a2040, 1.1], sun: [0xffffff, 0.95, [4, 20, 8]], props: ['planet', 'star', 'crystal'] },
+  neon:     { sky: 0x120a2a, fog: [30, 100], ground: 0x302a5c, court: ['#2a246a', '#443ca8', '#ff7ae0', 0x120f2a, 0x5ad1ff], bench: 0x2f2a6a, hemi: [0xc9a0ff, 0x1a1030, 1.1], sun: [0xff9af0, 0.9, [-4, 18, 6]], props: ['tower', 'star'] },
+  candy:    { sky: 0xffd6ec, fog: [36, 110], ground: 0xdc94b6, court: ['#d9608f', '#f08ab0', '#ffffff', 0xe0709a, 0x7fe3ff], bench: 0xffffff, hemi: [0xffffff, 0xffc4dd, 0.98], sun: [0xfff4e8, 0.85, [6, 18, 8]], props: ['candy', 'gumdrop', 'cloud'] },
+  mushroom: { sky: 0x2a2148, fog: [26, 85], ground: 0x4f8a5a, court: ['#5a4a85', '#806cc2', '#e6fff0', 0x2f2448, 0x7dff9a], bench: 0x6a55a0, hemi: [0xc9b8ff, 0x2a3a2a, 1.1], sun: [0xbfffe0, 0.85, [-6, 16, 4]], props: ['mushroom', 'crystal', 'star'] },
   castle:   { sky: 0xa9d2f7, fog: [34, 110], ground: 0x8a8f9c, court: ['#6a7386', '#8f9bb0', '#ffffff', 0x4a5568, 0xc22a3a], bench: 0x9aa5b8, hemi: [0xffffff, 0x8a8f9c, 1.0], sun: [0xfff8e6, 0.9, [8, 18, 6]], props: ['castle', 'pennant', 'cloud'] },
-  sakura:   { sky: 0xffe6f0, fog: [34, 105], ground: 0xa8d68a, court: ['#c98fa8', '#e6b3c9', '#6a2f4a', 0xa86a85, 0x8a5a3a], bench: 0xe6c9a8, hemi: [0xffffff, 0xc9e0a8, 1.05], sun: [0xfff0f4, 0.9, [-6, 18, 8]], props: ['sakura', 'toriiGate', 'petal', 'cloud'] },
+  sakura:   { sky: 0xffe6f0, fog: [34, 105], ground: 0x8fc474, court: ['#b0708f', '#d090ad', '#ffffff', 0xa86a85, 0x8a5a3a], bench: 0xe6c9a8, hemi: [0xffffff, 0xc9e0a8, 0.98], sun: [0xfff0f4, 0.85, [-6, 18, 8]], props: ['sakura', 'toriiGate', 'petal', 'cloud'] },
   ocean:    { sky: 0x0f4a7a, fog: [22, 75], ground: 0xd9c48a, court: ['#1f7a9a', '#2fa0c4', '#e6fbff', 0x145a75, 0xffa94d], bench: 0x2fa0c4, hemi: [0x9fe0ff, 0x1f5a7a, 0.95], sun: [0xbfeaff, 0.75, [2, 20, 4]], props: ['coral', 'seaweed', 'bubble', 'shell'] },
 };
 function mapKit(g) {
@@ -4209,7 +4209,8 @@ function showPreview(on) {
   }
 }
 const CAM_NAMES = { high: 'Trên cao', mid: 'Vừa', low: 'Thấp', close: 'Sau lưng', full: 'Toàn sân' };
-function setCamBtn() { $('camBtn').innerHTML = icon('camera') + 'Góc nhìn: ' + CAM_NAMES[settings.cam]; }
+let camSegSync = null;
+function setCamBtn() { $('camBtn').innerHTML = icon('camera') + 'Góc nhìn: ' + CAM_NAMES[settings.cam]; if (camSegSync) camSegSync(); }   // also moves the highlight in Settings
 function cycleCam() {
   const order = ['high', 'mid', 'low', 'close', 'full'];
   settings.cam = order[(order.indexOf(settings.cam) + 1) % order.length]; saveAll();
@@ -4217,6 +4218,8 @@ function cycleCam() {
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
 }
 $('camBtn').onclick = cycleCam;
+function bindCamSeg() { if (!CAM_NAMES[settings.cam]) settings.cam = 'high'; camSegSync = seg('setCam', () => settings.cam, (v) => { settings.cam = v; saveAll(); setCamBtn(); if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera'); }); }
+bindCamSeg();   // bound once at start, so the row works wherever Settings is opened from (lobby or the pause menu)
 const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'shop', 'rewards', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
 let screen = 'home';
 function hideScreens() { for (const s of SCREENS) $('s-' + s).classList.add('hidden'); $('stageName').classList.add('hidden'); $('wdSlots').classList.add('hidden'); showPreview(false); }
@@ -4379,7 +4382,7 @@ function renderSettings() {
   $('setHitStop').checked = settings.hitStop; $('setSplit').checked = settings.autoSplit; $('setChat').checked = settings.chat;
   $('setTouch').value = settings.touch; $('setServer').value = settings.server; $('setTouchSwap').checked = !!settings.touchSwap;
   seg('setTouchSize', () => String(settings.touch), (v) => { settings.touch = +v; $('setTouch').value = settings.touch; document.documentElement.style.setProperty('--tscale', settings.touch); saveAll(); });
-  seg('setCam', () => settings.cam, (v) => { settings.cam = v; saveAll(); setCamBtn(); });
+  bindCamSeg();
   seg('setAssist', () => settings.assist, (v) => { settings.assist = +v; saveAll(); Net.profile(); });
   seg('setCtrl', () => settings.ctrl, (v) => { settings.ctrl = v; saveAll(); syncCtrlUI(); });
   seg('setHand', () => settings.hand, (v) => { settings.hand = v; saveAll(); Net.profile(); showPreview(true); });
