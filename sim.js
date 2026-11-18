@@ -647,6 +647,7 @@ function doHit(m, a, shotName, target, q, label, pw) {
   planTeam(m, 1 - a.team, r, s.pred.inside);
   coverHomes(m, a.team);
   for (const o of m.athletes) if (o.team === a.team && o.ctrl === 'bot') { o.plan = null; o.tx = o.home.x; o.tz = o.home.z; o.jumpAt = -1; }
+  if (a.ctrl === 'bot' && a.learn && a.learn.pos && a.lastShot && a.learn.pos[a.lastShot]) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - a.learn.pos[a.lastShot] * 0.8, 2.3, 4.7);   // the challenger's learned spot after this very shot
 }
 
 function chooseTarget(m, a, shotName, aimX, pw) {
@@ -777,13 +778,22 @@ function botChooseShot(m, b) {
   }
   return shot;
 }
+// Position memory is kept per situation (pos[shot]: where to stand after playing that shot) so "come forward after my smash" and
+// "stay back after my drop" do not overwrite each other. Two lessons in a row that contradict each other (beaten short, then beaten
+// deep) pull the value back toward neutral and halve the step for that situation, so mixing drops and clears cannot drag it to and fro.
+function botLesson(L, key, sign) {
+  const P = L.pos || (L.pos = {}), D = L.dir || (L.dir = {}), T = L.step || (L.step = {}), v = P[key] || 0, st = T[key] || 0.45;
+  if (D[key] && D[key] !== sign) { P[key] = Math.abs(v) <= st ? 0 : v - Math.sign(v) * st; T[key] = Math.max(0.15, st * 0.5); }   // contradiction: back toward neutral, smaller steps
+  else { P[key] = clamp(v + sign * st, -0.8, 1.25); T[key] = Math.min(0.45, st * 1.25); }
+  D[key] = sign;
+}
 function botLearn(m, winner) {
   for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z);
     if (winner !== b.team) {
       if (s.z * sg > 0 && m.shuttle.lastTeam !== b.team) {          // the reply landed on its side
-        if (sz < 2.7 && bz > 3.2) L.front = Math.min(1.25, L.front + 0.45);          // beaten short while standing deep
-        else if (sz > 4.6 && bz < 3.3) L.front = Math.max(-0.8, L.front - 0.45);     // beaten deep while standing close
+        const sign = sz < 2.7 && bz > 3.2 ? 1 : sz > 4.6 && bz < 3.3 ? -1 : 0;   // beaten short while deep / beaten deep while close
+        if (sign) { botLesson(L, b.lastShot || 'serve', sign); botLesson(L, '_all', sign); L.front = Math.round((L.pos._all || 0) * 50) / 100; }   // the general base moves half as far
       }
       if (b.lastShot) L.bad[b.lastShot] = (L.bad[b.lastShot] || 0) + 1;
     } else if (b.lastShot && L.bad[b.lastShot]) L.bad[b.lastShot] = Math.max(0, L.bad[b.lastShot] - 0.5);   // it worked this time
@@ -1256,6 +1266,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
+  botLearn, botLesson,
   GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,
