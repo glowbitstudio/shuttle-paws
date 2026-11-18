@@ -72,7 +72,7 @@ function sendBackup(c) { if (!BACKUP_KEY || !c.id || !data.players[c.id]) return
 // that lost its data picks the memory up again from the first player who connects (the copy with more matches behind it wins).
 function dareTicket() { if (!BACKUP_KEY || !data.dare) return null; const body = Buffer.from(JSON.stringify(data.dare)).toString('base64url'); return body + '.' + signBackup(body); }
 function restoreDare(v) {
-  if (!BACKUP_KEY || typeof v !== 'string' || v.length > 80000) return;
+  if (!BACKUP_KEY || typeof v !== "string" || v.length > 250000) return;
   const [body, sig] = v.split('.'); if (!body || !sig) return;
   const a = Buffer.from(sig), b = Buffer.from(signBackup(body)); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return;
   try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); if (o && o.n > ((data.dare && data.dare.n) || 0)) { data.dare = o; save(); console.log('restored challenger memory, matches:', o.n); } } catch (e) { /* not ours */ }
@@ -512,7 +512,7 @@ wss.on('connection', (ws) => {
   const c = { ws, id: null, name: 'Khách', char: 'cat', room: null, match: null, slot: -1, spectating: null };
   clients.add(c);
   ws.on('message', (raw) => {
-    if (raw.length > 300000) return;   // hello carries signed copies and the end-of-match report carries the rally record: both are far larger than a normal message
+    if (raw.length > 400000) return;   // hello carries signed copies and the end-of-match report carries the rally record: both are far larger than a normal message
     let msg; try { msg = JSON.parse(raw); } catch (e) { return; }
     if (!msg || typeof msg !== 'object' || Array.isArray(msg) || typeof msg.t !== 'string') return;
     const h = Object.prototype.hasOwnProperty.call(handlers, msg.t) ? handlers[msg.t] : null;
