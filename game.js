@@ -1299,14 +1299,19 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mk(new THREE.SphereGeometry(0.07, 6, 5), acc, Math.sin(a) * 0.86, 0.66, Math.cos(a) * 0.86, bn); }
     return gr;
   }
-  if (kind === 'diver') {   // dive mask pushed up on the brow, snorkel at the side
-    ring(0.46, 0.1, toon(0x23232b, { side: THREE.DoubleSide }), 1.04, 0.2);
-    const mg = new THREE.Group(); mg.position.set(0, 0.56, 0.9); mg.rotation.x = -0.5; fit.add(mg);
-    mk(new THREE.SphereGeometry(0.42, 16, 10), toon(0x23232b), 0, 0, 0, mg, true).scale.set(1.5, 0.75, 0.55);
-    mk(new THREE.SphereGeometry(0.36, 16, 10), basic(0x8fe9ff), 0, 0, 0.09, mg).scale.set(1.45, 0.68, 0.4);
-    mk(new THREE.PlaneGeometry(0.3, 0.06), basic(0xffffff), -0.22, 0.1, 0.25, mg).rotation.z = 0.5;
-    mk(new THREE.CylinderGeometry(0.075, 0.075, 1.1, 10), acc, 1.06, 0.6, 0.05, fit, true);
-    const tp = mk(new THREE.TorusGeometry(0.16, 0.075, 8, 12, Math.PI), acc, 0.9, 1.15, 0.05, fit, true); mk(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 10), toon(0xffffff), 1.06, 0.25, 0.05, fit);
+  if (kind === 'diver') {   // dive mask over the eyes (two big lenses in one dark frame, strap round the head), snorkel from the mouth up past the ear
+    if (!fit.parent) gr.add(fit);
+    const dk = toon(0x23232b, { side: THREE.DoubleSide }), ey = 0.06, hull = (m) => { m.userData.isOutline = true; return m; };
+    for (const sd of [-1, 1]) { const lg = new THREE.Group(); lg.position.set(sd * 0.34, ey, 0.99); lg.rotation.y = sd * 0.38; fit.add(lg);
+      hull(mk(new THREE.CylinderGeometry(0.4, 0.42, 0.2, 24, 1, true), OUTLINE, 0, 0, -0.1, lg)).rotation.x = Math.PI / 2; mk(new THREE.CylinderGeometry(0.36, 0.38, 0.2, 24, 1, true), dk, 0, 0, -0.1, lg).rotation.x = Math.PI / 2;
+      hull(mk(new THREE.TorusGeometry(0.33, 0.085, 6, 24), OUTLINE, 0, 0, 0, lg)); mk(new THREE.TorusGeometry(0.33, 0.06, 6, 24), team, 0, 0, 0.004, lg);
+      const ln = mk(new THREE.CircleGeometry(0.33, 24), basic(0x8fe9ff, { transparent: true, opacity: 0.34, depthWrite: false }), 0, 0, 0.006, lg); ln.renderOrder = 2;
+      const sh = mk(new THREE.PlaneGeometry(0.22, 0.045), basic(0xffffff, { transparent: true, opacity: 0.75, depthWrite: false }), -0.08, 0.13, 0.02, lg); sh.rotation.z = 0.6; sh.renderOrder = 3; }
+    mk(new THREE.BoxGeometry(0.2, 0.2, 0.12), dk, 0, ey - 0.14, 1.06, fit, true);   // nose pocket joining the two lenses
+    const st = mk(new THREE.TorusGeometry(1.03, 0.075, 6, 40, Math.PI * 2 - 1.3), dk, 0, ey, 0, fit); st.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hull(mk(new THREE.TorusGeometry(1.03, 0.1, 6, 40, Math.PI * 2 - 1.3), OUTLINE, 0, ey, 0, fit)).rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+    const cv = new THREE.CatmullRomCurve3([[0.1, -0.4, 1.03], [0.5, -0.4, 0.95], [0.95, -0.22, 0.45], [1.1, 0.3, 0.12], [1.1, 0.9, 0.05], [1.08, 1.3, 0.05]].map((q) => new THREE.Vector3(q[0], q[1], q[2])));
+    hull(mk(new THREE.TubeGeometry(cv, 30, 0.1, 8), OUTLINE, 0, 0, 0, fit)); mk(new THREE.TubeGeometry(cv, 30, 0.075, 8), acc, 0, 0, 0, fit);
+    mk(new THREE.SphereGeometry(0.11, 10, 8), dk, 0.08, -0.4, 1.03, fit, true).scale.set(1.4, 0.8, 0.8); mk(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 10), toon(0xffffff), 1.09, 1.12, 0.05, fit);
     return gr;
   }
   if (kind === 'mohawk') {   // row of spikes from the brow to the nape
