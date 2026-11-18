@@ -21,16 +21,17 @@ const LOGIN_REWARDS = [50, 60, 70, 80, 100, 120, 200];              // day 1..7 
 const GEM_ONLINE_WIN = 1, GEM_CHAMP = 10, GEM_STREAK7 = 5;
 // chests: a random item the player does not own yet; odds = chance in % of a common / rare / epic item. gold or gems 0 = cannot be paid that way.
 const CHESTS = [
-  { id: 'c0', name: 'Rương Thường', gold: 250, gems: 0, odds: [78, 20, 2] },
-  { id: 'c1', name: 'Rương Hiếm', gold: 900, gems: 10, odds: [0, 78, 22] },
-  { id: 'c2', name: 'Rương Sử thi', gold: 0, gems: 30, odds: [0, 0, 100] },
+  { id: 'c0', name: 'Rương Thường', gold: 250, gems: 0, odds: [78, 20, 2, 0] },
+  { id: 'c1', name: 'Rương Hiếm', gold: 900, gems: 10, odds: [0, 76, 22, 2] },
+  { id: 'c2', name: 'Rương Sử thi', gold: 0, gems: 30, odds: [0, 0, 88, 12] },
+  { id: 'c3', name: 'Rương Huyền thoại', gold: 0, gems: 90, odds: [0, 0, 40, 60] },
 ];
 function openChest(p, id, pay, now, rnd) {
   const e = ensure(p, now), c = CHESTS.find((x) => x.id === id), gems = pay === 'gems', R = rnd || Math.random;
   const price = c ? (gems ? c.gems : c.gold) : 0;
   if (!c || !price) return { ok: false, why: 'Không mở được rương này' };
   if ((gems ? e.gems : e.gold) < price) return { ok: false, why: gems ? 'Chưa đủ kim cương (thiếu ' + (price - e.gems) + ')' : 'Chưa đủ vàng (thiếu ' + (price - e.gold) + ')' };
-  const r = R() * 100, rar = r < c.odds[0] ? 0 : r < c.odds[0] + c.odds[1] ? 1 : 2;
+  let r = R() * 100, rar = c.odds.length - 1; for (let k = 0; k < c.odds.length; k++) { if (r < c.odds[k]) { rar = k; break; } r -= c.odds[k]; }
   const pool = Sim.GEAR.filter((g) => g.rar === rar);
   const g = pool[Math.min(pool.length - 1, Math.floor(R() * pool.length))];
   if (gems) e.gems -= price; else e.gold -= price;
@@ -120,8 +121,8 @@ function buyChar(p, id, now) {
 const canUse = (p, id, now) => !MUST_OWN.includes(id) || ensure(p, now).owned.includes(id);
 
 // ---- shards: a duplicate from a chest turns into shards; shards craft a missing item or upgrade an owned one. Whole sets are sold for diamonds.
-const DUP_SHARDS = [5, 15, 40], CRAFT_COST = [20, 60, 150], UP_COST = [[8, 20, 40], [16, 40, 80], [32, 80, 160]];   // by rarity (UP_COST[rarity][level])
-const SET_GEMS = [60, 150, 320];                                    // a complete 5-piece set by rarity; owned pieces are taken off the price
+const DUP_SHARDS = [5, 15, 40, 100], CRAFT_COST = [20, 60, 150, 400], UP_COST = [1, 2, 4, 8].map((k) => [8, 20, 40, 70, 110].map((c) => c * k));   // by rarity (UP_COST[rarity][level])
+const SET_GEMS = [60, 150, 320, 700];                                    // a complete 5-piece set by rarity; owned pieces are taken off the price
 const SHARD_PACKS = [{ id: 's0', shards: 5, gold: 400, gems: 0 }, { id: 's1', shards: 25, gold: 0, gems: 10 }, { id: 's2', shards: 80, gold: 0, gems: 28 }];
 const setPrice = (e, sid) => { const ps = Sim.GEAR.filter((g) => g.set === sid), miss = ps.filter((g) => !e.items.includes(g.id)).length; return ps.length ? Math.ceil(SET_GEMS[ps[0].rar] * miss / ps.length) : 0; };
 function buySet(p, sid, now) {

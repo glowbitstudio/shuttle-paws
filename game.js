@@ -1299,6 +1299,57 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; mk(new THREE.SphereGeometry(0.07, 6, 5), acc, Math.sin(a) * 0.86, 0.66, Math.cos(a) * 0.86, bn); }
     return gr;
   }
+  if (kind === 'diver') {   // dive mask pushed up on the brow, snorkel at the side
+    ring(0.46, 0.1, toon(0x23232b, { side: THREE.DoubleSide }), 1.04, 0.2);
+    const mg = new THREE.Group(); mg.position.set(0, 0.56, 0.9); mg.rotation.x = -0.5; fit.add(mg);
+    mk(new THREE.SphereGeometry(0.42, 16, 10), toon(0x23232b), 0, 0, 0, mg, true).scale.set(1.5, 0.75, 0.55);
+    mk(new THREE.SphereGeometry(0.36, 16, 10), basic(0x8fe9ff), 0, 0, 0.09, mg).scale.set(1.45, 0.68, 0.4);
+    mk(new THREE.PlaneGeometry(0.3, 0.06), basic(0xffffff), -0.22, 0.1, 0.25, mg).rotation.z = 0.5;
+    mk(new THREE.CylinderGeometry(0.075, 0.075, 1.1, 10), acc, 1.06, 0.6, 0.05, fit, true);
+    const tp = mk(new THREE.TorusGeometry(0.16, 0.075, 8, 12, Math.PI), acc, 0.9, 1.15, 0.05, fit, true); mk(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 10), toon(0xffffff), 1.06, 0.25, 0.05, fit);
+    return gr;
+  }
+  if (kind === 'mohawk') {   // row of spikes from the brow to the nape
+    if (!fit.parent) gr.add(fit);
+    for (let i = 0; i < 7; i++) { const a = -0.75 + i * 0.36, sp = mk(new THREE.ConeGeometry(0.27, 0.86 - Math.abs(i - 2.5) * 0.06, 5), i % 2 ? acc : team, 0, Math.cos(a) * 1.18, -Math.sin(a) * 1.18 + 0.0, fit, true); sp.rotation.x = -a; sp.scale.x = 0.55; }
+    return gr;
+  }
+  if (kind === 'deer') {   // deerstalker: cap with a peak in front and behind, ear flaps tied on top
+    if (!fit.parent) gr.add(fit);
+    const dc = new THREE.Group(); dc.rotation.x = -0.18; fit.add(dc); const dk = toon(shadeHex(teamColor, -0.25), { side: THREE.DoubleSide });
+    mk(new THREE.SphereGeometry(1.06, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.3)), team, 0, 0, 0, dc, true);
+    for (const sd of [1, -1]) { const br = mk(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 24, 1, false, -0.9, 1.8), dk, 0, 0.4, sd * 0.42, dc, true); br.rotation.set(sd * 0.22, sd > 0 ? 0 : Math.PI, 0); }
+    for (const sd of [-1, 1]) { const fl = mk(new THREE.SphereGeometry(0.4, 12, 8), dk, sd * 0.5, 0.92, 0, dc, true); fl.scale.set(1.3, 0.3, 0.75); fl.rotation.z = -sd * 0.55; }
+    mk(new THREE.SphereGeometry(0.1, 8, 6), acc, 0, 1.12, 0, dc);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mk(new THREE.CylinderGeometry(0.012, 0.012, 0.9, 4), acc, Math.sin(a) * 0.72, 0.7, Math.cos(a) * 0.72, dc).rotation.set(Math.cos(a) * 0.75, 0, -Math.sin(a) * 0.75); }
+    return gr;
+  }
+  if (kind === 'robot') {   // metal skull cap, visor band with lights, ear bolts, antenna
+    if (!fit.parent) gr.add(fit);
+    const rc = new THREE.Group(); rc.rotation.x = -0.2; fit.add(rc);
+    mk(new THREE.SphereGeometry(1.06, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.3)), team, 0, 0, 0, rc, true);
+    mk(new THREE.CylinderGeometry(1.06, 1.08, 0.2, 32, 1, true), toon(0x3a4254, { side: THREE.DoubleSide }), 0, 0.36, 0, rc);
+    [0xff5e5e, 0x7dff9a, 0x5ad1ff].forEach((cc, i) => mk(new THREE.SphereGeometry(0.06, 8, 6), basic(cc), (i - 1) * 0.26, 0.36, 1.04 - Math.abs(i - 1) * 0.035, rc));
+    for (const sd of [-1, 1]) { const bl = mk(new THREE.CylinderGeometry(0.2, 0.2, 0.16, 12), acc, sd * 1.06, 0.1, 0, fit, true); bl.rotation.z = Math.PI / 2; }
+    mk(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 6), toon(0x3a4254), 0, 1.3, 0, rc); mk(new THREE.SphereGeometry(0.11, 10, 8), basic(0xff5e5e), 0, 1.6, 0, rc);
+    return gr;
+  }
+  if (kind === 'halo') {   // gold ring floating above the head
+    if (!fit.parent) gr.add(fit);
+    const hl = mk(new THREE.TorusGeometry(0.62, 0.085, 8, 30), basic(0xffe18a), 0, 1.5, -0.05, fit); hl.rotation.x = Math.PI / 2 - 0.16;
+    const g2 = mk(new THREE.TorusGeometry(0.62, 0.16, 8, 30), basic(0xfff3c4, { transparent: true, opacity: 0.35, depthWrite: false }), 0, 1.5, -0.05, fit); g2.rotation.x = Math.PI / 2 - 0.16;
+    return gr;
+  }
+  if (kind === 'kabuto') {   // samurai helmet: bowl, gold crescent on the brow, flared neck guard
+    if (!fit.parent) gr.add(fit);
+    const kb = new THREE.Group(); kb.rotation.x = -0.2; fit.add(kb); const dk = toon(shadeHex(teamColor, -0.3), { side: THREE.DoubleSide });
+    mk(new THREE.SphereGeometry(1.07, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.26)), team, 0, 0, 0, kb, true);
+    mk(new THREE.CylinderGeometry(1.08, 1.5, 0.5, 28, 1, true, Math.PI * 0.55, Math.PI * 1.9 - Math.PI), dk, 0, 0.08, 0, kb, true);
+    mk(new THREE.CylinderGeometry(1.5, 1.52, 0.05, 28, 1, true, Math.PI * 0.55, Math.PI * 0.9), acc, 0, -0.16, 0, kb);
+    const cr = mk(new THREE.TorusGeometry(0.62, 0.075, 6, 24, Math.PI * 0.9), acc, 0, 1.02, 0.86, kb, true); cr.rotation.set(-0.25, 0, Math.PI * 1.05); cr.scale.set(1, 1.25, 1);
+    mk(new THREE.SphereGeometry(0.13, 10, 8), acc, 0, 0.62, 0.98, kb); mk(new THREE.CylinderGeometry(1.075, 1.085, 0.1, 32, 1, true), acc, 0, 0.3, 0, kb);
+    return gr;
+  }
   if (kind === 'astro') {   // glass bubble with a collar ring and an antenna
     if (!fit.parent) gr.add(fit);
     const gl = mk(new THREE.SphereGeometry(1.5, 28, 18), basic(0xbfe6ff, { transparent: true, opacity: 0.32, depthWrite: false }), 0, 0.12, 0.04, fit); gl.renderOrder = 4;
@@ -1371,7 +1422,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const legMat = P.darkPaws ? pawMat : limbMat;
     add(new THREE.SphereGeometry(0.098, 14, 8), mShorts, 0, 0.0, 0, thigh);                 // hip ball: no gap under the shorts when the thigh swings
     // shorts leg. Default: to just above the knee, flared. Gear: p_light = short running cut, p_flex = tights over the knee, p_pro = long and baggy with a side stripe
-    const pk = ({ nj_pants: 'p_flex', hr_pants: 'p_flex', bc_pants: 'p_light', ry_pants: 'p_pro', as_pants: 'p_pro', pr_pants: 'p_pro', wz_pants: 'p_pro', cb_pants: 'p_pro', ch_pants: 'p_pro', wn_pants: 'p_flex' })[GI.shorts] || GI.shorts, tight = pk === 'p_flex';
+    const pk = ({ nj_pants: 'p_flex', hr_pants: 'p_flex', bc_pants: 'p_light', ry_pants: 'p_pro', as_pants: 'p_pro', pr_pants: 'p_pro', wz_pants: 'p_pro', cb_pants: 'p_pro', ch_pants: 'p_pro', wn_pants: 'p_flex', dv_pants: 'p_flex', rk_pants: 'p_flex', dt_pants: 'p_pro', rb_pants: 'p_pro', an_pants: 'p_pro', sm_pants: 'p_pro' })[GI.shorts] || GI.shorts, tight = pk === 'p_flex';
     const lgLen = 0.08 + (pk === 'p_light' ? Math.min(L1 * 0.4, 0.05) : Math.min(L1 * 0.9, 0.12)), lgR = tight ? 0.092 : pk === 'p_pro' ? 0.138 : pk === 'p_light' ? 0.116 : 0.122;
     const lg = add(new THREE.CylinderGeometry(tight ? 0.096 : 0.1, lgR, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
     if (!tight) { const lgHem = add(new THREE.TorusGeometry(lgR - 0.001, pk === 'p_pro' ? 0.013 : 0.009, 6, 20), pk === 'p_pro' ? toon(0x2a1f5a) : mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem); }
@@ -1383,7 +1434,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (tight) { const kr = add(new THREE.TorusGeometry(0.07, 0.011, 6, 18), toon(0x9fd0ff), 0, -0.05, -0.01, knee); kr.rotation.x = Math.PI / 2; noOL(kr); }
     add(new THREE.CapsuleGeometry(0.066, Math.max(0.01, L2 - 0.03), 4, 12), legMat, 0, -L2 / 2, -0.012, knee);    // shin, a little slimmer
     const ankle = new THREE.Group(); ankle.position.set(0, -L2, 0); knee.add(ankle); ankle.userData.side = s;
-    const sk = ({ bc_shoes: 's_run', nj_shoes: 's_run', as_shoes: 's_spring', pr_shoes: 's_pro', ry_shoes: 's_pro', hr_shoes: 's_pro', cb_shoes: 's_pro', wz_shoes: 's_run', ch_shoes: 's_run', wn_shoes: 's_spring' })[GI.shoes] || GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
+    const sk = ({ bc_shoes: 's_run', nj_shoes: 's_run', as_shoes: 's_spring', pr_shoes: 's_pro', ry_shoes: 's_pro', hr_shoes: 's_pro', cb_shoes: 's_pro', wz_shoes: 's_run', ch_shoes: 's_run', wn_shoes: 's_spring', dv_shoes: 's_run', rk_shoes: 's_pro', dt_shoes: 's_run', rb_shoes: 's_spring', an_shoes: 's_run', sm_shoes: 's_run' })[GI.shoes] || GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
     if (P.webbed) {
       const shoe = add(new THREE.SphereGeometry(0.1, 14, 10), mOrange, 0, -0.04, 0.05, ankle); shoe.scale.set(1.25, 0.42, 1.7);
       for (const t of [-1, 0, 1]) add(new THREE.SphereGeometry(0.035, 8, 6), mOrange, t * 0.07, -0.05, 0.2, ankle).scale.set(1, 0.6, 1.2);
@@ -1821,7 +1872,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       const rt = add(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff), sd * 0.03, 0, 0, wg2); rt.scale.set(1, 1.1, 0.5); noOL(rt);
     }
   }
-  const setHead = { nj_head: ['ninja', 0xc22a3a], bc_head: ['straw', 0xe0303a], pr_head: ['tricorn', 0xf2c230], as_head: ['astro', 0x4f8fe8], ry_head: ['royal', 0xfff3c4], hr_head: ['hero', 0xffd23f], wz_head: ['wizard', 0xf2c230], cb_head: ['cowboy', 0x3a2a1a], wn_head: ['beanie', 0xffffff], ch_head: ['chef', 0xdfe5ee] }[GI.head];
+  const setHead = { nj_head: ['ninja', 0xc22a3a], bc_head: ['straw', 0xe0303a], pr_head: ['tricorn', 0xf2c230], as_head: ['astro', 0x4f8fe8], ry_head: ['royal', 0xfff3c4], hr_head: ['hero', 0xffd23f], wz_head: ['wizard', 0xf2c230], cb_head: ['cowboy', 0x3a2a1a], wn_head: ['beanie', 0xffffff], ch_head: ['chef', 0xdfe5ee], dv_head: ['diver', 0xff8a3d], rk_head: ['mohawk', 0x7dff9a], dt_head: ['deer', 0x5a3d22], rb_head: ['robot', 0xffd23f], an_head: ['halo', 0xffe18a], sm_head: ['kabuto', 0xf2c230] }[GI.head];
   // ---- outfit sets: shirt details and back pieces
   const decal = (geo, mat, x, y, lift, par) => { const z = chestZ(x, y), n = new THREE.Vector3(x / Math.pow(0.27 * tx, 2), (y - tc) / Math.pow(0.27 * ty, 2), z / Math.pow(0.27 * tz, 2)).normalize();
     const m = add(geo, mat, x + n.x * lift, y + n.y * lift, z + n.z * lift, par || up); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); return noOL(m); };
@@ -1887,6 +1938,45 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     BK(new THREE.CylinderGeometry(0.12, 0.12, 0.01, 22), toon(0x5a6478), 0, tc + 0.08, bz - 0.08).rotation.x = Math.PI / 2;
     const hd = BK(new THREE.CapsuleGeometry(0.02, 0.2, 3, 8), toon(0x7a5230), 0.13 * h, tc - 0.1, bz - 0.055, true); hd.rotation.z = 0.62 * h;
     const stp = BK(new THREE.TorusGeometry(0.266, 0.014, 6, 26), toon(0x5a3d22), 0, tc + 0.02, 0); stp.rotation.set(Math.PI / 2, -0.62 * h, 0); stp.scale.set(tx * 1.03, tz * 1.03, ty);
+  }
+  // ---- sets: diver, rock, detective, robot, angel, samurai
+  if (GI.shirt === 'dv_shirt') { const ye = toon(0xffd23f); for (const sd of [-1, 1]) seam(sd * 0.2 * tx, cy - 0.02, sd * 0.17 * tx, tc - 0.11, 0.012, ye); seam(0, cy - 0.03, 0, tc - 0.11, 0.007, toon(0xc9d2e0)); hoop(tc + 0.2, 0.014, ye); decal(new THREE.BoxGeometry(0.03, 0.04, 0.012), toon(0xc9d2e0), 0, cy - 0.05, 0.008); }
+  else if (GI.shirt === 'rk_shirt') { const sv = toon(0xc9d2e0); seam(0.13 * tx, cy - 0.01, -0.06 * tx, tc - 0.11, 0.008, sv); for (const sd of [-1, 1]) for (let q = -1; q <= 1; q++) noOL(U(new THREE.ConeGeometry(0.018, 0.04, 5), sv, sd * (0.2 + q * 0.035) * tx, tc + 0.215 - Math.abs(q) * 0.012, q * 0.03));
+    decal(new THREE.CircleGeometry(0.05, 5), basic(0xff3d9a), -0.11 * tx * h, tc + 0.07, 0.006).rotateZ(Math.PI / 10); hoop(tc - 0.115, 0.02, sv); for (let k = -4; k <= 4; k++) decal(new THREE.SphereGeometry(0.012, 6, 5), toon(0x3a3a46), k * 0.05 * tx, tc - 0.115, 0.016); }
+  else if (GI.shirt === 'dt_shirt') { const br = toon(0x5a3d22), dkc = toon(shadeHex(GL.shirt, -0.22), DS); for (const sx2 of [-0.06, 0.06]) for (const dy of [0.09, 0.02, -0.05]) decal(new THREE.SphereGeometry(0.02, 8, 6), br, sx2 * tx, tc + dy, 0.004);
+    for (const sd of [-1, 1]) strip(sd * 0.15 * tx, cy - 0.03, sd * 0.03 * tx, tc + 0.13, 0.085, 0.008, dkc); hoop(tc - 0.11, 0.024, br); decal(new THREE.BoxGeometry(0.07, 0.06, 0.02), gold, 0, tc - 0.11, 0.014); }
+  else if (GI.shirt === 'rb_shirt') { const dk2 = toon(0x3a4254); hoop(tc + 0.17, 0.016, dk2); hoop(tc - 0.11, 0.02, dk2); decal(new THREE.BoxGeometry(0.2, 0.12, 0.03), dk2, 0, tc + 0.045, 0.008);
+    [0xff5e5e, 0x7dff9a, 0xffd23f, 0x5ad1ff].forEach((cc, i) => decal(new THREE.BoxGeometry(0.03, 0.05 + (i % 2) * 0.025, 0.012), basic(cc), (i - 1.5) * 0.045, tc + 0.045, 0.028)); for (const sd of [-1, 1]) decal(new THREE.SphereGeometry(0.02, 8, 6), toon(0xc9d2e0), sd * 0.17 * tx, tc + 0.13, 0.004); }
+  else if (GI.shirt === 'an_shirt') { hoop(tc - 0.1, 0.02, gold); hoop(tc + 0.2, 0.014, gold); seam(0, cy - 0.04, 0, tc - 0.1, 0.008, gold); decal(new THREE.CircleGeometry(0.045, 5), basic(0xffe18a), 0.1 * tx * -h, tc + 0.08, 0.006).rotateZ(Math.PI / 10); }
+  else if (GI.shirt === 'sm_shirt') { const dk3 = toon(0x2a2440); for (const dy of [0.14, 0.06, -0.02, -0.1]) { hoop(tc + dy, 0.024, dk3); hoop(tc + dy + 0.027, 0.007, gold); }
+    for (const sd of [-1, 1]) { const sp = U(new THREE.BoxGeometry(0.16, 0.035, 0.2), toon(GL.shirt), sd * 0.235 * tx, tc + 0.185, 0); sp.rotation.z = -sd * 0.35; noOL(U(new THREE.BoxGeometry(0.165, 0.012, 0.205), gold, sd * 0.245 * tx, tc + 0.165, 0)).rotation.z = -sd * 0.35; }
+    decal(new THREE.CircleGeometry(0.04, 16), basic(0xf2c230), 0, tc + 0.1, 0.03); }
+  const strapX = (col) => { const stp = BK(new THREE.TorusGeometry(0.266, 0.014, 6, 26), toon(col), 0, tc + 0.02, 0); stp.rotation.set(Math.PI / 2, 0.62 * h, 0); stp.scale.set(tx * 1.03, tz * 1.03, ty); };
+  if (GI.back === 'dv_back') {   // air tank with a valve
+    BK(new THREE.CapsuleGeometry(0.085, 0.24, 4, 12), toon(GL.back), 0, tc + 0.03, bz - 0.08, true); BK(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 8), toon(0xc9d2e0), 0, tc + 0.25, bz - 0.08); BK(new THREE.BoxGeometry(0.1, 0.02, 0.03), toon(0x3a4254), 0, tc + 0.285, bz - 0.08);
+    for (const dy of [0.11, -0.05]) { const bd = BK(new THREE.TorusGeometry(0.087, 0.012, 6, 16), toon(0x23232b), 0, tc + dy, bz - 0.08); bd.rotation.x = Math.PI / 2; } strapX(0x23232b);
+  } else if (GI.back === 'rk_back') {   // electric guitar across the back
+    const gg = new THREE.Group(); gg.position.set(0, tc + 0.02, bz - 0.06); gg.rotation.z = 0.6 * h; backG.add(gg);
+    add(new THREE.SphereGeometry(0.12, 14, 10), toon(GL.back), 0, -0.12, 0, gg).scale.set(1.15, 0.95, 0.3); add(new THREE.SphereGeometry(0.09, 14, 10), toon(GL.back), 0, 0.02, 0, gg).scale.set(1.1, 0.9, 0.3);
+    noOL(add(new THREE.BoxGeometry(0.045, 0.36, 0.025), toon(0x3a2a1a), 0, 0.24, -0.01, gg)); add(new THREE.BoxGeometry(0.075, 0.09, 0.03), toon(0x23232b), 0, 0.46, -0.01, gg);
+    noOL(add(new THREE.BoxGeometry(0.07, 0.05, 0.012), toon(0xc9d2e0), 0, -0.1, -0.04, gg)); noOL(add(new THREE.BoxGeometry(0.012, 0.5, 0.008), toon(0xc9d2e0), 0, 0.14, -0.03, gg)); strapX(0x23232b);
+  } else if (GI.back === 'dt_back') {   // big magnifying glass
+    const mg2 = new THREE.Group(); mg2.position.set(0, tc + 0.07, bz - 0.05); mg2.rotation.z = -0.5 * h; backG.add(mg2);
+    add(new THREE.TorusGeometry(0.13, 0.022, 8, 24), toon(GL.back), 0, 0.05, 0, mg2); noOL(add(new THREE.CircleGeometry(0.125, 24), basic(0xbfeaff, { transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }), 0, 0.05, 0, mg2));
+    noOL(add(new THREE.PlaneGeometry(0.09, 0.02), basic(0xffffff, { side: THREE.DoubleSide }), -0.04, 0.1, -0.004, mg2)).rotation.z = 0.6; add(new THREE.CapsuleGeometry(0.022, 0.16, 3, 8), toon(0x5a3d22), 0, -0.19, 0, mg2); strapX(0x5a3d22);
+  } else if (GI.back === 'rb_back') {   // battery block with charge bars and two aerials
+    BK(new THREE.BoxGeometry(0.26, 0.24, 0.1), toon(GL.back), 0, tc + 0.03, bz - 0.06, true); [0x7dff9a, 0x7dff9a, 0xffd23f].forEach((cc, i) => BK(new THREE.BoxGeometry(0.05, 0.14, 0.012), basic(cc), (i - 1) * 0.07, tc + 0.03, bz - 0.114));
+    for (const sd of [-1, 1]) { BK(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 5), toon(0xc9d2e0), sd * 0.1, tc + 0.25, bz - 0.06).rotation.z = -sd * 0.25; BK(new THREE.SphereGeometry(0.022, 8, 6), basic(0xff5e5e), sd * 0.125, tc + 0.345, bz - 0.06); }
+    for (const sd of [-1, 1]) { const stp = BK(new THREE.TorusGeometry(0.272, 0.014, 6, 24), toon(0x3a4254), sd * 0.105, tc + 0.02, 0); stp.rotation.y = Math.PI / 2; stp.scale.set(tz * 1.02, ty * 0.96, 1); }
+  } else if (GI.back === 'an_back') {   // large feathered wings
+    for (const sd of [-1, 1]) { const wg3 = new THREE.Group(); wg3.position.set(sd * 0.07, tc + 0.12, bz - 0.03); wg3.rotation.set(0.1, sd * 0.45, -sd * 0.15); backG.add(wg3);
+      for (const [x, y, len, rot] of [[0.14, 0.2, 0.34, 0.75], [0.24, 0.1, 0.34, 1.15], [0.27, -0.02, 0.3, 1.5], [0.24, -0.13, 0.26, 1.85], [0.17, -0.22, 0.2, 2.2], [0.09, -0.27, 0.14, 2.6]]) { const f = add(new THREE.SphereGeometry(0.06, 10, 8), toon(GL.back), sd * x, y, -0.02, wg3); f.scale.set(0.7, len / 0.12, 0.28); f.rotation.z = -sd * rot; }
+      noOL(add(new THREE.SphereGeometry(0.09, 10, 8), toon(0xfff3c4), sd * 0.05, 0.02, 0, wg3)).scale.set(1.2, 1.5, 0.5); }
+  } else if (GI.back === 'sm_back') {   // war banner on a pole
+    const bn = new THREE.Group(); bn.position.set(0.1 * h, tc - 0.02, bz - 0.06); bn.rotation.set(-0.5, 0, -0.5 * h); backG.add(bn);   // leans out past the head so it shows from every side
+    add(new THREE.CylinderGeometry(0.014, 0.014, 0.95, 6), toon(0x3a2a1a), 0, 0.42, 0, bn);
+    add(new THREE.BoxGeometry(0.24, 0.46, 0.014), toon(GL.back, DS), 0.135 * h, 0.62, 0, bn); noOL(add(new THREE.CircleGeometry(0.07, 16), basic(0xf2c230, DS), 0.135 * h, 0.68, -0.009, bn)); noOL(add(new THREE.CircleGeometry(0.07, 16), basic(0xf2c230, DS), 0.135 * h, 0.68, 0.009, bn));
+    noOL(add(new THREE.BoxGeometry(0.24, 0.035, 0.016), toon(0xffffff), 0.135 * h, 0.46, 0, bn)); noOL(add(new THREE.SphereGeometry(0.03, 8, 6), gold, 0, 0.91, 0, bn)); strapX(0x2a2440);
   }
   const headGear = setHead ? buildHeadGear(setHead[0], GL.head, setHead[1], P, fy, V.gearAt) : GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
     : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
