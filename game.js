@@ -337,244 +337,10 @@ function noiseTex(base, specks, n, repeat, size = 256, sz = [1, 3]) {
     for (let i = 0; i < n; i++) { g.fillStyle = specks[i % specks.length]; g.fillRect(Math.random() * w, Math.random() * h, rand(sz[0], sz[1]), rand(sz[0], sz[1])); }
   }, repeat);
 }
-function woodTex(cols, repeat) {
-  return canvasTex(512, 512, (c, w) => {
-    const ph = 32;
-    for (let i = 0; i < 512 / ph; i++) {
-      c.fillStyle = cols[i % cols.length]; c.fillRect(0, i * ph, w, ph);
-      for (let k = 0; k < 18; k++) { c.fillStyle = 'rgba(90,50,20,.06)'; c.fillRect(Math.random() * w, i * ph + Math.random() * ph, rand(30, 140), 1.2); }
-      c.fillStyle = 'rgba(70,35,10,.18)'; c.fillRect(0, i * ph, w, 1.5);
-      const off = (i * 197) % w; c.fillRect(off, i * ph, 1.5, ph); c.fillRect((off + 256) % w, i * ph, 1.5, ph);
-    }
-  }, repeat);
-}
 
 // court: playing area + run-off + crisp lines, net with posts
-function makeCourt(group, o) {
-  const CW = 9.2, CL = 16.4, PX = 96;
-  const tex = canvasTex(CW * PX, CL * PX, (g, w, h) => {
-    g.fillStyle = o.runoff; g.fillRect(0, 0, w, h);
-    const X = (x) => (x + CW / 2) * PX, Z = (z) => (z + CL / 2) * PX;
-    g.fillStyle = o.court; g.fillRect(X(-S.DBL_W), Z(-S.HALF_L), S.DBL_W * 2 * PX, S.HALF_L * 2 * PX);
-    if (o.grain) for (let i = 0; i < 9000; i++) { g.fillStyle = o.grain[i % o.grain.length]; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
-    g.strokeStyle = o.line; g.lineWidth = 0.05 * PX; g.lineCap = 'square';
-    const line = (x1, z1, x2, z2) => { g.beginPath(); g.moveTo(X(x1), Z(z1)); g.lineTo(X(x2), Z(z2)); g.stroke(); };
-    g.strokeRect(X(-S.DBL_W), Z(-S.HALF_L), S.DBL_W * 2 * PX, S.HALF_L * 2 * PX);
-    line(-S.HALF_W, -S.HALF_L, -S.HALF_W, S.HALF_L); line(S.HALF_W, -S.HALF_L, S.HALF_W, S.HALF_L);
-    for (const s of [-1, 1]) {
-      line(-S.DBL_W, s * S.SHORT_LINE, S.DBL_W, s * S.SHORT_LINE);
-      line(-S.DBL_W, s * (S.HALF_L - S.LONG_SERVE), S.DBL_W, s * (S.HALF_L - S.LONG_SERVE));
-      line(0, s * S.SHORT_LINE, 0, s * S.HALF_L);
-    }
-    if (o.logo) { g.save(); g.globalAlpha = 0.16; g.fillStyle = o.line; g.font = `900 ${0.9 * PX}px Nunito, Segoe UI, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(o.logo, X(0), Z(-S.HALF_L - 0.62)); g.translate(X(0), Z(S.HALF_L + 0.62)); g.rotate(Math.PI); g.fillText(o.logo, 0, 0); g.restore(); }
-  });
-  tex.anisotropy = 8;
-  const base = new THREE.Mesh(new THREE.BoxGeometry(CW + 0.12, 0.04, CL + 0.12), toon(o.edge || 0x2b2b2b));
-  base.position.y = 0.0; base.receiveShadow = true; group.add(base);
-  const court = new THREE.Mesh(new THREE.PlaneGeometry(CW, CL), lambert(0xffffff, { map: tex }));
-  court.rotation.x = -Math.PI / 2; court.position.y = 0.022; court.receiveShadow = true; group.add(court);
-  // net
-  const netTex = canvasTex(512, 96, (g, w, h) => {
-    g.strokeStyle = o.netColor || 'rgba(25,25,35,.9)'; g.lineWidth = 1.4;
-    for (let x = 0; x <= w; x += 7) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-    for (let y = 0; y <= h; y += 7) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
-  }, [3, 1]);
-  const net = new THREE.Mesh(new THREE.PlaneGeometry(S.DBL_W * 2 + 0.1, 0.76), new THREE.MeshBasicMaterial({ map: netTex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
-  net.position.set(0, S.NET_H - 0.38, 0); group.add(net);
-  box(group, S.DBL_W * 2 + 0.1, 0.075, 0.025, basic(0xffffff), 0, S.NET_H - 0.037, 0);
-  box(group, S.DBL_W * 2 + 0.1, 0.02, 0.02, basic(0xffffff), 0, S.NET_H - 0.76, 0);
-  const postMat = toon(o.post || 0x2f6fb0);
-  const flags = [];
-  for (const s of [-1, 1]) {
-    const x = s * (S.DBL_W + 0.1);
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, S.NET_H + 0.04, 12), postMat); post.position.set(x, (S.NET_H + 0.04) / 2, 0);
-    shade(post, true, false); group.add(post);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff)); cap.position.set(x, S.NET_H + 0.05, 0); group.add(cap);
-    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.1, 18), postMat); foot.position.set(x, 0.05, 0); shade(foot, true, true); group.add(foot);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), toon(0xdddddd)); pole.position.set(x, S.NET_H + 0.3, 0); group.add(pole);
-    const pivot = new THREE.Group(); pivot.position.set(x, S.NET_H + 0.47, 0);
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.22), toon(o.flag || 0xff7a59, { side: THREE.DoubleSide }));
-    flag.position.set(0.18, -0.1, 0); pivot.add(flag); group.add(pivot); flags.push(pivot);
-  }
-  // umpire chair on the right side
-  if (o.umpire !== false) {
-    const u = new THREE.Group(); u.position.set(S.DBL_W + 1.3, 0, 0);
-    const um = toon(o.umpireCol || 0xffffff);
-    for (const [dx, dz] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) box(u, 0.05, 1.4, 0.05, um, dx, 0.7, dz, { cast: true });
-    box(u, 0.62, 0.06, 0.62, um, 0, 1.4, 0, { cast: true }); box(u, 0.05, 0.62, 0.62, um, 0.3, 1.72, 0, { cast: true });
-    for (const dz of [-0.29, 0.29]) box(u, 0.5, 0.05, 0.05, um, 0.05, 1.68, dz);   // armrests
-    o.seat = { x: S.DBL_W + 1.3, y: 1.43 };
-    for (let i = 0; i < 4; i++) box(u, 0.05, 0.03, 0.5, um, -0.3, 0.3 + i * 0.3, 0);
-    group.add(u);
-  }
-  if (o.seat) group.userData.seat = o.seat;
-  return flags;
-}
 
 // cute instanced animal fans: body + head + 2 ears, bouncing with the crowd excitement
-const FAN_HEADS = [0xf6b26b, 0xf4f0ee, 0xa9744f, 0xfafafa, 0xff8c42, 0xd9c2a5, 0x7cc96b, 0xffd84d, 0x8d6e63, 0xa4b0be];
-function crowdFans(group, seats, opts) {
-  opts = opts || {};
-  const keep = settings.gfx === 0 ? 0.4 : settings.gfx === 1 ? 0.75 : 1;
-  seats = seats.filter(() => Math.random() < keep * (opts.fill || 0.75));
-  const n = seats.length;
-  if (!n) return () => {};
-  const mk = (geo, count) => { const im = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonGrad }), count); group.add(im); return im; };
-  const bodies = mk(new THREE.SphereGeometry(0.25, 10, 8), n);
-  const heads = mk(new THREE.SphereGeometry(0.21, 12, 10), n);
-  const ears = mk(new THREE.ConeGeometry(0.07, 0.15, 6), n * 2);
-  const hands = mk(new THREE.SphereGeometry(0.07, 6, 5), n * 2);
-  const eyes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.03, 6, 4), toon(0x2b2220), n * 2); group.add(eyes);
-  const signers = []; for (let i = 0; i < n; i++) if ((i * 37) % 100 < 9) signers.push(i);
-  const signs = signers.length ? mk(new THREE.BoxGeometry(0.62, 0.38, 0.03), signers.length) : null;
-  const signFr = signers.length ? new THREE.InstancedMesh(new THREE.BoxGeometry(0.7, 0.46, 0.02), toon(0xffffff), signers.length) : null;
-  if (signFr) group.add(signFr);
-  const signCols = opts.signs || [0xff5e7a, 0xffc94d, 0x6b8cff, 0x5bbf8a, 0xc58cff];
-  const shirts = opts.shirts || [0xff7a59, 0x6b8cff, 0x5bbf8a, 0xffc94d, 0xc58cff, 0xff9fb8, 0x4fc3d9];
-  const lo = settings.gfx === 0;
-  const R = () => Math.random();
-  const col = new THREE.Color();
-  // ---- every fan gets its own look and personality
-  const data = seats.map((st) => {
-    const hc = FAN_HEADS[Math.floor(R() * FAN_HEADS.length)];
-    const sc = opts.sections ? opts.sections(st) : shirts[Math.floor(R() * shirts.length)];
-    const face = st[3] !== undefined ? st[3] : Math.atan2(-st[0], -st[2]);
-    // which team this fan backs: left stands = orange (your side), right = blue, the ends = neutral
-    const side = Math.abs(st[2]) > 9.4 && Math.abs(st[0]) < 8 ? 0 : st[0] < 0 ? -1 : 1;
-    const er = R();   // 0 pointy (cat/fox), 1 round (bear/mouse), 2 long (bunny), 3 none (bird/frog)
-    const f = {
-      x: st[0], y: st[1], z: st[2], face, side, hc, sc,
-      ear: er < 0.38 ? 0 : er < 0.7 ? 1 : er < 0.84 ? 2 : 3,
-      s: 0.82 + R() * 0.32, hs: 0.88 + R() * 0.28, wide: 0.9 + R() * 0.25,
-      ph: R() * 6.283, fr: 0.7 + R() * 0.7, lag: 1.2 + R() * 3, temper: 0.35 + R() * 0.9,
-      clapper: R() < 0.55, waver: R() < 0.3, look: 0, nextGlance: R() * 6, glance: 0,
-      muzzle: R() < 0.5, hat: !lo && R() < (opts.hats || 0.14), scarf: !lo && R() < (opts.scarves || 0.12),
-      finger: !lo && R() < 0.06, flag: !lo && R() < 0.05,
-    };
-    // the cheer ripples along the stand like a stadium wave
-    f.delay = 0.05 + ((st[0] + 30) * 0.018 + Math.abs(st[2]) * 0.01) % 0.9 + R() * 0.12;
-    return f;
-  });
-  data.forEach((f, i) => { bodies.setColorAt(i, col.setHex(f.sc)); heads.setColorAt(i, col.setHex(f.hc)); hands.setColorAt(i * 2, col.setHex(f.hc)); hands.setColorAt(i * 2 + 1, col.setHex(f.hc)); });
-  // ears: pointy & long share the cone mesh, round ones are flattened spheres
-  const pointy = data.filter((f) => f.ear === 0 || f.ear === 2), round = data.filter((f) => f.ear === 1);
-  const earsR = mk(new THREE.SphereGeometry(0.075, 8, 6), Math.max(1, round.length * 2));
-  pointy.forEach((f, k) => { ears.setColorAt(k * 2, col.setHex(f.hc)); ears.setColorAt(k * 2 + 1, col.setHex(f.hc)); f.pk = k; });
-  round.forEach((f, k) => { earsR.setColorAt(k * 2, col.setHex(f.hc)); earsR.setColorAt(k * 2 + 1, col.setHex(f.hc)); f.rk = k; });
-  ears.count = pointy.length * 2; earsR.count = round.length * 2;
-  // muzzles a shade lighter than the head
-  const muzzled = data.filter((f) => f.muzzle);
-  const muzzles = mk(new THREE.SphereGeometry(0.1, 8, 6), Math.max(1, muzzled.length));
-  const white = new THREE.Color(0xffffff);
-  muzzled.forEach((f, k) => { muzzles.setColorAt(k, col.setHex(f.hc).lerp(white, 0.55)); f.mk = k; });
-  muzzles.count = muzzled.length;
-  // team gear in the colour of the side they back: party hats, scarves, foam fingers, flags
-  const teamHex = (f) => (f.side < 0 ? 0xff7a59 : f.side > 0 ? 0x6b8cff : [0xffd23f, 0xffffff, 0x5bbf8a][Math.floor(f.ph) % 3]);
-  const gear = (list, geo, colFn) => { const im = mk(geo, Math.max(1, list.length)); list.forEach((f, k) => im.setColorAt(k, col.setHex(colFn(f)))); im.count = list.length; return im; };
-  const hatted = data.filter((f) => f.hat), scarfed = data.filter((f) => f.scarf), fingered = data.filter((f) => f.finger), flagged = data.filter((f) => f.flag);
-  const hats = gear(hatted, new THREE.ConeGeometry(0.11, 0.24, 10), teamHex);
-  const scarves = gear(scarfed, new THREE.TorusGeometry(0.15, 0.045, 6, 14), teamHex);
-  const fingers = gear(fingered, new THREE.BoxGeometry(0.13, 0.34, 0.06), teamHex);
-  const poles = gear(flagged, new THREE.CylinderGeometry(0.012, 0.012, 0.9, 5), () => 0xdddddd);
-  const flags = gear(flagged, new THREE.PlaneGeometry(0.42, 0.28), teamHex);
-  flags.material.side = THREE.DoubleSide;
-  hatted.forEach((f, k) => { f.hk = k; }); scarfed.forEach((f, k) => { f.sk = k; }); fingered.forEach((f, k) => { f.fk = k; }); flagged.forEach((f, k) => { f.gk = k; });
-  if (signs) signers.forEach((i, k) => signs.setColorAt(k, col.setHex(signCols[k % signCols.length])));
-  const all = [bodies, heads, ears, earsR, muzzles, hands, eyes, hats, scarves, fingers, poles, flags, signs, signFr];
-  for (const im of all) if (im && im.instanceColor) im.instanceColor.needsUpdate = true;
-  const d = new THREE.Object3D(); d.rotation.order = 'YXZ';
-  const place = (im, idx, x, y, z, yaw, pitch, roll, sx, sy, sz) => {
-    d.position.set(x, y, z); d.rotation.set(pitch, yaw, roll); d.scale.set(sx, sy === undefined ? sx : sy, sz === undefined ? sx : sz); d.updateMatrix(); im.setMatrixAt(idx, d.matrix);
-  };
-  // local (right, forward) offset around a fan facing `yaw` -> world x/z
-  let wx = 0, wz = 0;
-  const off = (f, yaw, rgt, fwd) => { const c = Math.cos(yaw), s = Math.sin(yaw); wx = f.x + rgt * c + fwd * s; wz = f.z - rgt * s + fwd * c; };
-  // cheering is detected from the score itself, so the crowd needs no event hook
-  let frame = 0, lastT = 0, lastKey = '', cheerT = -99, cheerFav = 0;
-  return (t, excite) => {
-    const stride = settings.gfx === 2 ? 1 : 2, part = frame++ % stride;   // lower gfx: half the fans per frame, alternating
-    const dt = Math.min(0.1, Math.max(0.001, t - lastT)); lastT = t;
-    const m = session && session.m;
-    if (m) {
-      const key = m.score[0] + ':' + m.score[1];
-      if (lastKey && key !== lastKey) {
-        const prev = lastKey.split(':').map(Number);
-        const scorer = m.score[0] > prev[0] ? 0 : m.score[1] > prev[1] ? 1 : -1;
-        if (scorer >= 0) { cheerT = t; cheerFav = scorer === session.myTeam ? -1 : 1; }
-      }
-      lastKey = key;
-    } else lastKey = '';
-    const sp = m && m.shuttle && (m.shuttle.live || m.shuttle.held) ? m.shuttle.p : null;
-    const tense = m && m.state === 'rally' && (m.rally || 0) > 6 ? Math.min(1, ((m.rally || 0) - 6) / 10) : 0;
-    for (let i = part; i < n; i += stride) {
-      const f = data[i];
-      // cheer envelope: pop up, bounce, then sit back down slowly
-      const lt = t - cheerT - f.delay;
-      const amp = f.side === cheerFav ? 1 : f.side === 0 ? 0.55 : 0.12;
-      const env = lt < 0 || lt > 3.4 ? 0 : lt < 0.25 ? lt / 0.25 : lt < 1.9 ? 1 : 1 - (lt - 1.9) / 1.5;
-      const stand = amp * env * (0.55 + f.temper * 0.45);
-      const bounce = stand > 0.2 ? Math.max(0, Math.sin(lt * (7 + f.fr * 3) + f.ph)) * 0.13 * stand : 0;
-      // idle life: breathing, small sways, the odd look around; everyone leans in during long rallies
-      const breathe = 1 + Math.sin(t * 1.6 * f.fr + f.ph) * 0.025;
-      const sway = Math.sin(t * 0.55 * f.fr + f.ph) * 0.05 * (1 - tense);
-      const lean = tense * 0.22 * f.temper - stand * 0.1;
-      const s = f.s, by = f.y + 0.3 * s + stand * 0.22 * s + bounce;
-      place(bodies, i, f.x, by, f.z, f.face, lean, sway, s * f.wide, s * 1.15 * breathe, s * 0.95);
-      // head follows the shuttle with each fan's own lag, otherwise glances around now and then
-      let tgt;
-      if (sp) { let a = Math.atan2(sp.x - f.x, sp.z - f.z) - f.face; while (a > Math.PI) a -= 6.283; while (a < -Math.PI) a += 6.283; tgt = clamp(a, -0.75, 0.75); }
-      else { if (t > f.nextGlance) { f.glance = (R() - 0.5) * 1.1; f.nextGlance = t + 2 + R() * 6; } tgt = f.glance; }
-      f.look += (tgt - f.look) * Math.min(1, dt * stride * f.lag);
-      const yaw = f.face + f.look + sway * 0.5, hs = f.hs * s;
-      const nod = Math.sin(t * 2.1 * f.fr + f.ph * 2) * 0.04 + lean * 0.6 - stand * 0.15;
-      off(f, f.face, 0, Math.sin(lean) * 0.38 * s);
-      const hx = wx, hz = wz, hy = by + 0.4 * s * breathe;
-      place(heads, i, hx, hy, hz, yaw, nod, sway * 0.6, hs);
-      const c = Math.cos(yaw), sn = Math.sin(yaw);
-      const ax = (rgt, fwd) => hx + rgt * c + fwd * sn, az = (rgt, fwd) => hz - rgt * sn + fwd * c;
-      const blink = ((t * 0.31 + f.ph) % 3.7) < 0.12 ? 0.15 : 1;
-      for (const sd of [-1, 1]) {
-        const k = sd > 0 ? 1 : 0;
-        if (f.ear === 0) place(ears, f.pk * 2 + k, ax(sd * 0.12 * hs, -0.01), hy + 0.19 * hs, az(sd * 0.12 * hs, -0.01), yaw, nod, -sd * 0.35, hs);
-        else if (f.ear === 2) place(ears, f.pk * 2 + k, ax(sd * 0.08 * hs, -0.02), hy + 0.27 * hs, az(sd * 0.08 * hs, -0.02), yaw, nod - 0.1, -sd * 0.12 + Math.sin(t * 2 + f.ph + sd) * 0.06, hs * 0.8, hs * 2.1, hs * 0.6);
-        else if (f.ear === 1) place(earsR, f.rk * 2 + k, ax(sd * 0.15 * hs, -0.02), hy + 0.15 * hs, az(sd * 0.15 * hs, -0.02), yaw, 0, 0, hs, hs, hs * 0.55);
-        place(eyes, i * 2 + k, ax(sd * 0.075 * hs, 0.185 * hs), hy + 0.03 * hs, az(sd * 0.075 * hs, 0.185 * hs), yaw, 0, 0, hs, hs * blink, hs);
-      }
-      if (f.muzzle) place(muzzles, f.mk, ax(0, 0.16 * hs), hy - 0.06 * hs, az(0, 0.16 * hs), yaw, nod, 0, hs * 0.9, hs * 0.65, hs * 0.6);
-      if (f.hat) place(hats, f.hk, hx, hy + 0.26 * hs, hz, yaw, nod, sway, hs);
-      if (f.scarf) { off(f, f.face, 0, 0.02); place(scarves, f.sk, wx, by + 0.24 * s, wz, f.face, Math.PI / 2 + lean, 0, s, s, s * 0.8); }
-      // hands: resting on the knees, clapping, waving or pumped in the air
-      const clapping = f.clapper && (stand > 0.25 || (m && m.state === 'point' && f.side === cheerFav) || excite > 0.6);
-      const up = f.waver ? stand : stand > 0.55 ? stand : 0;
-      for (const sd of [-1, 1]) {
-        const k = sd > 0 ? 1 : 0;
-        let rgt = sd * 0.26 * s * f.wide, hup = 0.02, fwd = 0.12 * s;
-        if (up > 0.2) { rgt = sd * (0.3 + 0.05 * Math.sin(t * 6 + f.ph + sd)) * s; hup = 0.55 * s * up + 0.05 * Math.sin(t * 9 * f.fr + f.ph + sd * 1.3); fwd = 0.05; }
-        else if (clapping) { const cl = Math.abs(Math.sin(t * 8 * f.fr + f.ph)); rgt = sd * (0.03 + 0.11 * cl) * s; hup = 0.22 * s; fwd = 0.24 * s; }
-        else if (tense > 0.4 && f.temper > 0.9) { rgt = sd * 0.06 * s; hup = 0.32 * s; fwd = 0.22 * s; }  // nervous: paws at the mouth
-        off(f, f.face, rgt, fwd);
-        place(hands, i * 2 + k, wx, by + hup, wz, f.face, 0, 0, s);
-      }
-      if (f.finger) { const raise = Math.max(stand, 0.15); off(f, f.face, 0.3 * s, 0.08); place(fingers, f.fk, wx, by + 0.2 * s + raise * 0.55 + Math.sin(t * 5 + f.ph) * 0.05 * raise, wz, f.face, 0, -0.2 + Math.sin(t * 4 + f.ph) * 0.15 * raise, s); }
-      if (f.flag) {
-        const wave = 0.15 + stand * 0.8, sw = Math.sin(t * (3 + stand * 5) + f.ph) * 0.45 * wave;
-        const py = by + 0.3 * s + stand * 0.3;
-        off(f, f.face, -0.3 * s, 0.05); place(poles, f.gk, wx, py, wz, f.face, 0, sw, s);
-        off(f, f.face, -0.3 * s - Math.sin(sw) * 0.4 + 0.21 * Math.cos(sw), 0.05);
-        place(flags, f.gk, wx, py + Math.cos(sw) * 0.33, wz, f.face, 0, sw + Math.sin(t * 9 + f.ph) * 0.15, s);
-      }
-    }
-    if (signs) signers.forEach((i, k) => {
-      const f = data[i], cs = Math.cos(f.face), sn = Math.sin(f.face);
-      const lt = t - cheerT - f.delay, cheer = lt > 0 && lt < 3 && f.side === cheerFav ? 1 : 0;
-      const up = 0.95 + cheer * 0.4 + Math.sin(t * (2 + cheer * 4) * f.fr + f.ph) * (0.03 + cheer * 0.1);
-      const sx = f.x + sn * 0.3, sz = f.z + cs * 0.3, tilt = Math.sin(t * 1.7 * f.fr + f.ph) * (0.06 + cheer * 0.12);
-      place(signs, k, sx, f.y + up, sz, f.face, 0, tilt, 1);
-      place(signFr, k, sx - sn * 0.012, f.y + up, sz - cs * 0.012, f.face, 0, tilt, 1);
-    });
-    for (const im of all) if (im) im.instanceMatrix.needsUpdate = true;
-  };
-}
 // tiered stand built in a local frame (length along X, rows going away along +Z, front facing -Z)
 // then rotated into place. Front wall with LED ribbon, aisles with stairs, stepped end walls,
 // back wall, optional roof canopy and hanging banners. Pushes seat positions [x,y,z,facing].
@@ -592,110 +358,11 @@ function ledTex(text, bg, fg, glow) {
   });
   t.wrapS = THREE.RepeatWrapping; return t;
 }
-function bannerTex(title, sub, bg, fg) {
-  return canvasTex(256, 384, (g, w, h) => {
-    g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(0, 0, w, 26); g.fillRect(0, h - 70, w, 8);
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = fg;
-    g.font = '150px Segoe UI Emoji, Apple Color Emoji, sans-serif'; g.fillText(title, w / 2, h * 0.42);
-    g.font = '900 40px Nunito, Segoe UI, sans-serif'; g.fillText(sub, w / 2, h - 34);
-    g.fillStyle = bg; g.beginPath(); g.moveTo(0, h); g.lineTo(w / 2, h - 30); g.lineTo(w, h); g.fill();
-  });
-}
-function grandstand(group, seats, o) {
-  // o: { axis:'x'|'z', side, start, length, center, rows, depth, rise, colA, colB, chair:[colors], block,
-  //      lip, wall, ledText, ledBg, ledFg, glow, endCol, back, roof, banners:[[emoji,text,bg,fg]], aisle }
-  const st = new THREE.Group();
-  const th = o.axis === 'x' ? o.side * Math.PI / 2 : (o.side > 0 ? 0 : Math.PI);
-  st.rotation.y = th;
-  st.position.set(o.axis === 'x' ? 0 : o.center, 0, o.axis === 'x' ? o.center : 0);
-  group.add(st);
-  const L = o.length, hTop = 0.35 + (o.rows - 1) * o.rise;
-  const aisle = o.aisle || 6.2;
-  const aisles = []; for (let x = -L / 2 + aisle; x < L / 2 - 1; x += aisle) aisles.push(x);
-  const lipM = toon(o.lip || 0xffffff), stepM = toon(0xffc94d);
-  const chairs = [];
-  for (let r = 0; r < o.rows; r++) {
-    const h = 0.35 + r * o.rise, z = o.start + r * o.depth + o.depth / 2;
-    box(st, L, h, o.depth, toon(r % 2 ? o.colA : o.colB), 0, h / 2, z, { recv: true });
-    box(st, L, 0.05, 0.07, lipM, 0, h + 0.005, z - o.depth / 2 + 0.035);
-    for (const ax of aisles) {
-      box(st, 0.8, 0.055, 0.08, stepM, ax, h + 0.01, z - o.depth / 2 + 0.04);
-      box(st, 0.8, h - o.rise / 2 + 0.02, o.depth / 2, toon(o.colB), ax, (h - o.rise / 2) / 2, z - o.depth / 4);
-    }
-    for (let k = 0; k < L / 0.62 - 1; k++) {
-      const x = -L / 2 + 0.5 + k * 0.62;
-      if (aisles.some((ax) => Math.abs(x - ax) < 0.6)) continue;
-      if (o.gap && Math.abs(x) < o.gap) continue;
-      chairs.push([x, h, z]);
-    }
-    // stepped end walls
-    for (const s of [-1, 1]) box(st, 0.28, h + 0.6, o.depth, toon(o.endCol || 0x8a8f9c), s * (L / 2 + 0.14), (h + 0.6) / 2, z, { cast: true });
-  }
-  // back wall + rail
-  const backZ = o.start + o.rows * o.depth + 0.15;
-  const bh = hTop + (o.lowBack ? 0.9 : 2.4);
-  box(st, L + 0.56, bh, 0.3, toon(o.back || o.endCol || 0x8a8f9c), 0, bh / 2, backZ, { recv: true });
-  // front wall with LED / padded face
-  const fz = o.start - 0.12;
-  const face = o.ledText ? new THREE.MeshBasicMaterial({ map: ledTex(o.ledText, o.ledBg || '#101528', o.ledFg || '#ffd23f', o.glow) }) : toon(o.wall || 0x3557a8);
-  if (o.ledText) { face.map.repeat.set(Math.max(1, Math.round(L / 9)), 1); const tx = face.map; const sp = 0.03 + Math.random() * 0.02; venueFx.push((t) => { tx.offset.x = (t * sp) % 1; }); }
-  const wallBack = toon(o.wall || 0x2b2b38);
-  const fw = new THREE.Mesh(new THREE.BoxGeometry(L + 0.56, 0.95, 0.24), [wallBack, wallBack, toon(o.lip || 0xffffff), wallBack, wallBack, face]);
-  fw.position.set(0, 0.475, fz); shade(fw, true, true); st.add(fw);
-  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, L + 0.56, 8), toon(0xd8dde6)); rail.rotation.z = Math.PI / 2; rail.position.set(0, 1.22, fz); st.add(rail);
-  for (let x = -L / 2; x <= L / 2 + 0.01; x += L / Math.round(L / 2.4)) box(st, 0.035, 0.3, 0.035, toon(0xd8dde6), x, 1.08, fz);
-  // roof canopy with a light strip under the front edge
-  if (o.roof) {
-    const ry = hTop + 3.2, depth = o.rows * o.depth + 1.4;
-    const canopy = box(st, L + 1.2, 0.22, depth, toon(o.roof), 0, ry, o.start + depth / 2 - 1.1, { cast: false });
-    canopy.rotation.x = -0.08;
-    box(st, L + 1.2, 0.08, 0.16, basic(o.roofLight || 0xfff3c4), 0, ry - 0.2, o.start - 1.0);
-    for (let x = -L / 2; x <= L / 2 + 0.01; x += L / 3) box(st, 0.18, ry, 0.18, toon(o.roof), x, ry / 2, backZ - 0.3);
-  }
-  // hanging banners on the back wall, waving gently
-  if (o.banners) o.banners.forEach((b, i) => {
-    const pivot = new THREE.Group();
-    const x = (i + 0.5) / o.banners.length * L - L / 2;
-    pivot.position.set(x, hTop + 2.3, backZ - 0.17);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.25), basic(0xffffff, { map: bannerTex(b[0], b[1], b[2], b[3] || '#fff'), side: THREE.DoubleSide }));
-    m.position.y = -1.12; m.rotation.y = Math.PI; pivot.add(m); st.add(pivot);
-    const ph = Math.random() * 6;
-    venueFx.push((t) => { pivot.rotation.x = Math.sin(t * 1.3 + ph) * 0.04 - 0.03; });
-  });
-  // instanced chairs (world space)
-  st.updateMatrix();
-  const n = chairs.length;
-  const seatIM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.07, 0.4), new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonGrad }), n);
-  const backIM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.4, 0.06), new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonGrad }), n);
-  const d = new THREE.Object3D(), col = new THREE.Color(), v = new THREE.Vector3();
-  const face0 = th + Math.PI;
-  chairs.forEach((c, i) => {
-    v.set(c[0], c[1], c[2]).applyMatrix4(st.matrix);
-    d.position.set(v.x, v.y + 0.22, v.z); d.rotation.set(0, face0, 0); d.scale.set(1, 1, 1); d.updateMatrix(); seatIM.setMatrixAt(i, d.matrix);
-    d.translateZ(-0.2); d.translateY(0.2); d.updateMatrix(); backIM.setMatrixAt(i, d.matrix);
-    const cc = o.chair[Math.floor((c[0] + L / 2) / (o.block || 9999)) % o.chair.length] || o.chair[0];
-    seatIM.setColorAt(i, col.setHex(cc)); backIM.setColorAt(i, col.setHex(shadeHex(cc, -0.12)));
-    seats.push([v.x, v.y + 0.12, v.z, face0]);
-  });
-  group.add(seatIM, backIM);
-}
 function boardTex(text, bg, fg, w = 512, h = 64) {
   return canvasTex(w, h, (g) => {
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     g.fillStyle = fg; g.font = `900 ${Math.round(h * 0.56)}px Nunito, Segoe UI, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(text, w / 2, h / 2 + 2);
-  });
-}
-function perimeterBoards(group, items, glow) {
-  // LED-style boards around the court (behind baselines and along sides)
-  const spots = [[-2.6, -8.9, 0], [2.6, -8.9, 0], [-2.6, 8.9, Math.PI], [2.6, 8.9, Math.PI], [-5.4, -4.5, Math.PI / 2], [-5.4, 4.5, Math.PI / 2], [5.4, -4.5, -Math.PI / 2], [5.4, 4.5, -Math.PI / 2]];
-  spots.forEach(([x, z, ry], i) => {
-    const it = items[i % items.length];
-    const face = (glow ? basic : (c, e) => lambert(c, e))(0xffffff, { map: boardTex(it[0], it[1], it[2]) });
-    const back = toon(0x2b2b38);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.62, 0.14), [back, back, back, back, face, back]);
-    m.position.set(x, 0.31, z); m.rotation.y = ry; shade(m, true, false); group.add(m);
   });
 }
 function pine(group, x, z, s, snow) {
@@ -730,25 +397,6 @@ function palm(group, x, z, s) {
   }
   for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 8, 6), toon(0x6d4c2f)); c.position.set(px + rand(-0.15, 0.15) * s, py - 0.2 * s, z + rand(-0.15, 0.15) * s); group.add(c); }
 }
-function bench(group, seats, x, z, rotY, col) {
-  const g = new THREE.Group();
-  box(g, 2.4, 0.1, 0.5, toon(col || 0xb5835a), 0, 0.45, 0, { cast: true });
-  box(g, 2.4, 0.4, 0.08, toon(col || 0xb5835a), 0, 0.75, -0.24, { cast: true });
-  for (const s of [-1, 1]) box(g, 0.1, 0.45, 0.45, toon(0x5d4e46), s * 1.05, 0.22, 0);
-  g.position.set(x, 0, z); g.rotation.y = rotY || 0; group.add(g);
-  for (let k = -1; k <= 1; k++) seats.push([x + Math.cos(rotY || 0) * k * 0.75, 0.25, z - Math.sin(rotY || 0) * k * 0.75, (rotY || 0)]);
-}
-function flowers(group, n, area, avoid) {
-  const cols = [0xff6b6b, 0xffd23f, 0xffffff, 0xc58cff, 0xff9fb8];
-  const geo = new THREE.SphereGeometry(0.09, 6, 4);
-  const im = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonGrad }), n);
-  const d = new THREE.Object3D(), col = new THREE.Color();
-  for (let i = 0; i < n; i++) {
-    let x, z; do { x = rand(-area, area); z = rand(-area, area); } while (Math.abs(x) < avoid[0] && Math.abs(z) < avoid[1]);
-    d.position.set(x, 0.08, z); d.updateMatrix(); im.setMatrixAt(i, d.matrix); im.setColorAt(i, col.setHex(cols[i % cols.length]));
-  }
-  group.add(im);
-}
 
 // ================================================================ maps: fifteen courts, each put together from its own palette and a prop library
 // A map = sky / fog / light, ground and court colours, three rows of benches for the crowd, and a list of props scattered
@@ -764,10 +412,10 @@ const MAP_CFG = {
   volcano:  { sky: 0x2a1418, fog: [26, 85], ground: 0x3a2a2a, court: ['#2f2a30', '#4a424a', '#ffb84d', 0x1c181c, 0xff5e2a], bench: 0x5a4a4a, hemi: [0xffb080, 0x2a1414, 0.85], sun: [0xff9a5a, 0.8, [-4, 16, -6]], props: ['volcano', 'lava', 'rock'] },
   space:    { sky: 0x070a1c, fog: [60, 200], ground: 0x1a2040, court: ['#232a55', '#3a4488', '#7fe3ff', 0x141833, 0xc59bff], bench: 0x3a4488, hemi: [0xbfd0ff, 0x1a2040, 0.85], sun: [0xffffff, 0.9, [4, 20, 8]], props: ['planet', 'star', 'crystal'] },
   neon:     { sky: 0x120a2a, fog: [30, 100], ground: 0x1f1a3a, court: ['#1f1a4a', '#2f2a7a', '#ff5ad1', 0x120f2a, 0x5ad1ff], bench: 0x2f2a6a, hemi: [0xc9a0ff, 0x1a1030, 0.85], sun: [0xff9af0, 0.7, [-4, 18, 6]], props: ['tower', 'star'] },
-  candy:    { sky: 0xffd6ec, fog: [36, 110], ground: 0xfff0c9, court: ['#ff9fc4', '#ffc4dd', '#ffffff', 0xe0709a, 0x7fe3ff], bench: 0xffffff, hemi: [0xffffff, 0xffc4dd, 1.05], sun: [0xfff4e8, 0.9, [6, 18, 8]], props: ['candy', 'gumdrop', 'cloud'] },
+  candy:    { sky: 0xffd6ec, fog: [36, 110], ground: 0xfff0c9, court: ['#ff9fc4', '#ffc4dd', '#b0306a', 0xe0709a, 0x7fe3ff], bench: 0xffffff, hemi: [0xffffff, 0xffc4dd, 1.05], sun: [0xfff4e8, 0.9, [6, 18, 8]], props: ['candy', 'gumdrop', 'cloud'] },
   mushroom: { sky: 0x2a2148, fog: [26, 85], ground: 0x3f6a4a, court: ['#4a3a6a', '#6a55a0', '#e6fff0', 0x2f2448, 0x7dff9a], bench: 0x6a55a0, hemi: [0xc9b8ff, 0x2a3a2a, 0.9], sun: [0xbfffe0, 0.7, [-6, 16, 4]], props: ['mushroom', 'crystal', 'star'] },
   castle:   { sky: 0xa9d2f7, fog: [34, 110], ground: 0x8a8f9c, court: ['#6a7386', '#8f9bb0', '#ffffff', 0x4a5568, 0xc22a3a], bench: 0x9aa5b8, hemi: [0xffffff, 0x8a8f9c, 1.0], sun: [0xfff8e6, 0.9, [8, 18, 6]], props: ['castle', 'pennant', 'cloud'] },
-  sakura:   { sky: 0xffe6f0, fog: [34, 105], ground: 0xa8d68a, court: ['#c98fa8', '#e6b3c9', '#ffffff', 0xa86a85, 0x8a5a3a], bench: 0xe6c9a8, hemi: [0xffffff, 0xc9e0a8, 1.05], sun: [0xfff0f4, 0.9, [-6, 18, 8]], props: ['sakura', 'toriiGate', 'petal', 'cloud'] },
+  sakura:   { sky: 0xffe6f0, fog: [34, 105], ground: 0xa8d68a, court: ['#c98fa8', '#e6b3c9', '#6a2f4a', 0xa86a85, 0x8a5a3a], bench: 0xe6c9a8, hemi: [0xffffff, 0xc9e0a8, 1.05], sun: [0xfff0f4, 0.9, [-6, 18, 8]], props: ['sakura', 'toriiGate', 'petal', 'cloud'] },
   ocean:    { sky: 0x0f4a7a, fog: [22, 75], ground: 0xd9c48a, court: ['#1f7a9a', '#2fa0c4', '#e6fbff', 0x145a75, 0xffa94d], bench: 0x2fa0c4, hemi: [0x9fe0ff, 0x1f5a7a, 0.95], sun: [0xbfeaff, 0.75, [2, 20, 4]], props: ['coral', 'seaweed', 'bubble', 'shell'] },
 };
 function mapKit(g) {
@@ -2541,8 +2189,9 @@ function startLocal(opts) {
   const botHand = () => (Math.random() < 0.18 ? 'L' : 'R');
   const slots = [{ name: profile.name, char: profile.char, ctrl: 'human', assist: settings.assist, hand: settings.hand, gear: myGear() }];
   if (opts.mode === '2v2') slots.push({ name: names[0], char: pick(), ctrl: 'bot', diff: 3, hand: botHand() });   // the partner bot always plays at master level
-  slots.push({ name: opts.oppName || names[1], char: opts.opp || pick(), ctrl: 'bot', diff: d, hand: botHand() });
-  if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand() });
+  const dare = () => { if (d < 4) return undefined; const st = S.GEAR_SETS[Math.floor(Math.random() * S.GEAR_SETS.length)]; return S.GEAR.filter((g) => g.set === st.id).map((g) => g.id); };   // challenger bots wear a random full set
+  slots.push({ name: opts.oppName || names[1], char: opts.opp || pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
+  if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;
   const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit });
   beginSession('local', m, 0, { localOpts: opts, snapCam: true, tourRound: opts.tourRound });

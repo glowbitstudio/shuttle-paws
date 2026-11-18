@@ -308,6 +308,7 @@ const DIFF = [
   { name: 'Vừa',     speed: 3.7, react: 0.15, skill: 0.72, smash: 0.6,  jump: true,  judge: 0.5,  attack: 2, miss: 0.04 },
   { name: 'Khó',     speed: 4.1, react: 0.08, skill: 0.84, smash: 0.7,  jump: true,  judge: 0.85, attack: 2, miss: 0.05 },
   { name: 'Cao thủ', speed: 4.5, react: 0.04, skill: 0.93, smash: 0.95, jump: true,  judge: 0.97, attack: 2, miss: 0.025 },
+  { name: 'Thách đấu', speed: 4.7, react: 0.03, skill: 0.96, smash: 1.0, jump: true,  judge: 1.0,  attack: 2, miss: 0.015 },   // the challenger: faster, almost no unforced errors, and it wears a full outfit set
 ];
 
 const VENUES = [   // no wind anywhere: every court plays the same
@@ -555,7 +556,7 @@ function holdShuttle(m) {
 }
 
 const ASSIST_REACH = [1, 1.08, 1.2];
-const BOT_REACH = [1.0, 1.12, 1.14, 1.2];   // stronger bots lunge further instead of running faster
+const BOT_REACH = [1.0, 1.12, 1.14, 1.2, 1.23];   // stronger bots lunge further instead of running faster
 // bots run at their difficulty's pace, so foot speed is their binding limit and every bit of it decides rallies;
 // a human already outruns them. Bots therefore feel only half of the speed stat's spread (same win value per point).
 const BOT_SPD = 0.5;
@@ -603,7 +604,7 @@ function doHit(m, a, shotName, target, q, label, pw) {
     else t.z = target.z + Math.sign(target.z) * rand(1.0, 1.8);
   }
   const from = { x: s.p.x, y: s.p.y, z: s.p.z };
-  const botPow = a.ctrl === 'bot' && (shotName === 'smash' || shotName === 'drive') ? [0.85, 0.92, 0.97, 1.04][a.diff] : a.ctrl === 'human' && shotName === 'smash' ? 1.12 : 1;
+  const botPow = a.ctrl === 'bot' && (shotName === 'smash' || shotName === 'drive') ? [0.85, 0.92, 0.97, 1.04, 1.06][a.diff] : a.ctrl === 'human' && shotName === 'smash' ? 1.12 : 1;
   useStamina(m, a, shotName === 'smash' ? 0.014 : shotName === 'serveHigh' || shotName === 'serveShort' ? 0.002 : shotName === 'drive' || shotName === 'clear' || shotName === 'lift' ? 0.004 : 0.003);
   // assisted players leap into their smashes like the bots do: the contact is taken high
   const assistedContact = 2.05 + (a.st.jumpVy - 4.94) * 0.2 + 0.30 * tired.jump(a);
@@ -669,7 +670,7 @@ function chooseTarget(m, a, shotName, aimX, pw) {
   const W = m.doubles ? 2.6 : 2.2;
   // stronger bots place closer to the lines; a player's control stat does the same, gently (ctl 5: 0.36 m from the line, ctl 1: 0.44 m),
   // which is what control buys someone whose timing is already Perfect
-  const edge = a.ctrl === 'bot' ? [0.6, 0.2, 0.15, 0.05][a.diff] : clamp(0.4 - (a.st.control - 1) * 0.6, 0.2, 0.6);
+  const edge = a.ctrl === 'bot' ? [0.6, 0.2, 0.15, 0.05, 0.03][a.diff] : clamp(0.4 - (a.st.control - 1) * 0.6, 0.2, 0.6);
   let x;
   if (aimX) x = aimX * rand(W - 0.3, W + 0.05) * sgn(a.team);   // aiming goes for the lines: risky unless Perfect
   else {

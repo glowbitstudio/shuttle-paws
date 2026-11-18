@@ -1,7 +1,7 @@
 # Usage: cam-options-check.py <port> <out png>  -- the 'mid' and 'low' camera options in a real match: serve high, shoot while the shuttle is up,
 # on a desktop screen and a phone held upright; reports page errors and whether the shuttle and the player stayed inside the picture.
 from pathlib import Path
-import sys,io,json
+import sys,io,json,os
 from playwright.sync_api import sync_playwright
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1];OUT=ROOT/sys.argv[2]
@@ -16,7 +16,7 @@ with sync_playwright() as p:
             pg.on('pageerror',lambda e:errs.append(cam+' '+name+' '+str(e)[:200]));pg.route('https://**/*',lambda r:r.abort())
             pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
             pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object"');pg.wait_for_timeout(800)
-            pg.evaluate("()=>{__spDebug.speed(0.25);__spDebug.startLocal({diff:1,mode:'1v1',points:11,venue:0});}");pg.wait_for_timeout(3000)
+            pg.evaluate("()=>{__spDebug.speed(0.25);__spDebug.startLocal({diff:1,mode:'%s',points:11,venue:0});}"%(os.environ.get('MODE') or '1v1'));pg.wait_for_timeout(3000)
             seen=[];out=0
             for k in range(3):
                 pg.keyboard.press('j')

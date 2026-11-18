@@ -18,8 +18,8 @@ assert.equal(E.grantLocal(p, { win: true, diff: 3, dur: 10 }, T0).gold, 0);
 assert.equal(E.grantLocal(p, { win: true, diff: 3, dur: 120 }, T0).gold, E.LOCAL_WIN[3]);
 assert.equal(E.grantLocal(p, { win: true, diff: 3, dur: 120 }, T0 + 5000).gold, 0);
 assert.equal(E.grantLocal(p, { win: false, diff: 0, dur: 120 }, T0 + 60000).gold, E.LOCAL_LOSS);
-assert.equal(E.grantLocal(p, { win: true, diff: 99, dur: 1e9 }, T0 + 120000).gold, E.LOCAL_WIN[3]);   // bad input is clamped
-assert.equal(p.eco.gold, E.START_GOLD + 2 * E.LOCAL_WIN[3] + E.LOCAL_LOSS);
+assert.equal(E.grantLocal(p, { win: true, diff: 99, dur: 1e9 }, T0 + 120000).gold, E.LOCAL_WIN[4]);   // bad input is clamped to the top level (challenger)
+assert.equal(p.eco.gold, E.START_GOLD + E.LOCAL_WIN[3] + E.LOCAL_WIN[4] + E.LOCAL_LOSS); assert.equal(E.LOCAL_WIN.length, S.DIFF.length);
 // daily cap on local gold; it resets the next day
 let q = {}; E.ensure(q, T0, 'cat'); let t = T0, got = 0;
 for (let i = 0; i < 40; i++) { t += 60000; got += E.grantLocal(q, { win: true, diff: 3, dur: 100 }, t).gold; }

@@ -1023,3 +1023,10 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 #s-shop #gearTabs{background:rgba(17,60,64,.98) !important}
 .chest-pop{background:rgba(6,30,32,.8)}.cp-card{background:linear-gradient(180deg,var(--jade1),var(--jade2))}
 .wd-slot.empty{background:linear-gradient(180deg,rgba(28,90,92,.92),rgba(17,60,64,.92))}
+
+/* skin v3, part 2: lobby side buttons and the match scoreboard */
+.lobby-side .mini-btn{background:linear-gradient(180deg,#2f8a8c,#17494d) !important;border-color:rgba(243,207,134,.55) !important}
+.lobby-side .mini-btn.can{background:linear-gradient(180deg,#9ff2cf,#3fcf9a) !important;border-color:#eafff6 !important;color:#073b2a !important}
+#score{background:linear-gradient(180deg,#1c5a5c,#113c40) !important;border:2px solid rgba(243,207,134,.8);border-radius:16px !important}
+
+#setCam button,#botDiff button{padding-left:9px;padding-right:9px}

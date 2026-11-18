@@ -12,7 +12,7 @@ const PRICES = { fox: 600, frog: 600, penguin: 800, duck: 800, hamster: 1200, do
 // only these must be owned to be used online; the others can also be earned through client-side achievements (not verifiable here)
 const MUST_OWN = ['fox', 'frog', 'penguin', 'duck'];
 const START_GOLD = 200;
-const LOCAL_WIN = [20, 30, 45, 60], LOCAL_LOSS = 8;                  // by bot difficulty 0..3
+const LOCAL_WIN = [20, 30, 45, 60, 90], LOCAL_LOSS = 8;                  // by bot difficulty 0..3
 const ONLINE_WIN = 60, ONLINE_LOSS = 20;
 const LOCAL_DAILY_CAP = 600;                                        // gold per day from unverified local matches
 const LOCAL_MIN_GAP_MS = 45000, LOCAL_MIN_DUR = 40;                 // one claim per 45 s, match at least 40 s long
@@ -88,7 +88,7 @@ function grantOnline(p, win, now) {
 // local match reported by the client: bounded
 function grantLocal(p, msg, now) {
   const e = ensure(p, now);
-  const dur = +msg.dur || 0, diff = Math.max(0, Math.min(3, msg.diff | 0)), win = !!msg.win;
+  const dur = +msg.dur || 0, diff = Math.max(0, Math.min(4, msg.diff | 0)), win = !!msg.win;
   if (dur < LOCAL_MIN_DUR) return { gold: 0, why: 'Trận quá ngắn, không tính thưởng' };
   if (now - e.local.last < LOCAL_MIN_GAP_MS) return { gold: 0, why: 'Vừa nhận thưởng trận trước, chờ một chút' };
   e.local.last = now; progress(e, win, false);
