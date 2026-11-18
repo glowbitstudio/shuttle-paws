@@ -1088,3 +1088,46 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 .lvl-card{justify-content:flex-start;gap:3px;padding:7px 2px 8px}
 .lvl-slot{height:30px;display:flex;align-items:center;justify-content:center}.lvl-slot .chest.mini{margin:0}
 .lvl-slot em{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.16)}
+/* venue cards: calm jade tiles so the coral start button stands out; the chosen one gets the gold frame */
+.venue{background:linear-gradient(180deg,#2f6f72,#1d4b4f)!important;border-color:rgba(255,255,255,.16)}
+.venue.on{background:linear-gradient(180deg,#3d8f8a,#256662)!important;border-color:#ffd76a}
+/* level reward cards all look the same: a frame must not suggest that some were already collected */
+.lvl-card,.lvl-card.has{border:2px solid rgba(255,255,255,.12);background:rgba(0,0,0,.2)}
+/* settings cog sits fully inside its button */
+.round-btn .ico{width:22px;height:22px;stroke-width:2}
+/* profile page */
+.pf-top{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.pf-face{flex:none;width:92px;height:92px;border-radius:50%;overflow:hidden;border:3px solid #ffd76a;background:rgba(0,0,0,.25);display:grid;place-items:center}
+.pf-face img{width:100%;height:100%;object-fit:cover}
+.pf-id{flex:1;min-width:0}.pf-id .name-row{margin:4px 0 6px}.pf-id small{display:block;color:var(--ink2);font-size:12px;font-weight:700;margin-bottom:4px}
+.pf-links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 14px}
+@media (max-width:520px){.pf-top{flex-direction:column;align-items:stretch}.pf-face{align-self:center}}
+/* character screen: the side panel is only the grid; description, stat bars and the pick button sit in a dock under the character */
+.char-dock{position:fixed;left:0;bottom:12px;width:calc(100% - 500px);display:flex;justify-content:center;pointer-events:none;z-index:4}
+.char-dock-in{pointer-events:auto;display:flex;gap:12px;align-items:center;width:min(660px,calc(100% - 28px));padding:10px 12px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(27,88,90,.96),rgba(17,58,62,.96));border:2px solid #f3cf86;box-shadow:0 6px 0 rgba(0,0,0,.28)}
+.char-dock .char-info{flex:1;min-width:0;margin:0;padding:0;background:none;border:0}
+.char-dock .char-info h3{font-size:16px;margin:0}.char-dock .char-info p{margin:0 0 6px;font-size:12.5px;line-height:1.25}
+.char-dock .bars{grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:5px 8px;font-size:12px}
+.char-dock #charsDone{position:static;flex:none;width:auto;min-width:132px;margin:0;padding-left:18px;padding-right:18px}
+.char-dock #charsDone:disabled{opacity:1;filter:grayscale(.75) brightness(.7)}
+body .stage-name.ch{bottom:128px}
+@media (max-width:820px), (orientation:portrait){
+  .char-dock{width:100%;bottom:8px}
+  .char-dock-in{flex-direction:column;align-items:stretch;gap:8px;width:calc(100% - 16px);padding:8px 10px}
+  .char-dock .char-info p:first-of-type{display:none}
+  .char-dock #charsDone{width:100%;min-height:44px}
+  #s-chars.screen.stage{padding-bottom:156px}
+  #s-chars.screen.stage .panel.side{max-height:38vh}
+  body .stage-name.ch{top:10px;bottom:auto}
+}
+@media (orientation:landscape) and (max-height:480px){
+  .char-dock{width:calc(100% - min(400px,52vw) - 8px);bottom:6px}
+  .char-dock-in{flex-direction:row;align-items:center;width:calc(100% - 12px);padding:6px 8px;gap:8px}
+  .char-dock .char-info p:first-of-type{display:none}.char-dock .char-info h3{font-size:14px}
+  .char-dock .bars{grid-template-columns:auto 1fr auto 1fr;font-size:11px;gap:3px 6px}
+  .char-dock #charsDone{width:auto;min-width:96px;min-height:40px}
+  #s-chars.screen.stage{padding-bottom:8px}
+  #s-chars.screen.stage .panel.side{max-height:calc(100vh - 16px)}
+  body .stage-name.ch{top:6px;bottom:auto}
+}

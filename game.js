@@ -4266,7 +4266,7 @@ function cycleCam() {
 $('camBtn').onclick = cycleCam;
 function bindCamSeg() { if (!CAM_NAMES[settings.cam]) settings.cam = 'high'; camSegSync = seg('setCam', () => settings.cam, (v) => { settings.cam = v; saveAll(); setCamBtn(); if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera'); }); }
 bindCamSeg();   // bound once at start, so the row works wherever Settings is opened from (lobby or the pause menu)
-const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'shop', 'rewards', 'ach', 'stats', 'settings', 'guide', 'online', 'room'];
+const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'shop', 'rewards', 'ach', 'stats', 'profile', 'settings', 'guide', 'online', 'room'];
 let screen = 'home';
 function hideScreens() { for (const s of SCREENS) $('s-' + s).classList.add('hidden'); $('stageName').classList.add('hidden'); $('wdSlots').classList.add('hidden'); showPreview(false); }
 let charsBack = 'home';
@@ -4275,12 +4275,12 @@ function go(name) {
   endSession();
   if (name === 'chars' && screen !== 'chars') { charsBack = screen; infoChar = profile.char; }
   screen = name; gearTry = null; renderRejoin();
-  $('stageName').classList.toggle('hidden', name !== 'chars' && name !== 'gear' && name !== 'shop'); $('stageName').classList.toggle('wd', name === 'gear');
+  $('stageName').classList.toggle('hidden', name !== 'chars' && name !== 'gear' && name !== 'shop'); $('stageName').classList.toggle('wd', name === 'gear'); $('stageName').classList.toggle('ch', name === 'chars');
   $('wdSlots').classList.toggle('hidden', name !== 'gear'); $('rejoinBar').classList.toggle('lobby', name === 'home');   // at the lobby the rejoin bar sits under the top bar, clear of the buttons
   for (const s of SCREENS) $('s-' + s).classList.toggle('hidden', s !== name);
   $('searching').classList.add('hidden'); $('over').classList.add('hidden');
   showPreview(true);
-  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
+  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, profile: renderProfile, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { Sound.init(); Sound.boop(); go(b.dataset.go); }));
 
@@ -4443,6 +4443,19 @@ function renderStats() {
     ['Rally dài nhất', P.longest], ['Cứu cầu thành công', P.diveSaves], ['Thắng online', P.onlineWins], ['Trận online', P.onlinePlayed], ['Sân đã chơi', P.venues.length + '/' + S.VENUES.length], ['Thành tích', Object.keys(achieved).length + '/' + ACH.length]];
   $('statGrid').innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><small>${k}</small></div>`).join('');
   $('historyList').innerHTML = history.length ? history.map((h) => `<div class="hist"><span class="r ${h.won ? 'w' : 'l'}">${h.won ? 'Thắng' : 'Thua'}</span><b>${h.s[0]}–${h.s[1]}</b><span>vs ${esc(h.opp)}</span><span>${h.kind === 'online' ? icon('globe') + ' Online' : icon('bot') + ' ' + (S.DIFF[h.diff] ? S.DIFF[h.diff].name : '')} · ${h.mode} · ${esc((S.VENUES[h.venue] || {}).name || '')}</span></div>`).join('') : '<div class="empty">Chưa có trận nào.</div>';
+}
+
+// The player's own page (opened from the chip in the top left corner): name, level, a summary and the recent matches.
+function renderProfile() {
+  renderStats();   // fills the full statistics and the match history; the profile shows a summary of both
+  const c = charById(profile.char), w = wallet || { level: 1, xp: 0, levelAt: 0, levelNext: 40 }, rate = P.matches ? Math.round(P.wins / P.matches * 100) : 0;
+  $('pfFace').innerHTML = faceImg(c.id); $('nameInput').value = profile.name;
+  $('pfSub').textContent = c.name + ' · Cấp ' + w.level + ' · ' + (w.xp - w.levelAt) + '/' + (w.levelNext - w.levelAt) + ' kinh nghiệm';
+  $('pfXp').style.width = Math.round(S.clamp((w.xp - w.levelAt) / Math.max(1, w.levelNext - w.levelAt), 0, 1) * 100) + '%';
+  $('pfStats').innerHTML = [['Sức mạnh', S.powerOf(c.id, myGear())], ['Trận đã chơi', P.matches], ['Trận thắng', P.wins], ['Tỉ lệ thắng', rate + '%'], ['Chuỗi thắng dài nhất', P.bestStreak], ['Cúp giải đấu', tour.cups || 0]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><small>${k}</small></div>`).join('');
+  const rows = [...$('historyList').children].slice(0, 8).map((e) => e.outerHTML).join('');
+  $('pfHistory').innerHTML = rows || '<p class="tiny">Chưa có trận nào. Đánh một trận rồi quay lại đây nhé.</p>';
 }
 
 function renderSettings() {
