@@ -2560,7 +2560,9 @@ function renderShop() {
     const gems = wallet ? wallet.gems || 0 : 0, tot = S.GEAR.length, have = items.length, gr = (wallet && wallet.gemRules) || {}, dupR = ((wallet && wallet.rules) || {}).dup || [5, 15, 40], crR = ((wallet && wallet.rules) || {}).craft || [20, 60, 150];
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : (wallet.chests || []).map((ch, i) => {
       const od = ch.odds.map((o, k) => o ? `<em class="r${k}">${S.GEAR_RARITY[k]} ${o}%</em>` : '').join('');
-      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i></span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món ngẫu nhiên. Trùng món đã có thì nhận mảnh của món đó.</small></div><div class="chest-pay">` +
+      const fr = (wallet.free || {})[ch.id] || 0;
+      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i>${fr ? `<u class="free-n">${fr}</u>` : ''}</span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món ngẫu nhiên. Trùng món đã có thì nhận mảnh của món đó.</small></div><div class="chest-pay">` +
+        (fr ? `<button class="pill buy freeb" data-pay="free">Mở miễn phí · còn ${fr}</button>` : '') +
         (ch.gold ? `<button class="pill buy" data-pay="gold" ${gold >= ch.gold ? '' : 'disabled'}><i class="coin"></i>${ch.gold}</button>` : '') +
         (ch.gems ? `<button class="pill buy gemb" data-pay="gems" ${gems >= ch.gems ? '' : 'disabled'}><i class="gem"></i>${ch.gems}</button>` : '') + '</div></div>';
     }).join('') + ((wallet && wallet.rules && wallet.rules.packs) || []).map((k) => `<div class="gear-item chest-row pack-row r0" data-pack="${k.id}"><span class="shard big"></span><div class="gi"><b>${k.shards} mảnh vạn năng</b><small>Thay cho mảnh riêng của bất kỳ món nào khi nâng cấp, và để ghép món của bộ đồ.</small></div><div class="chest-pay">` +
@@ -2598,6 +2600,10 @@ function renderShop() {
 
 // ================================================================ economy (the server owns every number; the client only shows them)
 // chest opened: show what came out, with a button to wear it at once
+// level progress on the end-of-match screen
+function overLevel() { const el = $('overLevel'); if (!el) return; if (!wallet) { el.innerHTML = ''; return; }
+  const p = S.clamp((wallet.xp - wallet.levelAt) / Math.max(1, wallet.levelNext - wallet.levelAt), 0, 1), nx = (wallet.levelRewards || [])[0];
+  el.innerHTML = `<b>Cấp ${wallet.level}</b><div class="q-bar lvl-bar"><i style="width:${Math.round(p * 100)}%"></i></div><small>${nx ? `Cấp ${nx.level}: <i class="coin"></i>${nx.gold} <i class="gem"></i>${nx.gems}${nx.chest ? ' + rương' : ''}` : ''}</small>`; }
 function chestPop(ch) {
   const it = S.gearById(ch.item); if (!it) return;
   let el = $('chestPop'); if (!el) { el = document.createElement('div'); el.id = 'chestPop'; document.body.appendChild(el); }
@@ -2610,7 +2616,7 @@ function chestPop(ch) {
   if ($('cpWear')) $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
 }
 function onWallet(msg) {
-  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
+  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {}, free: msg.freeChests || {}, levelRewards: msg.levelRewards || [] };
   document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
@@ -2622,7 +2628,12 @@ function onWallet(msg) {
     else toast('+' + g.gold + ' vàng', g.why, 'star');
   } else if (g && g.why && (screen === 'rewards' || !$('over').classList.contains('hidden'))) toast(g.why, '', 'clock');
   if (g && g.gems > 0) { if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast"><i class="gem"></i>+${g.gems} kim cương</div>`); else toast('+' + g.gems + ' kim cương', g.why, 'star'); }
-  if (g && g.levelUp > 0) toast('Lên cấp ' + wallet.level + '!', '+' + g.levelUp + ' kim cương', 'star');
+  if (g && g.levelUp > 0) {   // level up: gold, a diamond and maybe a free chest waiting in the shop
+    const cn = (g.levelChests || []).map((id) => ((wallet.chests || []).find((c) => c.id === id) || {}).name).filter(Boolean);
+    const line = (g.levelGold ? '+' + g.levelGold + ' vàng · ' : '') + '+' + g.levelUp + ' kim cương' + (cn.length ? ' · ' + cn.join(', ') + ' miễn phí (mở ở Cửa hàng)' : '');
+    if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast lvl"><i class="lvl-star"></i>Lên cấp ${wallet.level}!<small>${esc(line)}</small></div>`); else toast('Lên cấp ' + wallet.level + '!', line, 'star');
+  }
+  overLevel();
   const ch = msg.chest; if (ch && ch.ok) { Sound.ach(); chestPop(ch); } else if (ch) toast(ch.why, '', 'lock');
   const b = msg.bought;
   if (b && b.ok) { profile.char = b.char; infoChar = b.char; saveAll(); Net.profile(); Sound.ach(); toast('Đã mở khoá ' + charById(b.char).name, '−' + b.spent + ' vàng', 'check'); showPreview(true); }
@@ -2652,6 +2663,8 @@ function renderRewards() {
       `<button class="pill q-btn${q.claimed ? ' done' : ok ? ' can' : ''}" data-quest="${q.id}" ${ok && !q.claimed ? '' : 'disabled'}>${q.claimed ? 'Đã nhận' : `<i class="coin"></i>${q.reward}`}</button></div>`;
   }).join('');
   el.innerHTML = `<p class="gold-line"><span class="gold-chip"><i class="coin"></i><b>${wallet.gold}</b></span></p>` +
+    `<h3>Cấp ${wallet.level}</h3><div class="lvl-box"><div class="q-bar lvl-bar"><i style="width:${Math.round(S.clamp((wallet.xp - wallet.levelAt) / Math.max(1, wallet.levelNext - wallet.levelAt), 0, 1) * 100)}%"></i></div><small>${wallet.xp - wallet.levelAt}/${wallet.levelNext - wallet.levelAt} kinh nghiệm · đánh xong trận nào cũng được cộng</small>` +
+    `<div class="lvl-row">${(wallet.levelRewards || []).map((r) => `<div class="lvl-card${r.chest ? ' has' : ''}"><small>Cấp ${r.level}</small>${r.chest ? `<span class="chest t${+r.chest[1]} mini"><i></i></span>` : ''}<b><i class="coin"></i>${r.gold}</b><b><i class="gem"></i>${r.gems}</b></div>`).join('')}</div></div>` +
     `<h3>Quà đăng nhập</h3><div class="login-row">${days}</div>` +
     `<button class="cta" id="loginClaim" ${L.can ? '' : 'disabled'}>${L.can ? `Nhận quà ngày ${L.streak} · ${L.reward} vàng` : 'Hôm nay đã nhận · mai quay lại nhé'}</button>` +
     `<h3>Nhiệm vụ hôm nay</h3>${quests}` +
@@ -2757,7 +2770,7 @@ function finishMatch(res) {
   const st = (me >= 0 && res.stats[me]) || { perfect: 0, smash: 0, hits: 0, diveSaves: 0, winners: 0, errors: 0 };
   $('overStats').innerHTML = [['Perfect', st.perfect], ['Đập cầu', st.smash], ['Rally dài nhất', res.longest || 0], ['Cú đánh', st.hits], ['Ghi điểm trực tiếp', st.winners], ['Cứu cầu', st.diveSaves]]
     .map(([k, v]) => `<div><b>${v || 0}</b><small>${k}</small></div>`).join('');
-  $('overAch').innerHTML = '';
+  $('overAch').innerHTML = ''; overLevel();
   $('rematchInfo').textContent = '';
   $('again').classList.toggle('hidden', session.kind === 'watch');
   $('again').textContent = session.kind === 'local' ? (tr !== undefined ? (won && !champ ? 'Trận tiếp: ' + TOUR[tour.round].name + ' ›' : 'Đấu giải mới') : 'Đấu lại') : 'Tái đấu';

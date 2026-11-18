@@ -19,7 +19,8 @@ assert.equal(E.grantLocal(p, { win: true, diff: 3, dur: 120 }, T0).gold, E.LOCAL
 assert.equal(E.grantLocal(p, { win: true, diff: 3, dur: 120 }, T0 + 5000).gold, 0);
 assert.equal(E.grantLocal(p, { win: false, diff: 0, dur: 120 }, T0 + 60000).gold, E.LOCAL_LOSS);
 assert.equal(E.grantLocal(p, { win: true, diff: 99, dur: 1e9 }, T0 + 120000).gold, E.LOCAL_WIN[4]);   // bad input is clamped to the top level (challenger)
-assert.equal(p.eco.gold, E.START_GOLD + E.LOCAL_WIN[3] + E.LOCAL_WIN[4] + E.LOCAL_LOSS); assert.equal(E.LOCAL_WIN.length, S.DIFF.length);
+{ let lv = 0; for (let L = 2; L <= E.levelOf(p.eco.xp); L++) lv += E.levelReward(L).gold; assert(lv > 0, 'a level was reached');   // level rewards pay gold on top
+  assert.equal(p.eco.gold, E.START_GOLD + E.LOCAL_WIN[3] + E.LOCAL_WIN[4] + E.LOCAL_LOSS + lv); } assert.equal(E.LOCAL_WIN.length, S.DIFF.length);
 // daily cap on local gold; it resets the next day
 let q = {}; E.ensure(q, T0, 'cat'); let t = T0, got = 0;
 for (let i = 0; i < 40; i++) { t += 60000; got += E.grantLocal(q, { win: true, diff: 3, dur: 100 }, t).gold; }
@@ -86,3 +87,12 @@ assert(!/PUBLIC = new Set\(\[[^\]]*economy/.test(server), 'economy.js must not b
 for (const h of ['localResult', 'claimLogin', 'claimQuest', 'buyChar', 'buyGear', 'equip', 'wallet']) assert(server.includes(h + '(c'), h);
 assert(server.includes('ownedChar(c, msg.char)'));
 console.log('PASS economy: start state, grandfathered character, local grants (min length, rate limit, clamped input, daily cap), online grants, quests, login streak, day boundary, purchases, ownership, gear catalogue / stat rules / buying / wearing');
+
+// level rewards: gold and a diamond every level, a free chest at even levels (rare every 5th, epic every 10th, legendary every 25th); a free chest opens without paying, once
+{ const r = (L) => E.levelReward(L); assert.deepEqual([r(2).chest, r(3).chest, r(5).chest, r(10).chest, r(25).chest, r(50).chest], ['c0', null, 'c1', 'c2', 'c3', 'c3']); assert(r(2).gold < r(20).gold && r(999).gold === 900);
+  const z = {}; E.ensure(z, T0, 'cat'); const g0 = z.eco.gold, d0 = z.eco.gems; z.eco.xp = 0; let ups = 0, lg = 0; while (E.levelOf(z.eco.xp) < 5) { const g = E.grantOnline(z, false, T0); ups += g.levelUp; lg += g.levelGold; }
+  assert.equal(ups, 4); assert.equal(lg, r(2).gold + r(3).gold + r(4).gold + r(5).gold); assert.deepEqual(z.eco.free, { c0: 2, c1: 1 }); assert.equal(z.eco.gems - d0, 4);
+  const v = E.view(z, T0); assert.deepEqual(v.freeChests, { c0: 2, c1: 1 }); assert.equal(v.levelRewards[0].level, 6); assert.equal(v.levelRewards.length, 6);
+  const gold1 = z.eco.gold, o = E.openChest(z, 'c1', 'free', T0); assert(o.ok && o.spent === 0 && o.pay === 'free' && o.rar >= 1); assert.equal(z.eco.gold, gold1); assert.equal(z.eco.free.c1, 0);
+  assert(!E.openChest(z, 'c1', 'free', T0).ok, 'no second free rare chest'); assert(!E.openChest(z, 'c3', 'free', T0).ok); }
+console.log('PASS level rewards and free chests');

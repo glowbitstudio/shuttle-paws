@@ -277,7 +277,11 @@ function gearMods(ids) {
   const out = { spd: 0, jmp: 0, pow: 0, rch: 0, ctl: 0, sta: 0 }, set = gearSet(ids);
   for (const k in set) for (const s in set[k].mods) out[s] += set[k].mods[s];
   for (const b of setBonus(ids)) out[b.stat] += b.bonus;
-  for (const s of STAT_KEYS) out[s] = clamp(out[s], -GEAR_STAT_CAP, GEAR_STAT_CAP);
+  // upgrades lift the ceiling: a full set already sits at the cap, so without this a +5 item would add nothing. Every upgrade level
+  // worn raises the upper cap by 0.025 (six items at +5 -> 2.75); the lower cap stays.
+  let lv = 0; for (const id of ids || []) if (gearById(id)) lv += gearLv(id);
+  const cap = GEAR_STAT_CAP + Math.min(0.75, lv * 0.025);
+  for (const s of STAT_KEYS) out[s] = clamp(out[s], -GEAR_STAT_CAP, cap);
   return out;
 }
 // the character's six stats with gear applied (fractional; each stays within 0.5..7)
@@ -669,6 +673,9 @@ function doHit(m, a, shotName, target, q, label, pw) {
     // concrete memory: after this shot, in moments like this one, the reply came back to these exact spots - go to their weighted middle
     { const mr = a.hist && a.hist.length ? a.hist[a.hist.length - 1][3] : null; if (mr && a.learn.mem) { let k0 = 0, ux = 0, uz = 0; dareNear(a.learn, mr, (r, k) => { if (r[6] === mr[6] && r[11] > -8) { k0 += k; ux += k * r[11]; uz += k * r[12]; } });
         if (k0 >= 1.2) { a.tx = clamp(ux / k0, -2.2, 2.2) * sgn(a.team); a.tz = sgn(a.team) * clamp(uz / k0, 1.0, 5.4); } } }
+    // ...but never far from the middle: waiting at one side leaves the other corner open. After a high ball (the opponent will attack)
+    // it may lean 0.5 m at most, after anything else 1.2 m.
+    { const lim = a.lastShot === 'lift' || a.lastShot === 'clear' ? 0.5 : 1.2; a.tx = clamp(a.tx, -lim, lim); }
   }   // the challenger's learned spot after this very shot
 }
 
