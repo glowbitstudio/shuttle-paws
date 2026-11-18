@@ -2773,7 +2773,7 @@ function finishMatch(res) {
         store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own, pos, T: ownT });
         const nm = (cb.newMem || []).map((r) => r.map((v) => Math.round(v * 100) / 100)); store.set('sp.dareM', S.dareCompact((store.get('sp.dareM', []) || []).concat(nm.map((r) => r.slice())), 400));   // the shots of this match, kept on this device
         const rpos = {}; for (const k in cb.learn.pos || {}) if (k !== '_all') rpos[k] = r2(cb.learn.pos[k] - (+((d0.mem.pos || {})[k]) || 0));
-        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT, mem: nm.slice(-250), log: Net.dareLog ? (m.dareLog || []).slice(-60) : undefined }); } }
+        if ((m.clock || 0) > 40) dareQueue({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT, mem: nm.slice(-250), log: Net.dareLog !== false ? (m.dareLog || []).slice(-60) : undefined }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
@@ -4312,6 +4312,10 @@ $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 const botOpts = Object.assign({ mode: '1v1', diff: 1, points: 11, games: 1, venue: 0 }, store.get('sp.botOpts', {}));
 // What challenger bots have learned from everyone: fetched over HTTP (gzip, cached, 304 when unchanged) only when this player is about
 // to meet the challenger and the server has a newer version than this device. The signed copy is rebuilt here so it can be handed back.
+// The report of a challenger match is kept on this device until the server says it has it: a match that ends while the connection is
+// down (or while the server restarts) is sent at the next connect instead of being lost.
+function dareQueue(rep) { store.set('sp.dareOut', rep); dareFlush(); }
+function dareFlush() { const r = store.get('sp.dareOut', null); if (r && r.t === 'dareLearn') Net.send(r); }
 let dareBusy = false;
 function dareSync() {
   if (dareBusy || !Net.dareN || Net.dareN === ((store.get('sp.dareG', null) || {}).n || 0) || typeof fetch !== 'function') return; dareBusy = true;
@@ -4493,9 +4497,10 @@ const Net = {
         break;
       case 'swapAsk': if (screen === 'room' && !session) showSwapAsk(msg); else this.send({ t: 'swapReply', from: msg.from, ok: false }); break;
       case 'backup': store.set('sp.backup', msg.v); break;
+      case 'dareAck': store.set('sp.dareOut', null); break;   // the report of the last challenger match has arrived
       case 'dareWant': { const t = store.get('sp.dareT', null); if (t) this.send({ t: 'dareRestore', dareT: t }); break; }   // the server lost its memory and this device holds a newer signed copy
       case 'welcome':
-        this.dareN = msg.dareN || 0; this.dareLog = !!msg.dareLog; if (botOpts.diff >= 4 || store.get('sp.dare', null)) dareSync();   // only players who meet the challenger fetch what it has learned
+        dareFlush(); this.dareN = msg.dareN || 0; this.dareLog = !!msg.dareLog; if (botOpts.diff >= 4 || store.get('sp.dare', null)) dareSync();   // only players who meet the challenger fetch what it has learned
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);
         this.send({ t: 'lobby' });

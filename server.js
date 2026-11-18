@@ -339,7 +339,7 @@ const handlers = {
   dareLearn(c, msg) {
     const P0 = (data.dare && data.dare.pos) || {};
     const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;
-    if (now - dareWin.t > 1000) dareWin = { t: now, n: 0 }; if (++dareWin.n > 8) return;   // at most 8 reports a second are worked in, whatever the crowd
+    if (now - dareWin.t > 1000) dareWin = { t: now, n: 0 }; if (++dareWin.n > 8) { send(c, { t: 'dareAck' }); return; }   // at most 8 reports a second are worked in, whatever the crowd
     dareHour.push(now); if (dareHour.length > 5000) dareHour.shift(); dareVer++;   // per player, not per connection
     const G = data.dare || (data.dare = { n: 0, front: 0, bad: {} }), a = Math.max(0.02, 1 / (G.n + 1)), num = (v, lo, hi) => Sim.clamp(+v || 0, lo, hi);
     G.front = Math.round(((1 - a) * G.front + a * num(msg.front, -0.8, 1.25)) * 1000) / 1000;
@@ -357,7 +357,7 @@ const handlers = {
     if (Array.isArray(msg.log) && JSON.stringify(msg.log).length < 320000) data.dareLog = (data.dareLog || []).concat(msg.log.slice(-60).map((r) => ({ p: c.id.slice(0, 6), at: now, w: r && r.w, last: r && r.last, land: r && r.land, sc: r && r.sc, t: r && r.t, why: r && typeof r.why === 'string' ? r.why.slice(0, 60) : '', ev: r && Array.isArray(r.ev) ? r.ev.slice(0, 80) : [] }))).slice(-400);
     // concrete memories: one record per shot the challenger played in that match (13 numbers); the newest 700 of all players are kept
     if (Array.isArray(msg.mem)) { const okm = msg.mem.slice(-250).filter((r) => Array.isArray(r) && (r.length === 13 || r.length === 15) && r.every((x) => typeof x === 'number' && isFinite(x) && Math.abs(x) < 20) && r[6] >= 0 && r[6] <= 5 && r[9] > 0 && r[9] <= 1 && (r[10] === 0 || r[10] === 1)); G.mem = Sim.dareCompact((G.mem || []).concat(okm), 700); }
-    G.n = Math.min(G.n + 1, 1e6); save();
+    G.n = Math.min(G.n + 1, 1e6); save(); send(c, { t: 'dareAck' });
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
   craftGear(c, msg) { const p = data.players[c.id], note = Eco.craftGear(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
