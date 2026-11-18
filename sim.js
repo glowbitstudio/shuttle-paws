@@ -793,6 +793,7 @@ function botChooseShot(m, b) {
     }
     if (Math.random() < 0.05) { const any = DARE_SHOTS.filter(ok); if (any.length) shot = any[Math.floor(Math.random() * any.length)]; }   // now and then something else, so untried shots get a chance
     b.prevShot = b.lastShot || null; b.prevKey = b.lastKey || null; b.lastShot = shot; b.lastKey = key;
+    (b.hist || (b.hist = [])).push([key, shot]); if (b.hist.length > 6) b.hist.shift();   // its shots of this rally, oldest first
   }
   return shot;
 }
@@ -809,7 +810,9 @@ function botLearn(m, winner) {
   for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z), won = winner === b.team, own = m.shuttle.lastTeam === b.team;
     const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
-    rec(b.lastKey, b.lastShot, 1); if (!own) rec(b.prevKey, b.prevShot, 0.5);        // the shot before the last one set the rally up
+    // every shot it played in this rally shares in the result: the last one fully, each earlier one half as much as the one after it
+    // (1, 0.5, 0.25 ...). A rally it threw away with its own error is charged to that last shot alone.
+    { const H = b.hist && b.hist.length ? b.hist : b.lastKey && b.lastShot ? [[b.lastKey, b.lastShot]] : []; let wt = 1; for (let i = H.length - 1; i >= 0; i--) { rec(H[i][0], H[i][1], wt); if (own && !won) break; wt *= 0.5; } }
     if (!won) {
       const mine = s.z * sg > 0 && !own;                                              // the reply landed on its side
       if (b.lastKey && b.lastShot) {
@@ -824,7 +827,7 @@ function botLearn(m, winner) {
       if (b.lastShot) L.bad[b.lastShot] = (L.bad[b.lastShot] || 0) + 1;
       if (b.prevShot && b.prevShot !== b.lastShot && !own) L.bad[b.prevShot] = (L.bad[b.prevShot] || 0) + 0.4;
     } else if (b.lastShot && L.bad[b.lastShot]) L.bad[b.lastShot] = Math.max(0, L.bad[b.lastShot] - 0.5);   // it worked this time
-    b.lastShot = null; b.prevShot = null; b.lastKey = null; b.prevKey = null;
+    b.lastShot = null; b.prevShot = null; b.lastKey = null; b.prevKey = null; b.hist = [];
   }
 }
 function botChooseShot0(m, b) {
