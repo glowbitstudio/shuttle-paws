@@ -801,6 +801,18 @@ function dareCtx(m, b) { let o = null; for (const x of m.athletes) if (x.team !=
   return [b.x * sg, Math.abs(b.z), o.x * sg, Math.abs(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0, inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1]; }
 function dareNear(L, c, fn) { const M = L.mem; if (!M) return;
   for (const r of M) { const d = Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[2] - c[2], 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0); if (d < 2.5) fn(r, r[9] * Math.exp(-d)); } }
+// When the memory is full the oldest record is not thrown away: it is folded into the most similar record still kept (same shot, same
+// result, same opponent state and incoming class, everything within ~0.7 m), which moves to their weighted middle and grows heavier.
+// So a moment met a hundred times stays as one heavy record; only an old one-off with nothing like it is forgotten.
+function dareCompact(M, max) {
+  const P = [0, 1, 2, 3, 7, 8];
+  let spare = 2 * max;   // a heavy record with nothing like it left goes back to the end instead of being dropped (a bounded number of times)
+  while (M.length > max) { const r = M.shift(); let best = null, bd = 1;
+    for (const q of M) { if (q[6] !== r[6] || q[4] !== r[4] || q[5] !== r[5] || q[10] !== r[10]) continue; let d = 0; for (const i of P) d = Math.max(d, Math.abs(q[i] - r[i]) / 0.7); if (d < bd) { bd = d; best = q; } }
+    if (!best) { if (r[9] > 1.5 && spare-- > 0) M.push(r); continue; } const w = r[9], W = best[9], t = w + W; for (const i of P) best[i] = Math.round((best[i] * W + r[i] * w) / t * 100) / 100;
+    if (r[11] > -8) { if (best[11] < -8) { best[11] = r[11]; best[12] = r[12]; } else if (Math.abs(best[11] - r[11]) < 1 && Math.abs(best[12] - r[12]) < 1) { best[11] = Math.round((best[11] * W + r[11] * w) / t * 100) / 100; best[12] = Math.round((best[12] * W + r[12] * w) / t * 100) / 100; } }
+    best[9] = Math.min(Math.round(t * 100) / 100, 40); }
+  return M; }
 function botChooseShot(m, b) {
   let shot = botChooseShot0(m, b);
   if (b.diff >= 4) {
@@ -861,7 +873,7 @@ function botLearn(m, winner) {
     const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
     // every shot it played in this rally shares in the result: the last one fully, each earlier one half as much as the one after it
     // (1, 0.5, 0.25 ...). A rally it threw away with its own error is charged to that last shot alone.
-    { const H = b.hist && b.hist.length ? b.hist : b.lastKey && b.lastShot ? [[b.lastKey, b.lastShot]] : []; let wt = 1; for (let i = H.length - 1; i >= 0; i--) { rec(H[i][0], H[i][1], wt); const mr = H[i][3]; if (mr) { mr[9] = wt; mr[10] = won ? 1 : 0; if (i === H.length - 1 && !won && !own && s.z * sg > 0) { mr[11] = s.x * sg; mr[12] = sz; } const M = L.mem || (L.mem = []); M.push(mr); if (M.length > 700) M.shift(); (b.newMem || (b.newMem = [])).push(mr); } if (H[i][2] !== undefined) { const c = dareCell(L, 's|' + H[i][0] + '|' + H[i][1], 4); c[H[i][2] * 2] += wt; if (won) c[H[i][2] * 2 + 1] += wt; } if (own && !won) break; wt *= 0.5; } }
+    { const H = b.hist && b.hist.length ? b.hist : b.lastKey && b.lastShot ? [[b.lastKey, b.lastShot]] : []; let wt = 1; for (let i = H.length - 1; i >= 0; i--) { rec(H[i][0], H[i][1], wt); const mr = H[i][3]; if (mr) { mr[9] = wt; mr[10] = won ? 1 : 0; if (i === H.length - 1 && !won && !own && s.z * sg > 0) { mr[11] = s.x * sg; mr[12] = sz; } const M = L.mem || (L.mem = []); M.push(mr); dareCompact(M, 900); (b.newMem || (b.newMem = [])).push(mr); } if (H[i][2] !== undefined) { const c = dareCell(L, 's|' + H[i][0] + '|' + H[i][1], 4); c[H[i][2] * 2] += wt; if (won) c[H[i][2] * 2 + 1] += wt; } if (own && !won) break; wt *= 0.5; } }
     if (!won) {
       const mine = s.z * sg > 0 && !own;                                              // the reply landed on its side
       if (b.lastKey && b.lastShot) {
@@ -1345,7 +1357,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  botLearn, botLesson, dareAim, dareSide, dareCtx, dareNear, botChooseShot, dareKey, dareZone, DARE_SHOTS,
+  botLearn, botLesson, dareAim, dareSide, dareCtx, dareNear, dareCompact, botChooseShot, dareKey, dareZone, DARE_SHOTS,
   GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,
