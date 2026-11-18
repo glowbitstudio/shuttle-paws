@@ -1257,18 +1257,19 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
       mk(new THREE.CylinderGeometry(0.84, 0.85, 0.17, 28, 1, true), acc, 0, 0.12, 0, hat);
       mk(new THREE.TorusGeometry(1.53, 0.035, 5, 32), dk, 0, 0.02, 0, hat).rotation.x = Math.PI / 2;
     } else {
-      mk(new THREE.SphereGeometry(0.86, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.y = 0.6;
-      const br = mk(new THREE.CylinderGeometry(1.5, 1.38, 0.2, 3), team, 0, 0.06, 0, hat, true); br.rotation.y = Math.PI;
-      const tr = mk(new THREE.TorusGeometry(1.5, 0.05, 5, 3), acc, 0, 0.17, 0, hat); tr.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-      mk(new THREE.SphereGeometry(0.13, 10, 8), acc, 0, 0.3, 0.72, hat);
+      mk(new THREE.SphereGeometry(0.9, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.y = 1.0;
+      const br = mk(new THREE.CylinderGeometry(1.55, 1.3, 0.3, 3), team, 0, 0.1, 0, hat, true); br.rotation.y = Math.PI;
+      const tr = mk(new THREE.TorusGeometry(1.55, 0.06, 5, 3), acc, 0, 0.26, 0, hat); tr.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      mk(new THREE.SphereGeometry(0.16, 10, 8), acc, 0, 0.45, 0.8, hat);
       const fe = mk(new THREE.SphereGeometry(0.2, 10, 8), toon(0xe0303a), 0.62, 0.55, -0.1, hat, true); fe.scale.set(0.4, 2.0, 0.7); fe.rotation.set(-0.5, 0, -0.35);
     }
     return gr;
   }
   if (kind === 'astro') {   // glass bubble with a collar ring and an antenna
     if (!fit.parent) gr.add(fit);
-    const gl = mk(new THREE.SphereGeometry(1.5, 28, 18), basic(0xcfeeff, { transparent: true, opacity: 0.2, depthWrite: false }), 0, 0.12, 0.04, fit); gl.renderOrder = 4;
-    const sh = mk(new THREE.SphereGeometry(1.51, 12, 6, 0.9, 0.5, 0.75, 0.55), basic(0xffffff, { transparent: true, opacity: 0.55, depthWrite: false }), 0, 0.12, 0.04, fit); sh.renderOrder = 5;
+    const gl = mk(new THREE.SphereGeometry(1.5, 28, 18), basic(0xbfe6ff, { transparent: true, opacity: 0.32, depthWrite: false }), 0, 0.12, 0.04, fit); gl.renderOrder = 4;
+    const sh = mk(new THREE.SphereGeometry(1.51, 12, 6, 0.9, 0.5, 0.75, 0.55), basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false }), 0, 0.12, 0.04, fit); sh.renderOrder = 5;
+    const s2 = mk(new THREE.SphereGeometry(1.51, 8, 4, 2.0, 0.22, 1.0, 0.3), basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false }), 0, 0.12, 0.04, fit); s2.renderOrder = 5;
     mk(new THREE.TorusGeometry(0.92, 0.17, 8, 28), team, 0, -0.98, 0, fit, true).rotation.x = Math.PI / 2;
     mk(new THREE.TorusGeometry(0.92, 0.06, 6, 28), acc, 0, -0.84, 0, fit).rotation.x = Math.PI / 2;
     mk(new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6), toon(0x8a93a6), 0.75, 1.55, 0, fit); mk(new THREE.SphereGeometry(0.09, 10, 8), toon(0xff5e5e), 0.75, 1.84, 0, fit);
@@ -1689,14 +1690,16 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const sx = kind === 'e_sport' ? 1.12 : kind === 'e_shade' ? 1.18 : 1.04, sy = kind === 'e_sport' ? 0.88 : kind === 'e_shade' ? 0.86 : 1.08, tube = kind === 'e_shade' ? 0.016 : kind === 'e_sport' ? 0.02 : 0.009;
     const R = Math.min(eyeAt[0][3] * 1.2, (exA - 0.012) / (sx * 0.955));
     const FG = (geo, mat, x, y, z, par) => noOL(add(geo, mat, x, y, z, par || faceG));
-    const rod = (a, b, r, mat) => { const d = new THREE.Vector3().subVectors(b, a), m = FG(new THREE.CylinderGeometry(r, r, d.length(), 6), mat, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m; };
+    const rod = (a, b, r, mat) => { const d = new THREE.Vector3().subVectors(b, a), len = d.length(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); const hl = FG(new THREE.CylinderGeometry(r + 0.007, r + 0.007, len + 0.01, 6), OUTLINE, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); hl.quaternion.copy(q); hl.userData.isOutline = true;
+      const m = FG(new THREE.CylinderGeometry(r, r, len, 6), mat, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); m.quaternion.copy(q); return m; };
     const frameM = toon(kind === 'e_sport' ? GL.face : kind === 'e_shade' ? 0x1d1f27 : 0xf2c230);
     const lensM = kind === 'e_sport' ? basic(0xbfeaff, { transparent: true, opacity: 0.36, depthWrite: false }) : kind === 'e_shade' ? basic(0x14161d) : basic(0xff9d3c, { transparent: true, opacity: 0.8, depthWrite: false });
     const shine = basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false });
     const AXx = 0.34 * P.sq[0], AXz = 0.34 * P.sq[2], sideX = AXx * 1.04 * Math.sqrt(Math.max(0.2, 1 - Math.pow(gy / (0.34 * P.sq[1]), 2)));   // head half-width at eye height
     for (const s of [-1, 1]) {
       const lg = new THREE.Group(); lg.position.set(s * exA, gy - (kind === 'e_pro' ? R * 0.12 : 0), gz); lg.rotation.y = s * 0.3; faceG.add(lg);
-      FG(new THREE.TorusGeometry(R, tube, 6, 24), frameM, 0, 0, 0, lg).scale.set(sx, sy, 1);
+      { const hl = FG(new THREE.TorusGeometry(R, tube + 0.008, 6, 24), OUTLINE, 0, 0, 0, lg); hl.scale.set(sx, sy, 1); hl.userData.isOutline = true; }
+      FG(new THREE.TorusGeometry(R, tube, 6, 24), frameM, 0, 0, 0.001, lg).scale.set(sx, sy, 1);
       const ln = FG(new THREE.CircleGeometry(R, 24), lensM, 0, 0, 0.002, lg); ln.scale.set(sx, sy, 1); ln.renderOrder = 2;
       const sh = FG(new THREE.PlaneGeometry(R * 0.62, R * 0.13), shine, -R * 0.22, R * 0.34, 0.007, lg); sh.rotation.z = 0.62; sh.renderOrder = 3;
       if (kind !== 'e_sport') { const tr = kind === 'e_shade' ? 0.012 : 0.007, zm = gz * 0.6, a = new THREE.Vector3(s * (exA + R * sx * 0.93), gy + R * 0.25, gz - 0.035), m = new THREE.Vector3(s * (sideX * Math.sqrt(Math.max(0.1, 1 - Math.pow(zm / AXz, 2))) + 0.012), gy + 0.035, zm), b = new THREE.Vector3(s * (sideX + 0.006), gy + 0.03, -0.02); rod(a, m, tr, frameM); rod(m, b, tr, frameM); }
@@ -1706,7 +1709,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (kind === 'e_pro') rod(new THREE.Vector3(-bx - 0.02, gy + R * sy * 0.62, gz + 0.012), new THREE.Vector3(bx + 0.02, gy + R * sy * 0.62, gz + 0.012), 0.006, frameM);
     if (kind === 'e_sport') {   // elastic strap round the back of the head
       const st = new THREE.Group(); st.position.y = gy; st.scale.set(sideX / 1.04, 0.34, AXz * sideX / (AXx * 1.04)); faceG.add(st);
-      const r = FG(new THREE.TorusGeometry(0.995, 0.045, 6, 36, Math.PI * 2 - 1.3), toon(shadeHex(GL.face, -0.45)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+      const hl = FG(new THREE.TorusGeometry(0.995, 0.068, 6, 36, Math.PI * 2 - 1.3), OUTLINE, 0, 0, 0, st); hl.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hl.userData.isOutline = true;
+      const r = FG(new THREE.TorusGeometry(0.995, 0.045, 6, 36, Math.PI * 2 - 1.3), toon(shadeHex(GL.face, -0.25)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
     }
   }
   const neckG = new THREE.Group(); neckG.name = 'neckGear'; up.add(neckG);
@@ -1795,7 +1799,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (const [x, dy, k] of [[-0.1, 0.13, 0], [0.09, 0.1, 1], [-0.02, 0.03, 1], [-0.17, 0.0, 1], [0.16, -0.01, 0], [0.06, -0.07, 0], [-0.09, -0.08, 1], [0.21, 0.09, 1], [-0.22, 0.1, 0]]) { const f = decal(new THREE.CircleGeometry(0.036, 5), k ? wh : pk2, x * tx, tc + dy, 0.006); f.rotateZ(x * 9); decal(new THREE.CircleGeometry(0.012, 8), ye, x * tx, tc + dy, 0.009); } }
   else if (GI.shirt === 'hr_shirt') { const ye = toon(0xffd23f); decal(new THREE.CircleGeometry(0.085, 24), basic(0xffd23f), 0, tc + 0.07, 0.007); decal(new THREE.CircleGeometry(0.058, 5), basic(0xe0303a), 0, tc + 0.07, 0.01).rotateZ(Math.PI / 10); hoop(tc - 0.105, 0.026, ye); decal(new THREE.BoxGeometry(0.07, 0.06, 0.02), toon(0xffffff), 0, tc - 0.105, 0.016); }
   const cape = (col, clasp) => {   // hangs from the shoulders to the knees, open at the front
-    const cp = BK(new THREE.SphereGeometry(0.3, 20, 10, Math.PI * 1.06, Math.PI * 0.88, 0.42, 1.85), toon(col, { side: THREE.DoubleSide }), 0, tc - 0.12, -0.015); cp.scale.set(tx * 1.14, ty * 1.3, tz * 1.3);
+    const cp = BK(new THREE.SphereGeometry(0.3, 20, 10, Math.PI * 1.06, Math.PI * 0.88, 0.42, 1.22), toon(col, { side: THREE.DoubleSide }), 0, tc - 0.12, -0.015); cp.scale.set(tx * 1.14, ty * 1.3, tz * 1.3);
     const rl = BK(new THREE.TorusGeometry(0.155, 0.032, 8, 22), toon(clasp), 0, cy + 0.005, 0, true); rl.rotation.x = Math.PI / 2;
     BK(new THREE.SphereGeometry(0.03, 10, 8), gold, 0, cy - 0.02, 0.165);
   };
@@ -4387,7 +4391,7 @@ const Net = {
     let ws;
     try { ws = new WebSocket(this.url()); } catch (e) { this.status('Địa chỉ server không hợp lệ', false); return; }
     this.ws = ws;
-    ws.onopen = () => { this.send({ t: 'hello', id: profile.id, secret: profile.secret, name: profile.name, char: profile.char, assist: settings.assist, hand: settings.hand }); this.retry = 0; };
+    ws.onopen = () => { this.send({ t: 'hello', backup: store.get('sp.backup', null) || undefined, id: profile.id, secret: profile.secret, name: profile.name, char: profile.char, assist: settings.assist, hand: settings.hand }); this.retry = 0; };
     ws.onmessage = (ev) => { let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; } this.onMsg(msg); };
     ws.onclose = () => {
       const was = this.ok; this.ok = false; this.ws = null; this.room = null;
@@ -4412,6 +4416,7 @@ const Net = {
         this.autoRejoin = null; renderRejoin();
         break;
       case 'swapAsk': if (screen === 'room' && !session) showSwapAsk(msg); else this.send({ t: 'swapReply', from: msg.from, ok: false }); break;
+      case 'backup': store.set('sp.backup', msg.v); break;
       case 'welcome':
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);

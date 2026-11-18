@@ -61,7 +61,19 @@ const rooms = new Map();     // code -> room
 const matches = new Map();   // id -> match
 let quickQueue = [];
 
-const send = (c, msg) => { if (c && c.ws.readyState === 1) c.ws.send(JSON.stringify(msg)); };
+const send = (c, msg) => { if (c && c.ws.readyState === 1) { c.ws.send(JSON.stringify(msg)); if (msg && msg.t === 'wallet') sendBackup(c); } };
+// Player record backup for hosts without a persistent disk: the player's browser keeps a copy of its own record, signed with
+// BACKUP_KEY (a secret that survives restarts). After the server has lost its data, a hello carrying that copy restores the record.
+// A copy is only accepted when the server has no record for that id, so it can never overwrite newer progress.
+const BACKUP_KEY = process.env.BACKUP_KEY || '';
+const signBackup = (body) => crypto.createHmac('sha256', BACKUP_KEY).update(body).digest('base64url');
+function sendBackup(c) { if (!BACKUP_KEY || !c.id || !data.players[c.id]) return; const body = Buffer.from(JSON.stringify({ id: c.id, rec: data.players[c.id] })).toString('base64url'); c.ws.send(JSON.stringify({ t: 'backup', v: body + '.' + signBackup(body) })); }
+function readBackup(v, id, secret) {
+  if (!BACKUP_KEY || typeof v !== 'string' || v.length > 60000) return null;
+  const [body, sig] = v.split('.'); if (!body || !sig) return null;
+  const a = Buffer.from(sig), b = Buffer.from(signBackup(body)); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); return o && o.id === id && o.rec && o.rec.secret === secret ? o.rec : null; } catch (e) { return null; }
+}
 const clean = (s, n) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
 const code5 = () => { let c; do c = Math.random().toString(36).slice(2, 7).toUpperCase(); while (rooms.has(c)); return c; };
 const validChar = (id) => (Sim.CHARS.some((c) => c.id === id) ? id : 'cat');
@@ -242,6 +254,7 @@ function leaveMatch(c, reason, grace) {
 const handlers = {
   hello(c, msg) {
     let id = clean(msg.id, 40), secret = clean(msg.secret, 80);
+    if (id && !data.players[id]) { const old = readBackup(msg.backup, id, secret); if (old) { data.players[id] = old; console.log('restored player from backup', id.slice(0, 8)); } }
     const rec = id && data.players[id];
     if (!rec || rec.secret !== secret) { id = crypto.randomUUID(); secret = crypto.randomBytes(18).toString('hex'); data.players[id] = { secret, name: '', wins: 0, played: 0 }; save(); }
     c.id = id;
