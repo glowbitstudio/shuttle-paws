@@ -998,3 +998,8 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 }
 #rejoinBar.lobby{bottom:auto;top:max(68px,calc(env(safe-area-inset-top) + 64px))}
 #s-shop header h2{flex:1;min-width:0;font-size:18px}#s-shop header .gold-chip{padding:4px 9px!important;font-size:13px!important;margin-left:4px!important;flex:none}#s-shop header .gold-chip .coin,#s-shop header .gold-chip .gem,#s-shop header .gold-chip .shard{margin-right:3px}
+
+/* shop: header and tabs stay in place while the list scrolls (the panel's top padding is 22px, 18px on small screens) */
+#s-shop header{position:sticky;top:-22px;z-index:6}
+#s-shop #gearTabs{position:sticky;top:calc(var(--shopH,60px) - 22px);z-index:5;margin:0 -22px 10px;padding:8px 22px;background:rgba(30,33,104,.98);box-shadow:0 6px 10px -6px rgba(0,0,0,.5)}
+@media (max-width:820px),(orientation:portrait){#s-shop header{top:-18px}#s-shop #gearTabs{top:calc(var(--shopH,60px) - 18px);margin:0 -14px 10px;padding:8px 14px}}

@@ -1321,14 +1321,14 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     for (let i = 0; i < 7; i++) { const a = -0.75 + i * 0.36, sp = mk(new THREE.ConeGeometry(0.27, 0.86 - Math.abs(i - 2.5) * 0.06, 5), i % 2 ? acc : team, 0, Math.cos(a) * 1.18, -Math.sin(a) * 1.18 + 0.0, fit, true); sp.rotation.x = -a; sp.scale.x = 0.55; }
     return gr;
   }
-  if (kind === 'deer') {   // deerstalker: cap with a peak in front and behind, ear flaps tied on top
+  if (kind === 'deer') {   // deerstalker: light crown in panels, dark peak in front and behind, ear flaps folded up at the sides, bow on top
     if (!fit.parent) gr.add(fit);
-    const dc = new THREE.Group(); dc.rotation.x = -0.18; fit.add(dc); const dk = toon(shadeHex(teamColor, -0.25), { side: THREE.DoubleSide });
-    mk(new THREE.SphereGeometry(1.06, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.3)), team, 0, 0, 0, dc, true);
-    for (const sd of [1, -1]) { const br = mk(new THREE.CylinderGeometry(0.95, 0.95, 0.12, 24, 1, false, -0.95, 1.9), dk, 0, 0.36, sd * 0.45, dc, true); br.rotation.set(sd * 0.3, sd > 0 ? 0 : Math.PI, 0); }
-    for (const sd of [-1, 1]) { const fl = mk(new THREE.SphereGeometry(0.4, 12, 8), dk, sd * 0.5, 0.92, 0, dc, true); fl.scale.set(1.3, 0.3, 0.75); fl.rotation.z = -sd * 0.55; }
-    for (const sd of [-1, 1]) { const bw = mk(new THREE.ConeGeometry(0.16, 0.3, 4), acc, sd * 0.17, 1.2, 0, dc, true); bw.rotation.z = sd * Math.PI / 2; bw.scale.z = 0.45; } mk(new THREE.SphereGeometry(0.09, 8, 6), toon(0xf2c230), 0, 1.2, 0.03, dc);
-    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; mk(new THREE.SphereGeometry(0.09, 6, 5), dk, Math.sin(a) * 0.95, 0.48, Math.cos(a) * 0.95, dc).scale.set(1, 1, 0.4); }
+    const dc = new THREE.Group(); dc.rotation.x = -0.18; fit.add(dc); const dk = toon(shadeHex(teamColor, -0.38), { side: THREE.DoubleSide });
+    mk(new THREE.SphereGeometry(1.07, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.3)), team, 0, 0, 0, dc, true);
+    for (let i = 0; i < 4; i++) { const sm = mk(new THREE.TorusGeometry(1.075, 0.018, 4, 20, Math.PI * 0.4), dk, 0, 0, 0, dc); sm.rotation.set(0, i / 4 * Math.PI + Math.PI / 8, Math.PI * 0.1); }
+    for (const sd of [1, -1]) { const br = mk(new THREE.CylinderGeometry(1.0, 1.0, 0.13, 24, 1, false, -0.8, 1.6), dk, 0, 0.3, sd * 0.5, dc, true); br.rotation.set(sd > 0 ? 0.2 : -0.42, sd > 0 ? 0 : Math.PI, 0); if (sd > 0) br.position.y = 0.4; }
+    for (const sd of [-1, 1]) { const fl = mk(new THREE.SphereGeometry(0.42, 12, 8), dk, sd * 0.93, 0.62, 0, dc, true); fl.scale.set(0.28, 0.95, 0.85); fl.rotation.z = sd * 0.28; }
+    for (const sd of [-1, 1]) { const bw = mk(new THREE.ConeGeometry(0.17, 0.32, 4), acc, sd * 0.18, 1.14, 0, dc, true); bw.rotation.z = sd * Math.PI / 2; bw.scale.z = 0.45; } mk(new THREE.SphereGeometry(0.1, 8, 6), toon(0xf2c230), 0, 1.14, 0.03, dc);
     return gr;
   }
   if (kind === 'robot') {   // metal skull cap, visor band with lights, ear bolts, antenna
@@ -2892,6 +2892,7 @@ function renderShop() {
   const c = charById(profile.char), shown = previewGear(), set = S.gearSet(myGear());
   const gold = wallet ? wallet.gold : 0, items = (wallet && wallet.items) || [];
   $('gearGold').textContent = wallet ? wallet.gold : '…';
+  { const hd = document.querySelector('#s-shop header'); if (hd && hd.offsetHeight) document.documentElement.style.setProperty('--shopH', (hd.offsetHeight - 1) + 'px'); }
   $('gearTabs').innerHTML = [['chests', 'Rương'], ['sets', 'Bộ đồ']].concat(S.GEAR_SLOTS).map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
   $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR.filter((it) => it.slot === gearSlot).map((it) => {
     const own = items.includes(it.id), on = set[it.slot] && set[it.slot].id === it.id;
