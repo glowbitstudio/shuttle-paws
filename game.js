@@ -1715,39 +1715,50 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const cy = tc + 0.27 * ty - 0.07;                 // collar height
   const chestZ = (x, y) => 0.27 * tz * Math.sqrt(Math.max(0.03, 1 - Math.pow((y - tc) / (0.27 * ty), 2) - Math.pow(x / (0.27 * tx), 2)));
   // a necklace lies on the chest in a U from the shoulders down to mid-chest, so it shows below the chin
-  const lace = (u, lift) => { const x = u * 0.15 * tx, y = cy - 0.02 - 0.125 * (1 - u * u); return new THREE.Vector3(x, y, chestZ(x, y) + lift); };
-  if (GI.neck === 'n_towel') {      // towel round the neck, both ends hanging on the chest
-    const tw = toon(0xffffff), r = NK(new THREE.TorusGeometry(0.15, 0.042, 8, 22), tw, 0, cy + 0.005, 0, true); r.rotation.x = Math.PI / 2; r.scale.set(1, 0.9, 0.8);
-    for (const sd of [-1, 1]) { const y = cy - 0.1, e = NK(new THREE.CapsuleGeometry(0.05, 0.15, 3, 8), tw, sd * 0.095, y - 0.02, surfZ(y) * 0.86 + 0.03, true); e.rotation.set(0.25, 0, -sd * 0.1); e.scale.z = 0.55;
-      const st = NK(new THREE.BoxGeometry(0.1, 0.018, 0.012), toon(0x4fb8e8), sd * 0.095, y - 0.1, surfZ(y - 0.1) * 0.86 + 0.06); st.rotation.x = 0.25; }
-  } else if (GI.neck === 'n_chain') {   // gold chain lying on the chest with a gem pendant
-    const pts = []; for (let k = -8; k <= 8; k++) pts.push(lace(k / 8, 0.012));
-    NK(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 32, 0.0085, 6), toon(0xf2c230), 0, 0, 0);
-    const pb = lace(0, 0.03); NK(new THREE.OctahedronGeometry(0.046), toon(GL.neck), pb.x, pb.y - 0.03, pb.z, true).scale.set(0.8, 1.2, 0.55);
-    NK(new THREE.SphereGeometry(0.016, 8, 6), toon(0xf2c230), pb.x, pb.y + 0.012, pb.z);
-  } else if (GI.neck === 'n_medal') {   // ribbon in a V and a gold medal on the chest
-    for (const sd of [-1, 1]) { const y = cy - 0.085, rb = NK(new THREE.BoxGeometry(0.036, 0.2, 0.01), toon(sd > 0 ? 0xd9483b : 0x3f6fd9), sd * 0.055, y, surfZ(y) * 0.9 + 0.03); rb.rotation.set(0.3, 0, sd * 0.5); }
-    const my = cy - 0.185, md = NK(new THREE.CylinderGeometry(0.058, 0.058, 0.016, 20), toon(0xf2c230), 0, my, surfZ(my) * 0.93 + 0.04, true); md.rotation.x = Math.PI / 2 - 0.25;
-    const ms = NK(new THREE.CircleGeometry(0.03, 5), basic(0xfff3c4), 0, my + 0.002, surfZ(my) * 0.93 + 0.05); ms.rotation.set(-0.25, 0, Math.PI / 10);
-  } else if (GI.neck === 'n_bell') {    // collar with a little gold bell
-    const cl = NK(new THREE.TorusGeometry(0.15, 0.024, 8, 24), toon(GL.neck), 0, cy - 0.005, 0.01, true); cl.rotation.x = Math.PI / 2 + 0.25;
-    const by = cy - 0.075, bzf = Math.max(surfZ(by) * 0.9, 0.15) + 0.045;
-    NK(new THREE.SphereGeometry(0.044, 12, 10), toon(0xf2c230), 0, by, bzf, true);
-    NK(new THREE.BoxGeometry(0.009, 0.034, 0.012), toon(0x5a3d12), 0, by - 0.016, bzf + 0.04); NK(new THREE.SphereGeometry(0.011, 6, 5), toon(0x5a3d12), 0, by + 0.004, bzf + 0.043);
-    for (const k of [-1, 1]) NK(new THREE.SphereGeometry(0.013, 6, 5), toon(0xffe9a8), k * 0.085, cy - 0.03, 0.135);
-  } else if (GI.neck === 'n_bow') {     // bow tie on a thin white collar
-    const cl = NK(new THREE.TorusGeometry(0.15, 0.014, 6, 24), toon(0xffffff), 0, cy - 0.005, 0.01); cl.rotation.x = Math.PI / 2 + 0.25;
-    const by = cy - 0.055, bzf = Math.max(surfZ(by) * 0.9, 0.15) + 0.04, dk = toon(shadeHex(GL.neck, -0.28));
-    for (const sd of [-1, 1]) { const lb = NK(new THREE.ConeGeometry(0.052, 0.095, 4), toon(GL.neck), sd * 0.058, by, bzf, true); lb.rotation.z = sd * Math.PI / 2; lb.scale.z = 0.45;
-      const cr = NK(new THREE.BoxGeometry(0.008, 0.05, 0.008), dk, sd * 0.05, by, bzf + 0.022); }
-    NK(new THREE.SphereGeometry(0.024, 10, 8), dk, 0, by, bzf + 0.012).scale.set(0.9, 1.2, 0.8);
-  } else if (GI.neck === 'n_pearl') {   // string of pearls on the chest (one mesh) with a larger pink pearl in the middle
-    const pos = [], nor = [], N = 19;
-    for (let i = 0; i < N; i++) { const q = lace((i / (N - 1)) * 2 - 1, 0.016), ge = new THREE.SphereGeometry(0.0215, 8, 6).toNonIndexed().translate(q.x, q.y, q.z);
-      for (const v of ge.attributes.position.array) pos.push(v); for (const v of ge.attributes.normal.array) nor.push(v); ge.dispose(); }
+  const lace = (u, lift, D = 0.14, W = 0.17) => { const x = u * W * tx, y = cy - 0.045 - D * (1 - u * u); return new THREE.Vector3(x, y, chestZ(x, y) + lift); };
+  const laceTube = (r, mat, D, W, ol) => { const pts = []; for (let k = -8; k <= 8; k++) pts.push(lace(k / 8, r * 0.8, D, W)); const cv = new THREE.CatmullRomCurve3(pts), hl = NK(new THREE.TubeGeometry(cv, 36, r + 0.008, 7), OUTLINE, 0, 0, 0); hl.userData.isOutline = true; return NK(new THREE.TubeGeometry(cv, 36, r, 7), mat, 0, 0, 0); };
+  // a flat strip lying on the chest from (x0,y0) to (x1,y1): w wide, standing t proud of the shirt
+  const strip = (x0, y0, x1, y1, w, t, mat, back) => { if (!back) strip(x0 - (x1 - x0) * 0.03, y0 - (y1 - y0) * 0.03, x1 + (x1 - x0) * 0.03, y1 + (y1 - y0) * 0.03, w + 0.022, t - 0.005, basic(0x2a1d18, { side: THREE.DoubleSide }), true); const N = 6, pos = [], idx = [];
+    for (let k = 0; k <= N; k++) { const x = x0 + (x1 - x0) * k / N, y = y0 + (y1 - y0) * k / N, dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), px = -dy / L * w / 2, py = dx / L * w / 2;
+      for (const sd of [-1, 1]) { const xx = x + px * sd, yy = y + py * sd; pos.push(xx, yy, chestZ(xx, yy) + t); } }
+    for (let k = 0; k < N; k++) { const a = k * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.setIndex(idx); ge.computeVertexNormals();
+    return NK(ge, mat, 0, 0, 0); };
+  const DS = { side: THREE.DoubleSide };
+  if (GI.neck === 'n_towel') {      // towel over the shoulders, both ends hanging down the chest with a blue stripe
+    const tw = toon(0xffffff, DS), bl = toon(0x4fb8e8, DS);
+    for (const sd of [-1, 1]) { strip(sd * 0.125 * tx, cy - 0.02, sd * 0.1 * tx, tc - 0.075, 0.1, 0.02, tw); strip(sd * 0.103 * tx, tc - 0.03, sd * 0.1 * tx, tc - 0.052, 0.1, 0.024, bl, true);
+      const sh = NK(new THREE.SphereGeometry(0.075, 12, 8), toon(0xffffff), sd * 0.15 * tx, cy + 0.0, 0.02, true); sh.scale.set(1.0, 0.55, 1.5); }
+  } else if (GI.neck === 'n_chain') {   // gold chain on the chest with a large gem
+    laceTube(0.012, toon(0xf2c230), 0.13);
+    const pb = lace(0, 0.03, 0.13); NK(new THREE.OctahedronGeometry(0.06), toon(GL.neck), pb.x, pb.y - 0.045, pb.z + 0.004, true).scale.set(0.8, 1.2, 0.5);
+    NK(new THREE.SphereGeometry(0.02, 8, 6), toon(0xf2c230), pb.x, pb.y + 0.005, pb.z);
+  } else if (GI.neck === 'n_medal') {   // wide red and blue ribbon in a V, big gold medal with a star
+    const my = tc + 0.0;
+    strip(-0.13 * tx, cy - 0.03, -0.012, my + 0.05, 0.05, 0.012, toon(0x3f6fd9, DS)); strip(0.13 * tx, cy - 0.03, 0.012, my + 0.05, 0.05, 0.014, toon(0xd9483b, DS));
+    const md = NK(new THREE.CylinderGeometry(0.078, 0.078, 0.02, 24), toon(0xf2c230), 0, my, chestZ(0, my) + 0.03, true); md.rotation.x = Math.PI / 2 - 0.12;
+    const mr = NK(new THREE.TorusGeometry(0.06, 0.008, 5, 24), toon(0xffe9a8), 0, my, chestZ(0, my) + 0.042); mr.rotation.x = -0.12;
+    const ms = NK(new THREE.CircleGeometry(0.042, 5), basic(0xfff3c4), 0, my, chestZ(0, my) + 0.043); ms.rotation.set(-0.12, 0, Math.PI / 10);
+  } else if (GI.neck === 'n_bell') {    // red collar lying on the chest with a big gold bell
+    laceTube(0.024, toon(GL.neck), 0.075, 0.17, true);
+    const pb = lace(0, 0.05, 0.075); NK(new THREE.SphereGeometry(0.062, 14, 10), toon(0xf2c230), pb.x, pb.y - 0.05, pb.z, true);
+    NK(new THREE.BoxGeometry(0.012, 0.05, 0.014), toon(0x5a3d12), pb.x, pb.y - 0.075, pb.z + 0.056); NK(new THREE.SphereGeometry(0.016, 8, 6), toon(0x5a3d12), pb.x, pb.y - 0.047, pb.z + 0.06);
+    NK(new THREE.TorusGeometry(0.063, 0.006, 5, 20), toon(0xffe9a8), pb.x, pb.y - 0.05, pb.z).rotation.x = Math.PI / 2;
+  } else if (GI.neck === 'n_bow') {     // big bow tie under the chin on a white collar
+    laceTube(0.014, toon(0xffffff), 0.05, 0.17);
+    const pb = lace(0, 0.045, 0.085), dk = toon(shadeHex(GL.neck, -0.28));
+    for (const sd of [-1, 1]) { const lb = NK(new THREE.ConeGeometry(0.075, 0.13, 4), toon(GL.neck), sd * 0.08, pb.y, pb.z, true); lb.rotation.z = sd * Math.PI / 2; lb.scale.z = 0.42;
+      NK(new THREE.BoxGeometry(0.01, 0.07, 0.01), dk, sd * 0.07, pb.y, pb.z + 0.03); }
+    NK(new THREE.SphereGeometry(0.034, 10, 8), dk, 0, pb.y, pb.z + 0.014, true).scale.set(0.9, 1.2, 0.8);
+  } else if (GI.neck === 'n_pearl') {   // string of large pearls on the chest (one mesh) with a pink pearl in the middle
+    const pos = [], nor = [], hp = [], hn = [], N = 15;
+    for (let i = 0; i < N; i++) { const q = lace((i / (N - 1)) * 2 - 1, 0.022, 0.13), ge = new THREE.SphereGeometry(0.029, 10, 8).toNonIndexed().translate(q.x, q.y, q.z);
+      for (const v of ge.attributes.position.array) pos.push(v); for (const v of ge.attributes.normal.array) nor.push(v); ge.dispose();
+      const g2 = new THREE.SphereGeometry(0.037, 10, 8).toNonIndexed().translate(q.x, q.y, q.z); for (const v of g2.attributes.position.array) hp.push(v); for (const v of g2.attributes.normal.array) hn.push(v); g2.dispose(); }
     const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    const hg = new THREE.BufferGeometry(); hg.setAttribute('position', new THREE.Float32BufferAttribute(hp, 3)); hg.setAttribute('normal', new THREE.Float32BufferAttribute(hn, 3)); NK(hg, OUTLINE, 0, 0, 0).userData.isOutline = true;
     NK(bg, toon(GL.neck), 0, 0, 0);
-    const pb = lace(0, 0.026); NK(new THREE.SphereGeometry(0.036, 12, 10), toon(0xff9fc4), pb.x, pb.y - 0.012, pb.z, true);
+    const pb = lace(0, 0.03, 0.13); NK(new THREE.SphereGeometry(0.046, 14, 10), toon(0xff9fc4), pb.x, pb.y - 0.03, pb.z, true);
   }
   const bz = -surfZ(tc + 0.03);                     // torso back
   if (GI.back === 'b_pack') {       // small backpack with a water bottle in the side pocket
