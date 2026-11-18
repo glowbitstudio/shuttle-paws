@@ -870,10 +870,12 @@ function mapCourt(K, o) {
     const post = K.add(new THREE.BoxGeometry(0.1, top + 0.05, 0.1), pm, x, (top + 0.05) / 2, 0); post.castShadow = true; K.add(new THREE.BoxGeometry(0.13, 0.12, 0.13), pd, x, top - 0.25, 0);
     K.add(new THREE.OctahedronGeometry(0.085, 0), basic(0xffffff), x, top + 0.14, 0); K.add(new THREE.BoxGeometry(0.5, 0.07, 0.5), pd, x, 0.065, 0); K.add(new THREE.BoxGeometry(0.34, 0.07, 0.34), pm, x, 0.135, 0); }
   // umpire's high chair: slanted legs, round seat, curved back, rungs on the far side (the seat position is what the umpire model sits on)
-  const ux = W + 1.3, um = toon(0xf4ead8), ud = toon(o.post), u = new THREE.Group(); u.position.set(ux, 0, 0); g.add(u);
+  const ux = W + 1.3, um = toon(0xf4ead8), ud = toon(o.post), u = new THREE.Group(); u.position.set(ux - 0.16, 0, 0); g.add(u);   // the umpire model sits a little toward the court from the seat point, so the chair is built round where its body really is
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const lg = K.add(new THREE.CylinderGeometry(0.03, 0.04, 1.46, 6), um, dx * 0.3, 0.7, dz * 0.3, u); lg.rotation.set(dz * 0.09, 0, -dx * 0.09); lg.castShadow = true; }
   K.add(new THREE.CylinderGeometry(0.36, 0.36, 0.07, 16), ud, 0, 1.4, 0, u).castShadow = true;
-  const bk = K.add(new THREE.CylinderGeometry(0.36, 0.36, 0.5, 14, 1, true, -0.9, 1.8), toon(o.post, { side: THREE.DoubleSide }), 0, 1.7, 0, u); bk.rotation.y = Math.PI / 2;
+  const bk = K.add(new THREE.CylinderGeometry(0.37, 0.37, 0.62, 16, 1, true, -1.15, 2.3), toon(o.post, { side: THREE.DoubleSide }), 0, 1.74, 0, u); bk.rotation.y = Math.PI / 2;
+  const rim = K.add(new THREE.TorusGeometry(0.37, 0.028, 6, 18, 2.3), um, 0, 2.05, 0, u); rim.rotation.set(Math.PI / 2, 0, -1.15);   // rail along the top of the back
+  for (const sd of [-1, 1]) K.add(new THREE.BoxGeometry(0.34, 0.04, 0.05), um, 0.0, 1.62, sd * 0.36, u);                                   // arm rests
   for (let i = 0; i < 4; i++) K.add(new THREE.CylinderGeometry(0.02, 0.02, 0.56, 5), um, -0.3 + i * 0.012, 0.28 + i * 0.3, 0, u).rotation.x = Math.PI / 2;
   g.userData.seat = { x: ux, y: 1.43 };
   return [];
@@ -4104,6 +4106,7 @@ function hideMeter() {
 const camPos = new THREE.Vector3(0, 7, 14), camLook = new THREE.Vector3(0, 1, -2);
 let camShake = 0;   // smash impact
 let camOverride = null, debugSpeed = 1, freeCam = null, debugPose = null;
+const CAM_PRESET = (mode, portrait) => (mode === 'mid' ? { ty: portrait ? 12.5 : 8.0, tz: portrait ? 17 : 16.0, lz: portrait ? 0.3 : -0.5 } : mode === 'low' ? { ty: portrait ? 9.5 : 5.6, tz: portrait ? 19 : 17.5, lz: portrait ? -1.0 : -2.5 } : null);
 const HIGH_FOV = [36, 50];   // [landscape, portrait]
 let camExtra = 0;            // extra fov added while a high shuttle would leave the top of the screen
 const shuttleNdc = new THREE.Vector3();
@@ -4134,7 +4137,7 @@ function updateCamera(dt, t) {
     } else if (mode === 'full') {
       tx = 0; ty = portrait ? 25 : 17.5; tz = portrait ? 10 : 9.5; lx = 0; ly = 0; lz = portrait ? 0.3 : 0.6;
     } else {
-      const o = camOverride || {};
+      const o = camOverride || CAM_PRESET(mode, portrait) || {};   // 'mid' / 'low': the same camera, lower and further back, so the scenery behind the court shows
       tx = o.tx !== undefined ? o.tx : px * 0.25; ty = o.ty || (portrait ? 15.5 : 11.3); tz = (o.tz || (portrait ? 15 : 14.0)) + (pz - 4) * 0.35;
       lx = px * 0.1; ly = 0; lz = o.lz !== undefined ? o.lz : (portrait ? 1.1 : 1.6);   // aim a bit toward your end so your half is fully on screen
     }
@@ -4155,7 +4158,7 @@ function updateCamera(dt, t) {
   // per-mode lens: the in-match 'high' view uses a long lens so the far half doesn't shrink
   const portrait2 = viewH > viewW;
   let fov = portrait2 ? 60 : 44;
-  if (session && (session.me < 0 && settings.cam === 'close' ? 'high' : settings.cam) === 'high') fov = (camOverride && camOverride.fov) || (portrait2 ? HIGH_FOV[1] : HIGH_FOV[0]);
+  if (session && ['high', 'mid', 'low'].includes(session.me < 0 && settings.cam === 'close' ? 'high' : settings.cam)) fov = (camOverride && camOverride.fov) || (portrait2 ? HIGH_FOV[1] : HIGH_FOV[0]);
   if (freeCam) {   // debug: fixed camera for close-up screenshots
     camera.position.set(...freeCam.pos); camera.lookAt(...freeCam.look);
     if (camera.fov !== freeCam.fov) { camera.fov = freeCam.fov; camera.updateProjectionMatrix(); }
@@ -4556,10 +4559,10 @@ function showPreview(on) {
     previewSwing = performance.now() / 1000;
   }
 }
-const CAM_NAMES = { high: 'Trên cao', close: 'Sau lưng', full: 'Toàn sân' };
+const CAM_NAMES = { high: 'Trên cao', mid: 'Vừa', low: 'Thấp', close: 'Sau lưng', full: 'Toàn sân' };
 function setCamBtn() { $('camBtn').innerHTML = icon('camera') + 'Góc nhìn: ' + CAM_NAMES[settings.cam]; }
 function cycleCam() {
-  const order = ['high', 'close', 'full'];
+  const order = ['high', 'mid', 'low', 'close', 'full'];
   settings.cam = order[(order.indexOf(settings.cam) + 1) % 3]; saveAll();
   setCamBtn();
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
