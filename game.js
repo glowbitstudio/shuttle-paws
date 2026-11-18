@@ -2187,13 +2187,13 @@ function startLocal(opts) {
   const pick = () => oppPool.splice(Math.floor(Math.random() * oppPool.length), 1)[0].id;
   const names = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
   const botHand = () => (Math.random() < 0.18 ? 'L' : 'R');
-  const slots = [{ name: profile.name, char: profile.char, ctrl: 'human', assist: settings.assist, hand: settings.hand, gear: myGear() }];
+  const slots = [{ name: profile.name, char: profile.char, ctrl: 'human', assist: d >= 4 ? Math.min(1, settings.assist) : settings.assist, hand: settings.hand, gear: myGear() }];   // against the challenger: no auto-hit
   if (opts.mode === '2v2') slots.push({ name: names[0], char: pick(), ctrl: 'bot', diff: 3, hand: botHand() });   // the partner bot always plays at master level
-  const dare = () => { if (d < 4) return undefined; const st = S.GEAR_SETS[Math.floor(Math.random() * S.GEAR_SETS.length)]; return S.GEAR.filter((g) => g.set === st.id).map((g) => g.id); };   // challenger bots wear a random full set
+  const dare = () => { if (d < 4) return undefined; const top = S.GEAR_SETS.filter((x) => S.GEAR.find((g) => g.set === x.id).rar >= 2), st = top[Math.floor(Math.random() * top.length)]; return S.GEAR.filter((g) => g.set === st.id).map((g) => g.id); };   // challenger bots wear a random full set
   slots.push({ name: opts.oppName || names[1], char: opts.opp || pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;
-  const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit });
+  const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit, moveAssist: d >= 4 ? false : undefined, autoSave: d >= 4 ? false : undefined });   // challenger matches play by the online rules: no auto-run, no auto-return, no auto-save
   beginSession('local', m, 0, { localOpts: opts, snapCam: true, tourRound: opts.tourRound });
 }
 
@@ -3601,7 +3601,7 @@ function animateShuttle(m) {
   trailGeo.attributes.position.needsUpdate = true;
   trail.visible = settings.showTrail && s.live;   // optional (off by default)
   // guide line under the shuttle: an aid for games vs bots only
-  dropLine.visible = settings.dropLine && session.kind === 'local' && (s.live || s.held) && s.p.y > 0.25;
+  dropLine.visible = settings.dropLine && session.kind === 'local' && !(session.localOpts && session.localOpts.diff >= 4) && (s.live || s.held) && s.p.y > 0.25;
   if (dropLine.visible) {
     const d = dropGeo.attributes.position.array;
     d[0] = vp.x; d[1] = vp.y; d[2] = vp.z; d[3] = vp.x; d[4] = 0.04; d[5] = vp.z;
