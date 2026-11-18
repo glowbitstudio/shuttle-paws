@@ -2772,7 +2772,7 @@ function finishMatch(res) {
         for (const k in FT) { const g0 = (d0.gT || {})[k] || [], m0 = (d0.memT || {})[k] || [], o = FT[k].map((v, x) => r2(Math.max(0, v - (g0[x] || 0)) * 0.6)), r = FT[k].map((v, x) => r2(Math.max(0, v - (+m0[x] || 0) - (g0[x] || 0)))); if (o.some((v) => v > 0)) ownT[k] = o; if (r.some((v) => v > 0)) repT[k] = r; }
         store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own, pos, T: ownT });
         const rpos = {}; for (const k in cb.learn.pos || {}) if (k !== '_all') rpos[k] = r2(cb.learn.pos[k] - (+((d0.mem.pos || {})[k]) || 0));
-        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT }); } }
+        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT, log: (m.dareLog || []).slice(-60) }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;

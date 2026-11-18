@@ -604,6 +604,11 @@ function doHit(m, a, shotName, target, q, label, pw) {
     else t.z = target.z + Math.sign(target.z) * rand(1.0, 1.8);
   }
   const from = { x: s.p.x, y: s.p.y, z: s.p.z };
+  // challenger matches keep a full record of every rally (m.dareLog): each hit with who played it, from where, which shot, aimed
+  // where, and where the other player stood and whether they were down. [who, x, z, shot, aim x, aim z, other x, other z, other down]
+  if (m.dareOn === undefined) m.dareOn = m.athletes.some((x) => x.ctrl === 'bot' && x.diff >= 4);
+  if (m.dareOn) { const o = m.athletes.find((x) => x.team !== a.team), r1 = (v) => Math.round(v * 10) / 10, cur = m.dareCur || (m.dareCur = []);
+    if (cur.length < 40) cur.push([a.ctrl === 'bot' ? 'B' : 'P', r1(a.x), r1(a.z), shotName, r1(target.x), r1(target.z), r1(o.x), r1(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0]); }
   m.shuttle.lastShotName = shotName;   // what kind of shot is in the air (the challenger's situation uses the incoming one)
   const botPow = a.ctrl === 'bot' && (shotName === 'smash' || shotName === 'drive') ? [0.85, 0.92, 0.97, 1.04, 1.06][a.diff] : a.ctrl === 'human' && shotName === 'smash' ? 1.12 : 1;
   useStamina(m, a, shotName === 'smash' ? 0.014 : shotName === 'serveHigh' || shotName === 'serveShort' ? 0.002 : shotName === 'drive' || shotName === 'clear' || shotName === 'lift' ? 0.004 : 0.003);
@@ -653,7 +658,9 @@ function doHit(m, a, shotName, target, q, label, pw) {
     if (n >= 3) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - ((R[0] - R[2]) / n) * 1.2, 2.3, 4.7); else if (P) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - P * 0.8, 2.3, 4.7);
     // the reasons it lost after this shot in this situation: beaten wide -> wait on the centre line; beaten for pace -> wait half a step deeper
     const Y = a.learn.T && a.lastKey && a.learn.T['y|' + a.lastKey + '|' + a.lastShot], yn = Y ? Y[0] + Y[1] + Y[2] + Y[3] + Y[4] : 0;
-    if (yn >= 3) { if (Y[2] / yn > 0.4) a.tx = 0; if (Y[3] / yn > 0.4) a.tz = sgn(a.team) * clamp(Math.abs(a.tz) + 0.45, 2.3, 4.9); }
+    const X = a.learn.T && a.lastKey && a.learn.T['x|' + a.lastKey + '|' + a.lastShot], xn = X ? X[0] + X[1] + X[2] : 0;   // the side the reply usually comes to: wait there
+    if (xn >= 3) { const top = X[0] > X[2] ? 0 : 2; a.tx = X[top] / xn > 0.55 ? (top === 0 ? -1.1 : 1.1) * sgn(a.team) : X[1] / xn > 0.55 ? 0 : a.tx; }
+    if (yn >= 3) { if (Y[2] / yn > 0.4 && xn < 3) a.tx = 0; if (Y[3] / yn > 0.4) a.tz = sgn(a.team) * clamp(Math.abs(a.tz) + 0.45, 2.3, 4.9); }
   }   // the challenger's learned spot after this very shot
 }
 
@@ -778,6 +785,8 @@ function planTeam(m, team, r, landIn) {
 //   'c|sit|shot' = [times played, rallies won]      -> which shot pays in this situation
 //   'r|sit|shot' = [short, mid, deep]               -> where the reply to that shot comes back (where the bot had to hit it, or where it landed)
 //   'y|sit|shot' = [beaten short, beaten deep, beaten wide, beaten for pace, own error]   -> why the rally was lost after that shot
+//   'x|sit|shot' = [its left, centre, its right]      -> which side of its court the reply comes to (seen from the bot)
+const dareSide = (u) => (u < -0.9 ? 0 : u > 0.9 ? 2 : 1);
 const dareZone = (z) => (z < 2.6 ? 0 : z < 4.6 ? 1 : 2), DARE_SHOTS = ['smash', 'clear', 'drop', 'drive', 'net', 'lift'];
 function dareKey(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; const inc = m.shuttle.lastShotName; return '' + dareZone(Math.abs(b.z)) + dareZone(Math.abs(o.z)) + (o.diveT >= 0 || o.recoverT > 0 ? 1 : 0) + (inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1); }   // 4th: the shot coming at it - soft (drop / net), high (clear / lift / serve) or fast (smash / drive)
 function dareCell(L, k, n) { const T = L.T || (L.T = {}); return T[k] || (T[k] = new Array(n).fill(0)); }
@@ -785,7 +794,7 @@ function botChooseShot(m, b) {
   let shot = botChooseShot0(m, b);
   if (b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), s = m.shuttle.p, az = Math.abs(b.z), key = dareKey(m, b), T = L.T || (L.T = {});
-    if (b.lastKey && b.lastShot) dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(az)]++;   // the reply to its last shot came back to where it stands now
+    if (b.lastKey && b.lastShot) { dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(az)]++; dareCell(L, 'x|' + b.lastKey + '|' + b.lastShot, 3)[dareSide(b.x * sgn(b.team))]++; }   // the reply to its last shot came back to where it stands now
     const ok = (x) => (x === 'smash' ? s.y > 1.58 && az < 5.6 : x === 'drive' ? s.y >= 1.5 : x === 'drop' ? s.y >= 1.75 : x === 'clear' ? s.y >= 1.05 : x === 'net' ? s.y < 1.75 && az < 3 : s.y < 1.5);
     const rate = (x) => { const c = T['c|' + key + '|' + x]; return c ? (c[1] + 1) / (c[0] + 2) : 0.5; }, c0 = T['c|' + key + '|' + shot], n = L.bad[shot] || 0;
     if (c0 && c0[0] >= 3) {            // enough rallies seen in this very situation: play what has won most here
@@ -822,6 +831,7 @@ function dareAim(m, b, shot, t) {
   return t;
 }
 function botLearn(m, winner) {
+  if (m.dareOn) { const s0 = m.shuttle.p, r1 = (v) => Math.round(v * 10) / 10, log = m.dareLog || (m.dareLog = []); log.push({ w: winner, last: m.shuttle.lastTeam, land: [r1(s0.x), r1(s0.z)], ev: m.dareCur || [] }); if (log.length > 60) log.shift(); m.dareCur = []; }
   for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z), won = winner === b.team, own = m.shuttle.lastTeam === b.team;
     const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
@@ -833,7 +843,7 @@ function botLearn(m, winner) {
       if (b.lastKey && b.lastShot) {
         const why = own ? 4 : !mine ? 3 : sz < 2.7 && bz > 3.2 ? 0 : sz > 4.6 && bz < 3.3 ? 1 : Math.abs(s.x - b.x) > 1.6 ? 2 : 3;
         dareCell(L, 'y|' + b.lastKey + '|' + b.lastShot, 5)[why]++;
-        if (mine) dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(sz)]++;
+        if (mine) { dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(sz)]++; dareCell(L, 'x|' + b.lastKey + '|' + b.lastShot, 3)[dareSide(s.x * sg)]++; }
       }
       if (mine) {
         const sign = sz < 2.7 && bz > 3.2 ? 1 : sz > 4.6 && bz < 3.3 ? -1 : 0;   // beaten short while deep / beaten deep while close
@@ -1311,7 +1321,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  botLearn, botLesson, dareAim, botChooseShot, dareKey, dareZone, DARE_SHOTS,
+  botLearn, botLesson, dareAim, dareSide, botChooseShot, dareKey, dareZone, DARE_SHOTS,
   GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,

@@ -320,6 +320,7 @@ const handlers = {
   claimQuest(c, msg) { const p = data.players[c.id], grant = Eco.claimQuest(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   // What challenger bots learned in one match on a player's machine, folded into a shared memory every challenger match starts from.
   // Reports come from clients, so each one is clamped, a player can send one a minute, and a single report moves the average by 2% at most.
+  dareLogGet(c) { send(c, { t: 'dareLog', log: (data.dareLog || []).slice(-120) }); },
   dareLearn(c, msg) {
     const P0 = (data.dare && data.dare.pos) || {};
     const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;   // per player, not per connection
@@ -329,12 +330,14 @@ const handlers = {
     G.pos = {}; for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift', 'serve']) G.pos[k] = Math.round(((1 - a) * (P0[k] || 0) + a * num(msg.pos && msg.pos[k], -0.8, 1.25)) * 1000) / 1000;   // where to stand after each shot
     // situation table: per (situation, shot) how often it was played / won, where the reply came back, why the rally was lost.
     // Each report adds what one match saw; older counts fade by 2% a report and a cell never grows past 300.
-    const T = G.T || (G.T = {}), len = { c: 2, r: 3, y: 5, s: 4 }; let seen = 0;
+    const T = G.T || (G.T = {}), len = { c: 2, r: 3, y: 5, s: 4, x: 3 }; let seen = 0;
     if (msg.T && typeof msg.T === 'object') for (const k in msg.T) {
-      if (++seen > 400 || !/^[crys]\|[0-2][0-2][01][0-2]\|(smash|clear|drop|drive|net|lift)$/.test(k) || !Array.isArray(msg.T[k])) continue;
+      if (++seen > 400 || !/^[crysx]\|[0-2][0-2][01][0-2]\|(smash|clear|drop|drive|net|lift)$/.test(k) || !Array.isArray(msg.T[k])) continue;
       const cell = T[k] || (T[k] = new Array(len[k[0]]).fill(0));
       for (let i = 0; i < cell.length; i++) cell[i] = Math.min(300, Math.round((cell[i] * 0.98 + num(msg.T[k][i], 0, 40)) * 100) / 100);
     }
+    // the full rally record of that match (every hit, positions, result) is kept for study: the last 300 rallies of all players
+    if (Array.isArray(msg.log) && JSON.stringify(msg.log).length < 120000) data.dareLog = (data.dareLog || []).concat(msg.log.slice(-60).map((r) => ({ p: c.id.slice(0, 6), at: now, w: r && r.w, last: r && r.last, land: r && r.land, ev: r && Array.isArray(r.ev) ? r.ev.slice(0, 40) : [] }))).slice(-300);
     G.n = Math.min(G.n + 1, 1e6); save();
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
