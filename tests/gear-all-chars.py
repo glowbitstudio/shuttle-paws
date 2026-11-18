@@ -1,13 +1,13 @@
 # Usage: gear-all-chars.py <port> <out prefix> [char ids...]   (an out prefix containing 'sets' shows the six outfit sets, front and back)  -- head / face / neck / back items on every character (clipping check).
 # Six tiles per character (4 front outfits, 2 back views), four characters per sheet. ONE headless browser.
 from pathlib import Path
-import sys,io
+import sys,io,os
 from playwright.sync_api import sync_playwright
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1];OUT=sys.argv[2]
 HOOK="window.__look=(ch,ids,slot)=>{profile.char=ch;window.__ids2=ids;gearSlot=slot;showPreview(true);previewSwing=-9;};previewGear=()=>window.__ids2||[];window.__chars=()=>S.CHARS.map(c=>c.id);\n"
 LOOKS=[(['h_band','e_sport','n_bell','t_cool'],'face'),(['h_focus','e_shade','n_bow'],'face'),(['h_pro','e_pro','n_pearl'],'face'),(['e_shade','n_chain','t_pro'],'neck'),(['b_pack','h_band','e_sport'],'back'),(['b_wings','h_pro','e_pro'],'back')]
-SETS=['bc','nj','pr','as','ry','hr']
+SETS=(os.environ.get('SETS') or 'bc,nj,pr,as,ry,hr').split(',')
 if 'sets' in OUT: LOOKS=[([f'{k}_head',f'{k}_shirt',f'{k}_pants',f'{k}_shoes',f'{k}_back'],'sets') for k in SETS]+[([f'{k}_head',f'{k}_shirt',f'{k}_pants',f'{k}_shoes',f'{k}_back'],'back') for k in SETS]
 errs=[]
 with sync_playwright() as p:

@@ -289,6 +289,7 @@ const handlers = {
   localResult(c, msg) { const p = data.players[c.id], grant = Eco.grantLocal(p, msg, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimLogin(c) { const p = data.players[c.id], grant = Eco.claimLogin(p, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimQuest(c, msg) { const p = data.players[c.id], grant = Eco.claimQuest(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  openChest(c, msg) { const p = data.players[c.id], chest = Eco.openChest(p, clean(msg.id, 4), msg.pay === 'gems' ? 'gems' : 'gold', Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { chest })); },
   buyGear(c, msg) { const p = data.players[c.id], boughtGear = Eco.buyGear(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { boughtGear })); },
   equip(c, msg) { const p = data.players[c.id]; Eco.equip(p, clean(msg.slot, 10), msg.id ? clean(msg.id, 20) : null, Date.now()); save(); send(c, Eco.view(p, Date.now())); },
   buyChar(c, msg) { const p = data.players[c.id], bought = Eco.buyChar(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { bought })); },
