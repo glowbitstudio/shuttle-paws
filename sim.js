@@ -604,6 +604,7 @@ function doHit(m, a, shotName, target, q, label, pw) {
     else t.z = target.z + Math.sign(target.z) * rand(1.0, 1.8);
   }
   const from = { x: s.p.x, y: s.p.y, z: s.p.z };
+  m.shuttle.lastShotName = shotName;   // what kind of shot is in the air (the challenger's situation uses the incoming one)
   const botPow = a.ctrl === 'bot' && (shotName === 'smash' || shotName === 'drive') ? [0.85, 0.92, 0.97, 1.04, 1.06][a.diff] : a.ctrl === 'human' && shotName === 'smash' ? 1.12 : 1;
   useStamina(m, a, shotName === 'smash' ? 0.014 : shotName === 'serveHigh' || shotName === 'serveShort' ? 0.002 : shotName === 'drive' || shotName === 'clear' || shotName === 'lift' ? 0.004 : 0.003);
   // assisted players leap into their smashes like the bots do: the contact is taken high
@@ -650,6 +651,9 @@ function doHit(m, a, shotName, target, q, label, pw) {
   if (a.ctrl === 'bot' && a.learn && a.lastShot) {   // the challenger goes where the reply to this shot, in this situation, usually comes back
     const R = a.learn.T && a.lastKey && a.learn.T['r|' + a.lastKey + '|' + a.lastShot], n = R ? R[0] + R[1] + R[2] : 0, P = a.learn.pos && a.learn.pos[a.lastShot];
     if (n >= 3) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - ((R[0] - R[2]) / n) * 1.2, 2.3, 4.7); else if (P) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - P * 0.8, 2.3, 4.7);
+    // the reasons it lost after this shot in this situation: beaten wide -> wait on the centre line; beaten for pace -> wait half a step deeper
+    const Y = a.learn.T && a.lastKey && a.learn.T['y|' + a.lastKey + '|' + a.lastShot], yn = Y ? Y[0] + Y[1] + Y[2] + Y[3] + Y[4] : 0;
+    if (yn >= 3) { if (Y[2] / yn > 0.4) a.tx = 0; if (Y[3] / yn > 0.4) a.tz = sgn(a.team) * clamp(Math.abs(a.tz) + 0.45, 2.3, 4.9); }
   }   // the challenger's learned spot after this very shot
 }
 
@@ -775,7 +779,7 @@ function planTeam(m, team, r, landIn) {
 //   'r|sit|shot' = [short, mid, deep]               -> where the reply to that shot comes back (where the bot had to hit it, or where it landed)
 //   'y|sit|shot' = [beaten short, beaten deep, beaten wide, beaten for pace, own error]   -> why the rally was lost after that shot
 const dareZone = (z) => (z < 2.6 ? 0 : z < 4.6 ? 1 : 2), DARE_SHOTS = ['smash', 'clear', 'drop', 'drive', 'net', 'lift'];
-function dareKey(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; return '' + dareZone(Math.abs(b.z)) + dareZone(Math.abs(o.z)) + (o.diveT >= 0 || o.recoverT > 0 ? 1 : 0); }
+function dareKey(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; const inc = m.shuttle.lastShotName; return '' + dareZone(Math.abs(b.z)) + dareZone(Math.abs(o.z)) + (o.diveT >= 0 || o.recoverT > 0 ? 1 : 0) + (inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1); }   // 4th: the shot coming at it - soft (drop / net), high (clear / lift / serve) or fast (smash / drive)
 function dareCell(L, k, n) { const T = L.T || (L.T = {}); return T[k] || (T[k] = new Array(n).fill(0)); }
 function botChooseShot(m, b) {
   let shot = botChooseShot0(m, b);

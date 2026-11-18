@@ -331,7 +331,7 @@ const handlers = {
     // Each report adds what one match saw; older counts fade by 2% a report and a cell never grows past 300.
     const T = G.T || (G.T = {}), len = { c: 2, r: 3, y: 5 }; let seen = 0;
     if (msg.T && typeof msg.T === 'object') for (const k in msg.T) {
-      if (++seen > 400 || !/^[cry]\|[0-2][0-2][01]\|(smash|clear|drop|drive|net|lift)$/.test(k) || !Array.isArray(msg.T[k])) continue;
+      if (++seen > 400 || !/^[cry]\|[0-2][0-2][01][0-2]\|(smash|clear|drop|drive|net|lift)$/.test(k) || !Array.isArray(msg.T[k])) continue;
       const cell = T[k] || (T[k] = new Array(len[k[0]]).fill(0));
       for (let i = 0; i < cell.length; i++) cell[i] = Math.min(300, Math.round((cell[i] * 0.98 + num(msg.T[k][i], 0, 40)) * 100) / 100);
     }

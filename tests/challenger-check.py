@@ -10,7 +10,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])
     for diff in (4,4,3):
         ctx=b.new_context(viewport={'width':800,'height':450});pg=ctx.new_page();pg.set_default_timeout(120000)
-        ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:0,gfxV:1,vol:0,assist:2}));localStorage.setItem('sp.dareG',JSON.stringify({n:9,front:1,bad:{smash:2,drop:1},T:{'c|211|smash':[10,0],'r|211|smash':[5,0,0]}}));localStorage.setItem('sp.dare',JSON.stringify({front:0.2,bad:{smash:1},T:{'c|211|smash':[2,1],'y|211|smash':[2,0,0,0,0]}}));localStorage.setItem('sp.profile',JSON.stringify({name:'Thu',char:'cat',id:null,secret:null,named:true}));")
+        ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:0,gfxV:1,vol:0,assist:2}));localStorage.setItem('sp.dareG',JSON.stringify({n:9,front:1,bad:{smash:2,drop:1},T:{'c|2111|smash':[10,0],'r|2111|smash':[5,0,0]}}));localStorage.setItem('sp.dare',JSON.stringify({front:0.2,bad:{smash:1},T:{'c|2111|smash':[2,1],'y|2111|smash':[2,0,0,0,0]}}));localStorage.setItem('sp.profile',JSON.stringify({name:'Thu',char:'cat',id:null,secret:null,named:true}));")
         pg.on('pageerror',lambda e:errs.append(str(e)[:200]));pg.route('https://**/*',lambda r:r.abort())
         pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
         pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object"');pg.wait_for_timeout(800)

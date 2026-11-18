@@ -19,14 +19,14 @@ const before = JSON.stringify(b.learn.pos); b.lastShot = 'drive'; m.shuttle.p.z 
 { const m2 = S.createMatch({ mode: '1v1', points: 21, venue: 0, slots: [{ name: 'h', char: 'cat', ctrl: 'bot', diff: 3 }, { name: 'c', char: 'cat', ctrl: 'bot', diff: 4 }] });
   const c = m2.athletes[1], h = m2.athletes[0], g = S.sgn(c.team), hg = S.sgn(h.team);
   const set = (bz, oz, down) => { c.z = g * bz; h.z = hg * oz; h.diveT = -1; h.recoverT = down ? 0.3 : 0; m2.shuttle.p.y = 2.3; m2.shuttle.p.z = g * bz; c.sta = 1; c.lastKey = c.lastShot = null; c.hist = []; };   // each call stands for a fresh rally
-  set(5.2, 3.0, true); assert.equal(S.dareKey(m2, c), '211'); set(5.2, 3.0, false); assert.equal(S.dareKey(m2, c), '210'); set(1.5, 5.5, false); assert.equal(S.dareKey(m2, c), '020');
+  set(5.2, 3.0, true); assert.equal(S.dareKey(m2, c), '2111'); set(5.2, 3.0, false); assert.equal(S.dareKey(m2, c), '2101'); set(1.5, 5.5, false); assert.equal(S.dareKey(m2, c), '0201');
   const share = (bz, oz, down, n) => { let k = 0; for (let i = 0; i < n; i++) { set(bz, oz, down); if (S.botChooseShot(m2, c) === 'smash') k++; } return k / n; };
   assert(share(5.2, 3.0, true, 300) > 0.85, 'nothing learned: a high shuttle at the back is smashed');
   // lesson: smashing from the rear court while the opponent is down loses (they drop short as they get up); a clear from there wins
-  c.learn.T = {}; for (let i = 0; i < 6; i++) { set(5.2, 3.0, true); c.lastKey = '211'; c.lastShot = 'smash'; m2.shuttle.p.z = g * 1.4; m2.shuttle.p.x = c.x; m2.shuttle.lastTeam = h.team; S.botLearn(m2, h.team); }
-  for (let i = 0; i < 6; i++) { c.lastKey = '211'; c.lastShot = 'clear'; S.botLearn(m2, c.team); }
-  assert.deepEqual(c.learn.T['c|211|smash'], [6, 0]); assert.deepEqual(c.learn.T['c|211|clear'], [6, 6]);
-  assert.deepEqual(c.learn.T['y|211|smash'], [6, 0, 0, 0, 0], 'the reason is kept: beaten short while standing deep'); assert.deepEqual(c.learn.T['r|211|smash'], [6, 0, 0], 'and where the reply came: short');
+  c.learn.T = {}; for (let i = 0; i < 6; i++) { set(5.2, 3.0, true); c.lastKey = '2111'; c.lastShot = 'smash'; m2.shuttle.p.z = g * 1.4; m2.shuttle.p.x = c.x; m2.shuttle.lastTeam = h.team; S.botLearn(m2, h.team); }
+  for (let i = 0; i < 6; i++) { c.lastKey = '2111'; c.lastShot = 'clear'; S.botLearn(m2, c.team); }
+  assert.deepEqual(c.learn.T['c|2111|smash'], [6, 0]); assert.deepEqual(c.learn.T['c|2111|clear'], [6, 6]);
+  assert.deepEqual(c.learn.T['y|2111|smash'], [6, 0, 0, 0, 0], 'the reason is kept: beaten short while standing deep'); assert.deepEqual(c.learn.T['r|2111|smash'], [6, 0, 0], 'and where the reply came: short');
   const a1 = share(5.2, 3.0, true, 400), a2 = share(5.2, 3.0, false, 400), a3 = share(3.5, 3.0, true, 400);
   assert(a1 < 0.3, 'in that situation it now mostly avoids the smash: ' + a1); assert(a2 > 0.6 && a3 > 0.6 && a2 > a1 + 0.35 && a3 > a1 + 0.35, 'other situations keep the smash (only a weak general nudge): ' + a2 + ' ' + a3);
   // after playing that shot in that situation it goes where the reply usually comes: forward
