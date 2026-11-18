@@ -14,6 +14,7 @@ with sync_playwright() as p:
         pg.on('pageerror',lambda e:errs.append(name+' '+str(e)[:300]));pg.route('https://**/*',lambda r:r.abort())
         pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
         pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object" && __w() && __w().login')
+        pg.wait_for_timeout(2500);pg.screenshot(path=str(OUT/f'{name}-home.png'))
         pg.evaluate("()=>__spDebug.go('shop')");pg.wait_for_timeout(1500);pg.click('#gearTabs button[data-slot="head"]');pg.wait_for_timeout(1500)
         r={'scrollable':pg.evaluate("()=>{const p=document.querySelector('#s-shop .panel');return p.scrollHeight-p.clientHeight}")}
         pg.evaluate("()=>{const p=document.querySelector('#s-shop .panel');p.scrollTop=p.scrollHeight}");pg.wait_for_timeout(700)
