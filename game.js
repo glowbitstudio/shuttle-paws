@@ -1686,7 +1686,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   // glasses: in head space, in front of the eyes (they follow the head)
   const faceG = new THREE.Group(); faceG.name = 'faceGear'; hs.add(faceG);
   if (GI.face && eyeAt.length === 2) {
-    const kind = GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + 0.062;
+    const kind = GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + (GI.face === 'e_sport' ? 0.05 : GI.face === 'e_shade' ? 0.042 : 0.036);   // close to the face: seen from the side the lenses must not hang in the air
     const sx = kind === 'e_sport' ? 1.12 : kind === 'e_shade' ? 1.18 : 1.04, sy = kind === 'e_sport' ? 0.88 : kind === 'e_shade' ? 0.86 : 1.08, tube = kind === 'e_shade' ? 0.016 : kind === 'e_sport' ? 0.02 : 0.009;
     const R = Math.min(eyeAt[0][3] * 1.2, (exA - 0.012) / (sx * 0.955));
     const FG = (geo, mat, x, y, z, par) => noOL(add(geo, mat, x, y, z, par || faceG));
@@ -1697,7 +1697,10 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const shine = basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false });
     const AXx = 0.34 * P.sq[0], AXz = 0.34 * P.sq[2], sideX = AXx * 1.04 * Math.sqrt(Math.max(0.2, 1 - Math.pow(gy / (0.34 * P.sq[1]), 2)));   // head half-width at eye height
     for (const s of [-1, 1]) {
-      const lg = new THREE.Group(); lg.position.set(s * exA, gy - (kind === 'e_pro' ? R * 0.12 : 0), gz); lg.rotation.y = s * 0.3; faceG.add(lg);
+      const lg = new THREE.Group(); lg.position.set(s * exA, gy - (kind === 'e_pro' ? R * 0.12 : 0), gz); lg.rotation.y = s * 0.36; faceG.add(lg);
+      if (kind !== 'e_pro') { const dp = kind === 'e_sport' ? 0.05 : 0.026;   // the frame runs back to the face (goggle cup / thick rim)
+        const hl = FG(new THREE.CylinderGeometry(R + tube + 0.007, R + tube + 0.012, dp, 24, 1, true), OUTLINE, 0, 0, -dp / 2, lg); hl.rotation.x = Math.PI / 2; hl.scale.set(sx, 1, sy); hl.userData.isOutline = true;
+        const cup = FG(new THREE.CylinderGeometry(R + tube * 0.6, R + tube + 0.004, dp, 24, 1, true), kind === 'e_sport' ? toon(shadeHex(GL.face, -0.18), { side: THREE.DoubleSide }) : toon(0x1d1f27, { side: THREE.DoubleSide }), 0, 0, -dp / 2, lg); cup.rotation.x = Math.PI / 2; cup.scale.set(sx, 1, sy); }
       { const hl = FG(new THREE.TorusGeometry(R, tube + 0.008, 6, 24), OUTLINE, 0, 0, 0, lg); hl.scale.set(sx, sy, 1); hl.userData.isOutline = true; }
       FG(new THREE.TorusGeometry(R, tube, 6, 24), frameM, 0, 0, 0.001, lg).scale.set(sx, sy, 1);
       const ln = FG(new THREE.CircleGeometry(R, 24), lensM, 0, 0, 0.002, lg); ln.scale.set(sx, sy, 1); ln.renderOrder = 2;
