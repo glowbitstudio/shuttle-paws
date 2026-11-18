@@ -13,7 +13,7 @@ const Eco = require('./economy.js');
 const PORT = +process.env.PORT || 3040;
 const ROOT = __dirname;
 const DATA_FILE = path.join(process.env.DATA_DIR || ROOT, 'data.json');   // DATA_DIR: a persistent disk on a hosting service
-const PUBLIC = new Set(['index.html', 'style.css', 'game.js', 'sim.js', 'lib/three.min.js', 'manifest.webmanifest', 'icon.svg']);
+const PUBLIC = new Set(['index.html', 'style.css', 'game.js', 'sim.js', 'venue_art.js', 'lib/three.min.js', 'manifest.webmanifest', 'icon.svg']);
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
 
 // ------------------------------------------------------------------ persistence

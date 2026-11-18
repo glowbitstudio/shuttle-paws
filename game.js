@@ -1364,7 +1364,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     }
     case 'hamster': {
       nose(0.025, -0.05, 0.342, 1.2, 0.9, toon(0xff8fa8)); mouthW(-0.09, 0.31);   // on the fur between the two pouches
-      for (const s of [-1, 1]) { const t = H(new THREE.BoxGeometry(0.026, 0.04, 0.02), toon(0xffffff), s * 0.015, -0.13, 0.312); noOL(t); }
+      for (const s of [-1, 1]) { const t = H(new THREE.BoxGeometry(0.026, 0.036, 0.012), toon(0xffffff), s * 0.015, -0.128, 0.308); t.rotation.x = 0.32; noOL(t); }   // thin and leaning with the chin, so from the side they lie on the fur instead of standing off it
       break;
     }
     case 'sheep': {
@@ -4371,10 +4371,21 @@ function venueCards(el, getter, setter, allowRandom) {
     const open = venueOpen(idx); if (!open && getter() === idx) setter(allowRandom ? -1 : 0);
     b.className = 'venue' + (getter() === idx ? ' on' : '') + (open ? '' : ' locked');
     b.style.background = VENUE_COLORS[v.id] || 'linear-gradient(135deg,#ffb38a,#ff7a59)';
+    const art = (window.VENUE_ART || {})[v.id]; if (art) b.style.setProperty('--vimg', 'url(' + art + ')'); else b.classList.add('noart');   // a picture of the venue behind the card
     b.innerHTML = `<span class="wind-tag">${WIND_TAG[v.wind] !== undefined ? WIND_TAG[v.wind] : icon('dice')}</span><b>${esc(v.name)}</b><small>${esc(v.desc)}</small>` + (open ? '' : `<em class="vlock">${icon('lock')}Cấp ${venueLevel(idx)}</em>`);
     b.onclick = () => { if (!open) { Sound.boop(); toast('Sân mở ở cấp ' + venueLevel(idx), 'Bạn đang ở cấp ' + myLevel() + '. Đánh xong trận nào cũng được kinh nghiệm.', 'lock'); return; } setter(idx); el.querySelectorAll('.venue').forEach((x) => x.classList.toggle('on', x === b)); Sound.boop(); };
     el.appendChild(b);
   });
+}
+// Online rooms pick the venue with the same cards: a button shows the current venue and opens the chooser.
+function venuePick(btn, getter, setter) {
+  const paint = () => { const i = getter(), v = i < 0 ? null : S.VENUES[i], art = v && (window.VENUE_ART || {})[v.id];
+    btn.style.setProperty('--vimg', art ? 'url(' + art + ')' : 'none'); btn.classList.toggle('noart', !art);
+    btn.innerHTML = `<b>${v ? esc(v.name) : 'Sân ngẫu nhiên'}</b><small>${v ? esc(v.desc) : 'Mỗi trận một sân bất kỳ bạn đã mở'}</small><em>Đổi ›</em>`; };
+  btn.onclick = () => { Sound.boop(); $('venueSheet').classList.remove('hidden'); pinHeaders();
+    venueCards($('venueSheetList'), getter, (i) => { setter(i); paint(); setTimeout(() => $('venueSheet').classList.add('hidden'), 120); }, true); };
+  $('venueSheetClose').onclick = () => { Sound.boop(); $('venueSheet').classList.add('hidden'); };
+  paint();
 }
 function fillChip(el) {
   const c = charById(profile.char);
@@ -4629,6 +4640,7 @@ function enterOnline() {
   const sel = $('crVenue');
   sel.innerHTML = `<option value="-1">Sân ngẫu nhiên</option>` + S.VENUES.map((v, i) => `<option value="${i}">${esc(v.name)}</option>`).join('');
   sel.value = String(createOpts.venue);
+  venuePick($('crVenueBtn'), () => createOpts.venue, (i) => { createOpts.venue = i; sel.value = String(i); });
   seg('crMode', () => createOpts.mode, (v) => { createOpts.mode = v; });
   seg('crPts', () => createOpts.points, (v) => { createOpts.points = +v; });
   seg('crGames', () => createOpts.games, (v) => { createOpts.games = +v; });
@@ -4703,6 +4715,7 @@ function renderRoom() {
     sel.innerHTML = `<option value="-1">Sân ngẫu nhiên</option>` + S.VENUES.map((v, i) => `<option value="${i}">${esc(v.name)}</option>`).join('');
     sel.value = String(r.venue);
     sel.onchange = () => Net.send({ t: 'roomSet', venue: +sel.value });
+    venuePick($('rmVenueBtn'), () => r.venue, (i) => Net.send({ t: 'roomSet', venue: i }));
   }
   const filled = r.slots.filter(Boolean).length;
   $('roomStart').classList.toggle('hidden', !isHost);

@@ -324,7 +324,7 @@
             <div><span>Ai vào được</span><div class="seg sm" id="crOpen"><button data-v="1" class="on">Mọi người</button><button data-v="0">Có mã</button></div></div>
             <div><span>Điểm mỗi ván</span><div class="seg sm" id="crPts"><button data-v="11" class="on">11</button><button data-v="21">21</button></div></div>
             <div><span>Số ván</span><div class="seg sm" id="crGames"><button data-v="1" class="on">1 ván</button><button data-v="3">3 ván</button></div></div>
-            <div class="wide"><span>Sân đấu</span><select id="crVenue"></select></div>
+            <div class="wide"><span>Sân đấu</span><select id="crVenue" class="gone"></select><button type="button" class="venue-pick" id="crVenueBtn"></button></div>
           </div>
           <button class="pill solid" id="createRoom">Tạo phòng</button>
         </div>
@@ -361,7 +361,7 @@
           <div class="seg sm" id="rmGames"><button data-v="1">1 ván</button><button data-v="3">3 ván</button></div>
           <div class="seg sm" id="rmOpen"><button data-v="1">Mở</button><button data-v="0">Bạn bè</button></div>
         </div>
-        <select id="rmVenue"></select>
+        <select id="rmVenue" class="gone"></select><button type="button" class="venue-pick" id="rmVenueBtn"></button>
       </div>
       <div class="room-chat"><div id="roomChat"></div><form id="roomChatForm"><input id="roomChatInput" maxlength="140" placeholder="Chào cả phòng…"></form></div>
       <button class="cta" id="roomStart">Bắt đầu trận</button>
@@ -373,6 +373,13 @@
 <div id="rejoinBar" class="hidden"><span id="rejoinText"></span><button class="pill" id="rejoinBtn">Vào lại trận</button><button id="rejoinX" aria-label="Đóng">×</button></div>
 
 <!-- First launch: pick a name once (it can be changed later in Settings) -->
+<!-- venue chooser for online rooms: the same cards as the bot screen -->
+<div id="venueSheet" class="panel-wrap hidden">
+  <div class="panel wide">
+    <header><button class="back" id="venueSheetClose">‹</button><h2>Chọn sân đấu</h2></header>
+    <div class="venues" id="venueSheetList"></div>
+  </div>
+</div>
 <div id="nameAsk" class="panel-wrap hidden">
   <div class="panel small">
     <h2>Chào mừng tới Pawminton!</h2>
@@ -425,6 +432,7 @@
 <script src="anim_rear.js"></script>
 <script src="anim_mid.js"></script>
 <script src="anim_misc.js"></script>
+<script src="venue_art.js"></script>
 <script src="game.js"></script>
 <script src="lab.js"></script>
 </body>

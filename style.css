@@ -1089,8 +1089,11 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 .lvl-slot{height:30px;display:flex;align-items:center;justify-content:center}.lvl-slot .chest.mini{margin:0}
 .lvl-slot em{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.16)}
 /* venue cards: calm jade tiles so the coral start button stands out; the chosen one gets the gold frame */
-.venue{background:linear-gradient(180deg,#2f6f72,#1d4b4f)!important;border-color:rgba(255,255,255,.16)}
-.venue.on{background:linear-gradient(180deg,#3d8f8a,#256662)!important;border-color:#ffd76a}
+.venue{background:linear-gradient(180deg,rgba(8,30,32,.05) 0%,rgba(8,30,32,.35) 45%,rgba(8,30,32,.9) 100%),var(--vimg) center/cover no-repeat,#1d4b4f!important;
+  border-color:rgba(255,255,255,.22);min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.venue.noart{background:linear-gradient(160deg,#3d8f8a,#1d4b4f)!important}
+.venue::before{display:none}
+.venue.on{border-color:#ffd76a}
 /* level reward cards all look the same: a frame must not suggest that some were already collected */
 .lvl-card,.lvl-card.has{border:2px solid rgba(255,255,255,.12);background:rgba(0,0,0,.2)}
 /* settings cog sits fully inside its button */
@@ -1148,3 +1151,16 @@ body .stage-name.ch{bottom:128px}
 .venue .vlock{position:absolute;right:8px;bottom:6px;display:inline-flex;align-items:center;gap:4px;font-style:normal;font:800 12px var(--display);color:#ffd76a;background:rgba(0,0,0,.45);border-radius:999px;padding:2px 8px}
 .venue .vlock .ico{width:12px;height:12px}
 .lvl-map{min-height:13px;font-size:10px!important;color:#7fe3c4!important;text-align:center;line-height:1.1}
+/* online rooms: the current venue as a picture button that opens the chooser */
+.gone{display:none!important}
+.venue-pick{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;width:100%;min-height:78px;padding:8px 86px 8px 12px;border-radius:14px;cursor:pointer;color:#fff;text-align:left;
+  border:2px solid rgba(255,255,255,.22);box-shadow:0 4px 0 rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.8);
+  background:linear-gradient(90deg,rgba(8,30,32,.88) 0%,rgba(8,30,32,.45) 55%,rgba(8,30,32,.15) 100%),var(--vimg) center/cover no-repeat,#1d4b4f}
+.venue-pick.noart{background:linear-gradient(160deg,#3d8f8a,#1d4b4f)}
+.venue-pick b{font-family:var(--display);font-size:16px}.venue-pick small{font-size:12px;font-weight:700;opacity:.95}
+.venue-pick em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;font:800 13px var(--display);color:#2a1d18;background:linear-gradient(180deg,#ffe58a,#ffbf2a);border-radius:999px;padding:4px 12px;text-shadow:none;box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.venue-pick:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
+#venueSheet{z-index:60}
+@media (max-width:820px), (orientation:portrait){.venue{min-height:74px}}
+/* badges in the top corners so they never sit on the venue name */
+.venue .vlock{top:6px;right:8px;bottom:auto}.venue.on::after{top:6px;right:8px;bottom:auto}.venue .wind-tag{left:8px;right:auto}

@@ -29,3 +29,4 @@ __pycache__/
 !/package.json
 !/package-lock.json
 !/render.yaml
+!/venue_art.js
