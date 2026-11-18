@@ -2664,7 +2664,7 @@ function renderRewards() {
   }).join('');
   el.innerHTML = `<p class="gold-line"><span class="gold-chip"><i class="coin"></i><b>${wallet.gold}</b></span></p>` +
     `<h3>Cấp ${wallet.level}</h3><div class="lvl-box"><div class="q-bar lvl-bar"><i style="width:${Math.round(S.clamp((wallet.xp - wallet.levelAt) / Math.max(1, wallet.levelNext - wallet.levelAt), 0, 1) * 100)}%"></i></div><small>${wallet.xp - wallet.levelAt}/${wallet.levelNext - wallet.levelAt} kinh nghiệm · đánh xong trận nào cũng được cộng</small>` +
-    `<div class="lvl-row">${(wallet.levelRewards || []).map((r) => `<div class="lvl-card${r.chest ? ' has' : ''}"><small>Cấp ${r.level}</small>${r.chest ? `<span class="chest t${+r.chest[1]} mini"><i></i></span>` : ''}<b><i class="coin"></i>${r.gold}</b><b><i class="gem"></i>${r.gems}</b></div>`).join('')}</div></div>` +
+    `<div class="lvl-row">${(wallet.levelRewards || []).map((r) => `<div class="lvl-card${r.chest ? ' has' : ''}"><small>Cấp ${r.level}</small><span class="lvl-slot">${r.chest ? `<span class="chest t${+r.chest[1]} mini"><i></i></span>` : '<em></em>'}</span><b><i class="coin"></i>${r.gold}</b><b><i class="gem"></i>${r.gems}</b></div>`).join('')}</div></div>` +
     `<h3>Quà đăng nhập</h3><div class="login-row">${days}</div>` +
     `<button class="cta" id="loginClaim" ${L.can ? '' : 'disabled'}>${L.can ? `Nhận quà ngày ${L.streak} · ${L.reward} vàng` : 'Hôm nay đã nhận · mai quay lại nhé'}</button>` +
     `<h3>Nhiệm vụ hôm nay</h3>${quests}` +
