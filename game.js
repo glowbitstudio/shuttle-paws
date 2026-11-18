@@ -871,12 +871,12 @@ function mapCourt(K, o) {
     K.add(new THREE.OctahedronGeometry(0.085, 0), basic(0xffffff), x, top + 0.14, 0); K.add(new THREE.BoxGeometry(0.5, 0.07, 0.5), pd, x, 0.065, 0); K.add(new THREE.BoxGeometry(0.34, 0.07, 0.34), pm, x, 0.135, 0); }
   // umpire's high chair: slanted legs, round seat, curved back, rungs on the far side (the seat position is what the umpire model sits on)
   const ux = W + 1.3, um = toon(0xf4ead8), ud = toon(o.post), u = new THREE.Group(); u.position.set(ux - 0.16, 0, 0); g.add(u);   // the umpire model sits a little toward the court from the seat point, so the chair is built round where its body really is
-  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const lg = K.add(new THREE.CylinderGeometry(0.03, 0.04, 1.46, 6), um, dx * 0.3, 0.7, dz * 0.3, u); lg.rotation.set(dz * 0.09, 0, -dx * 0.09); lg.castShadow = true; }
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const lg = K.add(new THREE.CylinderGeometry(0.03, 0.04, 1.46, 6), um, dx * 0.3, 0.7, dz * 0.3, u); lg.rotation.set(-dz * 0.09, 0, dx * 0.09); lg.castShadow = true; }   // feet apart, tops meeting under the seat
   K.add(new THREE.CylinderGeometry(0.36, 0.36, 0.07, 16), ud, 0, 1.4, 0, u).castShadow = true;
   const bk = K.add(new THREE.CylinderGeometry(0.37, 0.37, 0.62, 16, 1, true, -1.15, 2.3), toon(o.post, { side: THREE.DoubleSide }), 0, 1.74, 0, u); bk.rotation.y = Math.PI / 2;
   const rim = K.add(new THREE.TorusGeometry(0.37, 0.028, 6, 18, 2.3), um, 0, 2.05, 0, u); rim.rotation.set(Math.PI / 2, 0, -1.15);   // rail along the top of the back
   for (const sd of [-1, 1]) K.add(new THREE.BoxGeometry(0.34, 0.04, 0.05), um, 0.0, 1.62, sd * 0.36, u);                                   // arm rests
-  for (let i = 0; i < 4; i++) K.add(new THREE.CylinderGeometry(0.02, 0.02, 0.56, 5), um, -0.3 + i * 0.012, 0.28 + i * 0.3, 0, u).rotation.x = Math.PI / 2;
+  for (let i = 0; i < 4; i++) { const y = 0.28 + i * 0.3, off = 0.366 - (y / 1.46) * 0.132; K.add(new THREE.CylinderGeometry(0.02, 0.02, off * 2, 5), um, -off, y, 0, u).rotation.x = Math.PI / 2; }   // rungs run between the two court-side legs, following their slant
   g.userData.seat = { x: ux, y: 1.43 };
   return [];
 }
