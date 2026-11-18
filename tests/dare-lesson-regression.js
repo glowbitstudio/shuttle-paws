@@ -18,7 +18,7 @@ const before = JSON.stringify(b.learn.pos); b.lastShot = 'drive'; m.shuttle.p.z 
 // ---- situation table: the same shot is judged per situation (bot zone, opponent zone, opponent down or not)
 { const m2 = S.createMatch({ mode: '1v1', points: 21, venue: 0, slots: [{ name: 'h', char: 'cat', ctrl: 'bot', diff: 3 }, { name: 'c', char: 'cat', ctrl: 'bot', diff: 4 }] });
   const c = m2.athletes[1], h = m2.athletes[0], g = S.sgn(c.team), hg = S.sgn(h.team);
-  const set = (bz, oz, down) => { c.z = g * bz; h.z = hg * oz; h.diveT = -1; h.recoverT = down ? 0.3 : 0; m2.shuttle.p.y = 2.3; m2.shuttle.p.z = g * bz; c.sta = 1; c.lastKey = c.lastShot = null; };
+  const set = (bz, oz, down) => { c.z = g * bz; h.z = hg * oz; h.diveT = -1; h.recoverT = down ? 0.3 : 0; m2.shuttle.p.y = 2.3; m2.shuttle.p.z = g * bz; c.sta = 1; c.lastKey = c.lastShot = null; c.hist = []; };   // each call stands for a fresh rally
   set(5.2, 3.0, true); assert.equal(S.dareKey(m2, c), '211'); set(5.2, 3.0, false); assert.equal(S.dareKey(m2, c), '210'); set(1.5, 5.5, false); assert.equal(S.dareKey(m2, c), '020');
   const share = (bz, oz, down, n) => { let k = 0; for (let i = 0; i < n; i++) { set(bz, oz, down); if (S.botChooseShot(m2, c) === 'smash') k++; } return k / n; };
   assert(share(5.2, 3.0, true, 300) > 0.85, 'nothing learned: a high shuttle at the back is smashed');
