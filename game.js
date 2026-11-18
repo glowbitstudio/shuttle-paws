@@ -2649,7 +2649,7 @@ function renderRewards() {
   const quests = wallet.quests.map((q) => {
     const ok = q.prog >= q.goal;
     return `<div class="quest"><div class="q-main"><b>${esc(q.name)}</b><div class="q-bar"><i style="width:${Math.round(q.prog / q.goal * 100)}%"></i></div><small>${q.prog}/${q.goal}</small></div>` +
-      `<button class="pill" data-quest="${q.id}" ${ok && !q.claimed ? '' : 'disabled'}>${q.claimed ? 'Đã nhận' : `<i class="coin"></i>${q.reward}`}</button></div>`;
+      `<button class="pill q-btn${q.claimed ? ' done' : ok ? ' can' : ''}" data-quest="${q.id}" ${ok && !q.claimed ? '' : 'disabled'}>${q.claimed ? 'Đã nhận' : `<i class="coin"></i>${q.reward}`}</button></div>`;
   }).join('');
   el.innerHTML = `<p class="gold-line"><span class="gold-chip"><i class="coin"></i><b>${wallet.gold}</b></span></p>` +
     `<h3>Quà đăng nhập</h3><div class="login-row">${days}</div>` +

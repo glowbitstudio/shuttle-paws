@@ -1042,3 +1042,8 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
   .screen.lobby .lobby-play .big-btn{min-height:84px}
   .screen.lobby .lobby-play .big-btn.wide-btn{grid-column:auto !important}
 }
+
+/* quest reward buttons: clearly apart from the card they sit on - outlined while locked, gold and pulsing when the reward can be taken, mint once taken */
+.quest .q-btn{min-width:78px;background:rgba(6,30,32,.55) !important;border:2px solid rgba(243,207,134,.7);color:#fff1cf !important;opacity:1 !important;box-shadow:none !important}
+.quest .q-btn.can{background:linear-gradient(180deg,#ffe58a,#ffb21a) !important;color:#4a2c00 !important;border-color:#fff8dc;box-shadow:0 4px 0 #b97a00,0 0 16px rgba(255,200,61,.85) !important;animation:canpulse 1.4s ease-in-out infinite}
+.quest .q-btn.done{background:rgba(63,207,154,.2) !important;border-color:rgba(159,242,207,.7);color:#9ff2cf !important}
