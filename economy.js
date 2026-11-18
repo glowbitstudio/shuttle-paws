@@ -36,7 +36,7 @@ function openChest(p, id, pay, now, rnd) {
   const g = pool[Math.min(pool.length - 1, Math.floor(R() * pool.length))];
   if (gems) e.gems -= price; else e.gold -= price;
   const dup = e.items.includes(g.id), shards = dup ? DUP_SHARDS[g.rar] : 0;   // already owned: it comes out as shards
-  if (dup) e.shards += shards; else e.items.push(g.id);
+  if (dup) e.sh[g.id] = (e.sh[g.id] || 0) + shards; else e.items.push(g.id);
   return { ok: true, chest: c.id, item: g.id, rar: g.rar, dup, shards, spent: price, pay: gems ? 'gems' : 'gold' };
 }
 const QUESTS = [
@@ -57,6 +57,7 @@ function ensure(p, now, char) {
   if (typeof e.gems !== 'number') e.gems = 0;
   if (typeof e.shards !== 'number') e.shards = 0;
   if (!e.lv) e.lv = {};
+  if (!e.sh) e.sh = {};
   if (!e.equip) e.equip = {};
   if (e.quests.day !== d) e.quests = { day: d, prog: {}, claimed: [] };
   if (e.local.day !== d) e.local = { day: d, gold: 0, last: e.local.last || 0 };
@@ -67,7 +68,7 @@ function view(p, now) {
   const canLogin = e.login.day !== d;
   const next = e.login.day === d - 1 ? e.login.streak % LOGIN_REWARDS.length + 1 : 1;   // the streak day a claim today would be
   return {
-    t: 'wallet', gold: e.gold, gems: e.gems, shards: e.shards, lv: Object.assign({}, e.lv), rules: { dup: DUP_SHARDS, craft: CRAFT_COST, up: UP_COST, setGems: SET_GEMS, packs: SHARD_PACKS }, chests: CHESTS, gemRules: { online: GEM_ONLINE_WIN, champ: GEM_CHAMP, streak7: GEM_STREAK7 }, owned: e.owned.slice(), prices: PRICES, free: FREE_CHARS,
+    t: 'wallet', gold: e.gold, gems: e.gems, shards: e.shards, sh: Object.assign({}, e.sh), lv: Object.assign({}, e.lv), rules: { dup: DUP_SHARDS, craft: CRAFT_COST, upSp: UP_SP, uniRate: UNI_RATE, setGems: SET_GEMS, packs: SHARD_PACKS }, chests: CHESTS, gemRules: { online: GEM_ONLINE_WIN, champ: GEM_CHAMP, streak7: GEM_STREAK7 }, owned: e.owned.slice(), prices: PRICES, free: FREE_CHARS,
     items: e.items.slice(), equip: Object.assign({}, e.equip),
     login: { can: canLogin, streak: canLogin ? next : e.login.streak, reward: canLogin ? LOGIN_REWARDS[next - 1] : 0, rewards: LOGIN_REWARDS },
     quests: QUESTS.map((q) => ({ id: q.id, name: q.name, goal: q.goal, reward: q.reward, prog: Math.min(q.goal, e.quests.prog[q.key] || 0), claimed: e.quests.claimed.includes(q.id) })),
@@ -121,7 +122,9 @@ function buyChar(p, id, now) {
 const canUse = (p, id, now) => !MUST_OWN.includes(id) || ensure(p, now).owned.includes(id);
 
 // ---- shards: a duplicate from a chest turns into shards; shards craft a missing item or upgrade an owned one. Whole sets are sold for diamonds.
-const DUP_SHARDS = [5, 15, 40, 100], CRAFT_COST = [20, 60, 150, 400], UP_COST = [1, 2, 4, 8].map((k) => [8, 20, 40, 70, 110].map((c) => c * k));   // by rarity (UP_COST[rarity][level])
+// Item shards (e.sh[id]): a duplicate from a chest gives DUP_SHARDS shards of that very item; they upgrade that item (UP_SP per level).
+// Universal shards (e.shards, from packs) stand in for missing item shards at UNI_RATE universal per item shard (by rarity) and craft set pieces.
+const DUP_SHARDS = [10, 10, 10, 10], UP_SP = [10, 20, 30, 50, 80], UNI_RATE = [1, 2, 4, 8], CRAFT_COST = [20, 60, 150, 400];   // by rarity (UP_COST[rarity][level])
 const SET_GEMS = [60, 150, 320, 700];                                    // a complete 5-piece set by rarity; owned pieces are taken off the price
 const SHARD_PACKS = [{ id: 's0', shards: 5, gold: 400, gems: 0 }, { id: 's1', shards: 25, gold: 0, gems: 10 }, { id: 's2', shards: 80, gold: 0, gems: 28 }];
 const setPrice = (e, sid) => { const ps = Sim.GEAR.filter((g) => g.set === sid), miss = ps.filter((g) => !e.items.includes(g.id)).length; return ps.length ? Math.ceil(SET_GEMS[ps[0].rar] * miss / ps.length) : 0; };
@@ -135,7 +138,7 @@ function buySet(p, sid, now) {
 function craftGear(p, id, now) {
   const e = ensure(p, now), g = Sim.gearById(id);
   if (!g || e.items.includes(g.id)) return { ok: false, why: 'Không ghép được món này' };
-  const cost = CRAFT_COST[g.rar]; if (e.shards < cost) return { ok: false, why: 'Chưa đủ mảnh (thiếu ' + (cost - e.shards) + ')' };
+  const cost = CRAFT_COST[g.rar]; if (e.shards < cost) return { ok: false, why: 'Chưa đủ mảnh vạn năng (thiếu ' + (cost - e.shards) + ')' };
   e.shards -= cost; e.items.push(g.id);
   return { ok: true, item: g.id, spent: cost, why: 'Đã ghép ' + g.name };
 }
@@ -143,9 +146,10 @@ function upgradeGear(p, id, now) {
   const e = ensure(p, now), g = Sim.gearById(id), lv = g ? e.lv[g.id] || 0 : 0;
   if (!g || !e.items.includes(g.id)) return { ok: false, why: 'Bạn chưa có món này' };
   if (lv >= Sim.GEAR_MAX_LV) return { ok: false, why: 'Món này đã ở cấp cao nhất' };
-  const cost = UP_COST[g.rar][lv]; if (e.shards < cost) return { ok: false, why: 'Chưa đủ mảnh (thiếu ' + (cost - e.shards) + ')' };
-  e.shards -= cost; e.lv[g.id] = lv + 1;
-  return { ok: true, item: g.id, lv: lv + 1, spent: cost, why: g.name + ' lên cấp ' + (lv + 1) };
+  const need = UP_SP[lv], own = Math.min(need, e.sh[g.id] || 0), uni = (need - own) * UNI_RATE[g.rar];   // its own shards first, universal ones for the rest
+  if (e.shards < uni) return { ok: false, why: 'Chưa đủ mảnh: cần thêm ' + (need - own) + ' mảnh ' + g.name + ' hoặc ' + uni + ' mảnh vạn năng (đang có ' + e.shards + ')' };
+  if (own) e.sh[g.id] -= own; e.shards -= uni; e.lv[g.id] = lv + 1;
+  return { ok: true, item: g.id, lv: lv + 1, own, uni, why: g.name + ' lên cấp ' + (lv + 1) };
 }
 function buyShards(p, id, now) {
   const e = ensure(p, now), k = SHARD_PACKS.find((x) => x.id === id);
@@ -153,7 +157,7 @@ function buyShards(p, id, now) {
   if (k.gems) { if (e.gems < k.gems) return { ok: false, why: 'Chưa đủ kim cương (thiếu ' + (k.gems - e.gems) + ')' }; e.gems -= k.gems; }
   else { if (e.gold < k.gold) return { ok: false, why: 'Chưa đủ vàng (thiếu ' + (k.gold - e.gold) + ')' }; e.gold -= k.gold; }
   e.shards += k.shards;
-  return { ok: true, shards: k.shards, why: '+' + k.shards + ' mảnh' };
+  return { ok: true, shards: k.shards, why: '+' + k.shards + ' mảnh vạn năng' };
 }
 // ---- gear: owned items and what is worn (one per slot). The catalogue (prices, stats) is in sim.js.
 function buyGear(p, id, now) {
@@ -176,4 +180,4 @@ function equip(p, slot, id, now) {
 // ids worn right now (only owned, known items)
 function equipped(p, now) { const e = ensure(p, now); return Object.values(e.equip).filter((id) => e.items.includes(id) && Sim.gearById(id)).map((id) => (e.lv[id] ? id + '+' + e.lv[id] : id)); }
 
-module.exports = { buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_COST, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };
+module.exports = { buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_SP, UNI_RATE, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };

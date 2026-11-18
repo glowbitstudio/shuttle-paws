@@ -155,7 +155,7 @@ const GEAR = [
   { id: 'sm_pants', slot: 'shorts', set: 'samurai', rar: 3, price: 5000, col: 0x2a2440, name: 'Quần hakama', mods: { ctl: 1, pow: 0.5, spd: -0.5 }, desc: 'Bước chân kiếm sĩ, chuẩn và chắc; rộng nên chậm.' },
   { id: 'sm_shoes', slot: 'shoes', set: 'samurai', rar: 3, price: 5000, col: 0xd9b36a, name: 'Dép rơm', mods: { spd: 1, ctl: 0.5, jmp: -0.5 }, desc: 'Áp sát cực nhanh; đế phẳng nên bật kém.' },
   { id: 'sm_back', slot: 'back', set: 'samurai', rar: 3, price: 5000, col: 0xc22a3a, name: 'Cờ hiệu', mods: { pow: 1, rch: 0.5, sta: -0.5 }, desc: 'Khí thế ra trận; vác cờ nên mau mệt.' },
-  { id: 'be_head', slot: 'head', set: 'bee', rar: 0, price: 300, col: 0x23232b, name: 'Râu ong', mods: { spd: 0.75, pow: -0.5 }, desc: 'Đánh hơi đường cầu, lao nhanh; nhỏ con nên đập nhẹ.' },
+  { id: 'be_head', slot: 'head', set: 'bee', rar: 0, price: 300, col: 0x23232b, name: 'Râu ong', mods: { rch: 0.75, pow: -0.5 }, desc: 'Đánh hơi đường cầu từ xa; nhỏ con nên đập nhẹ.' },
   { id: 'be_shirt', slot: 'shirt', set: 'bee', rar: 0, price: 300, col: 0xffd23f, name: 'Áo sọc ong', mods: { sta: 0.75, ctl: -0.5 }, desc: 'Chăm chỉ không biết mệt; vội nên kém khéo.' },
   { id: 'be_pants', slot: 'shorts', set: 'bee', rar: 0, price: 300, col: 0x23232b, name: 'Quần ong', mods: { jmp: 0.75, sta: -0.5 }, desc: 'Bật như cất cánh; tốn sức.' },
   { id: 'be_shoes', slot: 'shoes', set: 'bee', rar: 0, price: 300, col: 0xffd23f, name: 'Giày mật', mods: { spd: 0.75, jmp: -0.5 }, desc: 'Chạy vo ve khắp sân; dính nên bật kém.' },
@@ -182,8 +182,8 @@ const GEAR = [
   { id: 'fa_back', slot: 'back', set: 'fairy', rar: 2, price: 2200, col: 0x7fe3ff, name: 'Cánh bướm', mods: { jmp: 1, rch: 0.25, ctl: -0.5 }, desc: 'Bay lên đón cầu; chao liệng nên khó chuẩn.' },
   { id: 'dm_head', slot: 'head', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Sừng ác quỷ', mods: { pow: 1, spd: 0.5, ctl: -0.5 }, desc: 'Hung hãn tột độ, đập như trời giáng; mất bình tĩnh.' },
   { id: 'dm_shirt', slot: 'shirt', set: 'demon', rar: 3, price: 5000, col: 0x5a0c18, name: 'Áo lửa địa ngục', mods: { pow: 1, sta: 0.5, jmp: -0.5 }, desc: 'Sức nóng không tắt; áo nặng nên khó bật.' },
-  { id: 'dm_pants', slot: 'shorts', set: 'demon', rar: 3, price: 5000, col: 0x2a0a10, name: 'Quần bóng đêm', mods: { spd: 1, pow: 0.5, sta: -0.5 }, desc: 'Lao tới như bóng ma; hao sức.' },
-  { id: 'dm_shoes', slot: 'shoes', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Móng quỷ', mods: { spd: 1, jmp: 0.5, ctl: -0.5 }, desc: 'Bám sân, bứt tốc cực mạnh; khó dừng chuẩn.' },
+  { id: 'dm_pants', slot: 'shorts', set: 'demon', rar: 3, price: 5000, col: 0x2a0a10, name: 'Quần bóng đêm', mods: { sta: 1, pow: 0.5, spd: -0.5 }, desc: 'Lì lợm, không biết mệt; nặng nề nên chậm chân.' },
+  { id: 'dm_shoes', slot: 'shoes', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Móng quỷ', mods: { jmp: 1, spd: 0.5, ctl: -0.5 }, desc: 'Bám sân rồi bật vọt lên; khó dừng chuẩn.' },
   { id: 'dm_back', slot: 'back', set: 'demon', rar: 3, price: 5000, col: 0x5a1030, name: 'Cánh dơi', mods: { jmp: 1, pow: 0.5, sta: -0.5 }, desc: 'Vọt lên rồi bổ xuống; vỗ cánh nhiều nên mau mệt.' },
 ];
 // outfit sets: wearing 3 pieces of one set adds +0.25 to the set's stat, all 5 pieces +0.5 (inside the same +-2 cap)

@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 node -e "
 const S=require('./sim');const out=[];
 const spec=(ids)=>{const m=S.gearMods(ids);return Object.keys(m).filter(k=>m[k]).map(k=>k+'='+(3+m[k])).join(',');};
+const only=(process.env.ONLY||'').split(',').filter(Boolean);if(only.length){for(const st of S.GEAR_SETS)if(only.includes(st.id))out.push(st.id+' '+spec(S.GEAR.filter(g=>g.set===st.id).map(g=>g.id)));console.log(out.join(String.fromCharCode(10)));process.exit(0);}
 for(const st of S.GEAR_SETS)out.push(st.id+' '+spec(S.GEAR.filter(g=>g.set===st.id).map(g=>g.id)));
 const set=(id,lv)=>S.GEAR.filter(g=>g.set===id).map(g=>g.id+(lv?'+'+lv:''));
 out.push('samurai-lv5 '+spec(set('samurai',5)));out.push('angel-lv5 '+spec(set('angel',5)));out.push('ninja-lv5 '+spec(set('ninja',5)));

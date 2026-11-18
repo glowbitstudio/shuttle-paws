@@ -20,12 +20,15 @@ for (const [id, pay] of [['c0', 'gold'], ['c1', 'gold']]) {
 // a duplicate turns into shards; nothing is lost and the item list never holds an id twice
 { const p = P(); E.ensure(p, T0); p.eco.gold = 1e9; const rnd = lcg(5); let dups = 0, sh = 0;
   for (let i = 0; i < 600; i++) { const r = E.openChest(p, 'c0', 'gold', T0, rnd); assert(r.ok); if (r.dup) { dups++; sh += r.shards; assert.equal(r.shards, E.DUP_SHARDS[r.rar]); } }
-  assert(dups > 0 && p.eco.shards === sh); assert.equal(new Set(p.eco.items).size, p.eco.items.length); assert(p.eco.items.length > 60, 'most items turn up in 600 openings: ' + p.eco.items.length); }
+  assert(dups > 0 && p.eco.shards === 0 && Object.values(p.eco.sh).reduce((a, b) => a + b, 0) === sh && Object.keys(p.eco.sh).every((id) => p.eco.items.includes(id)), 'duplicates give shards of that very item'); assert.equal(new Set(p.eco.items).size, p.eco.items.length); assert(p.eco.items.length > 60, 'most items turn up in 600 openings: ' + p.eco.items.length); }
 // shards: craft a missing item, upgrade an owned one (3 levels, +0.1 on its strongest plus), packs
 { const p = P(); E.ensure(p, T0); assert(!E.craftGear(p, 'nj_head', T0).ok, 'no shards'); p.eco.shards = 60;
   const c = E.craftGear(p, 'nj_head', T0); assert(c.ok && p.eco.shards === 0 && p.eco.items.includes('nj_head')); assert(!E.craftGear(p, 'nj_head', T0).ok, 'already owned');
-  assert(!E.upgradeGear(p, 'r_pro', T0).ok, 'not owned'); p.eco.shards = E.UP_COST[1].reduce((a, b) => a + b, 0) + 5; E.equip(p, 'head', 'nj_head', T0); assert.equal(S.GEAR_MAX_LV, 5); assert.deepEqual(E.UP_COST[1], [16, 40, 80, 140, 220]);
-  for (let l = 1; l <= 5; l++) { const u = E.upgradeGear(p, 'nj_head', T0); assert(u.ok && u.lv === l); }
+  assert(!E.upgradeGear(p, 'r_pro', T0).ok, 'not owned'); E.equip(p, 'head', 'nj_head', T0); assert.equal(S.GEAR_MAX_LV, 5); assert.deepEqual(E.UP_SP, [10, 20, 30, 50, 80]);
+  p.eco.shards = 0; p.eco.sh.nj_head = 9; assert(!E.upgradeGear(p, 'nj_head', T0).ok, '9 of 10 item shards and no universal ones'); p.eco.sh.nj_head = 10; p.eco.sh.r_pro = 99;
+  let u = E.upgradeGear(p, 'nj_head', T0); assert(u.ok && u.lv === 1 && u.own === 10 && u.uni === 0 && p.eco.sh.nj_head === 0 && p.eco.sh.r_pro === 99, 'only its own shards are used');
+  p.eco.sh.nj_head = 5; p.eco.shards = 30 + 5; u = E.upgradeGear(p, 'nj_head', T0); assert(u.ok && u.own === 5 && u.uni === 30 && p.eco.shards === 5, 'rare item: 15 missing shards = 30 universal');
+  p.eco.shards = (30 + 50 + 80) * 2 + 5; for (let l = 3; l <= 5; l++) { u = E.upgradeGear(p, 'nj_head', T0); assert(u.ok && u.lv === l); }
   assert.equal(p.eco.shards, 5); assert(!E.upgradeGear(p, 'nj_head', T0).ok, 'max level');
   assert.deepEqual(E.equipped(p, T0), ['nj_head+5']); assert.equal(S.gearMods(['nj_head+3']).spd, 1.3); assert.equal(S.gearMods(['nj_head']).spd, 1); assert.equal(S.gearMods(['nj_head+9']).spd, 1.5, 'level is capped');
   assert.equal(S.gearById('nj_head+3').id, 'nj_head'); assert.equal(S.powerOf('cat', ['nj_head+3']), S.powerOf('cat', ['nj_head']) + 30);
@@ -34,7 +37,7 @@ for (const [id, pay] of [['c0', 'gold'], ['c1', 'gold']]) {
 { const p = P(); E.ensure(p, T0); p.eco.gold = 99999; assert(!E.buyGear(p, 'nj_head', T0).ok, 'set piece not sold for gold'); assert(E.buyGear(p, 'r_light', T0).ok);
   assert.equal(E.setPrice(p.eco, 'ninja'), 150); assert(!E.buySet(p, 'ninja', T0).ok, 'no diamonds'); p.eco.shards = 60; E.craftGear(p, 'nj_head', T0); assert.equal(E.setPrice(p.eco, 'ninja'), 120);
   p.eco.gems = 120; const b = E.buySet(p, 'ninja', T0); assert(b.ok && p.eco.gems === 0); assert.equal(S.GEAR.filter((g) => g.set === 'ninja').every((g) => p.eco.items.includes(g.id) && p.eco.equip[g.slot] === g.id), true);
-  assert(!E.buySet(p, 'ninja', T0).ok, 'already complete'); assert(!E.buySet(p, 'nope', T0).ok); const v = E.view(p, T0); assert(v.rules && v.rules.setGems.length === 4 && E.setPrice(P().eco || (E.ensure(p, T0), { items: [] }), 'angel') === 700 && typeof v.shards === 'number' && v.lv); }
+  assert(!E.buySet(p, 'ninja', T0).ok, 'already complete'); assert(!E.buySet(p, 'nope', T0).ok); const v = E.view(p, T0); assert(v.rules && v.rules.setGems.length === 4 && E.setPrice(P().eco || (E.ensure(p, T0), { items: [] }), 'angel') === 700 && typeof v.shards === 'number' && v.lv && v.sh && v.rules.upSp.length === 5 && v.rules.uniRate.length === 4); }
 // diamonds: online win, tournament title once a day, 7th login day
 { const p = P(); E.ensure(p, T0); assert.equal(E.grantOnline(p, true, T0).gems, 1); assert.equal(E.grantOnline(p, false, T0).gems, 0); assert.equal(p.eco.gems, 1);
   const a = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0); assert.equal(a.gems, 10);

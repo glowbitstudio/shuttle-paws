@@ -1318,10 +1318,10 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     if (!fit.parent) gr.add(fit);
     const dc = new THREE.Group(); dc.rotation.x = -0.18; fit.add(dc); const dk = toon(shadeHex(teamColor, -0.25), { side: THREE.DoubleSide });
     mk(new THREE.SphereGeometry(1.06, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.3)), team, 0, 0, 0, dc, true);
-    for (const sd of [1, -1]) { const br = mk(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 24, 1, false, -0.9, 1.8), dk, 0, 0.4, sd * 0.42, dc, true); br.rotation.set(sd * 0.22, sd > 0 ? 0 : Math.PI, 0); }
+    for (const sd of [1, -1]) { const br = mk(new THREE.CylinderGeometry(0.95, 0.95, 0.12, 24, 1, false, -0.95, 1.9), dk, 0, 0.36, sd * 0.45, dc, true); br.rotation.set(sd * 0.3, sd > 0 ? 0 : Math.PI, 0); }
     for (const sd of [-1, 1]) { const fl = mk(new THREE.SphereGeometry(0.4, 12, 8), dk, sd * 0.5, 0.92, 0, dc, true); fl.scale.set(1.3, 0.3, 0.75); fl.rotation.z = -sd * 0.55; }
-    mk(new THREE.SphereGeometry(0.1, 8, 6), acc, 0, 1.12, 0, dc);
-    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mk(new THREE.CylinderGeometry(0.012, 0.012, 0.9, 4), acc, Math.sin(a) * 0.72, 0.7, Math.cos(a) * 0.72, dc).rotation.set(Math.cos(a) * 0.75, 0, -Math.sin(a) * 0.75); }
+    for (const sd of [-1, 1]) { const bw = mk(new THREE.ConeGeometry(0.16, 0.3, 4), acc, sd * 0.17, 1.2, 0, dc, true); bw.rotation.z = sd * Math.PI / 2; bw.scale.z = 0.45; } mk(new THREE.SphereGeometry(0.09, 8, 6), toon(0xf2c230), 0, 1.2, 0.03, dc);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; mk(new THREE.SphereGeometry(0.09, 6, 5), dk, Math.sin(a) * 0.95, 0.48, Math.cos(a) * 0.95, dc).scale.set(1, 1, 0.4); }
     return gr;
   }
   if (kind === 'robot') {   // metal skull cap, visor band with lights, ear bolts, antenna
@@ -2172,7 +2172,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,
     rig: { hips: hipsPv.p, chest: chestPv.p, hipY, ankleY, legs },
-    netRoom: Math.max(1, P.size * P.head * P.sq[0] / 1.274) * (c.ear === 'koala' ? 1.13 : 1),   // big-headed characters need more room in front of them at the net
+    netRoom: Math.max(1, P.size * P.head * P.sq[0] / 1.274) * (c.ear === 'koala' ? 1.2 : 1),   // big-headed characters need more room in front of them at the net
     gear: { headGear, wristGear, shoes: feet, neck: neckG, back: backG, face: faceG, torso, shorts } };   // detachable groups for the later gear system
   // dive clearance, measured once from this model's own meshes: how far the lying body has to be lifted for the torso
   // to rest on the floor, and how far the head tips back so the face / snout does not go through it
@@ -2749,8 +2749,10 @@ function renderGear() {
     $('wdDetail').innerHTML = `<div class="wd-card r${pick.rar}"><div class="wd-big">${gearIconImg(pick.id)}</div><div class="gi"><b>${esc(pick.name)}</b><span class="rar">${S.GEAR_RARITY[pick.rar]}</span>` +
       `<div class="mods">${gearModChips(pick.mods)}</div><small>${esc(pick.desc)}</small></div></div>${cmp}` +
       `<button class="cta" id="wdAct" data-act="${isWorn ? 'off' : 'on'}">${isWorn ? 'Tháo ra' : 'Mặc vào'}</button>` + setsHtml;
-    { const lv = (wallet.lv || {})[pick.id] || 0, up = (((wallet.rules || {}).up) || [[8, 20, 40], [16, 40, 80], [32, 80, 160]])[pick.rar][lv], sh = wallet.shards || 0;
-      $('wdAct').insertAdjacentHTML('afterend', `<div class="wd-up"><span>Cấp <b>${lv}</b>/${S.GEAR_MAX_LV}${lv ? ' · chỉ số chính +' + (lv / 10) : ''}</span>` + (lv < S.GEAR_MAX_LV ? `<button class="pill buy shd" id="wdUp" ${sh >= up ? '' : 'disabled'}>Nâng cấp <i class="shard"></i>${up}</button>` : '<em>Tối đa</em>') + `<small>Bạn có <i class="shard"></i>${sh} mảnh</small></div>`);
+    { const lv = (wallet.lv || {})[pick.id] || 0, R = wallet.rules || {}, need = (R.upSp || [10, 20, 30, 50, 80])[lv], have = (wallet.sh || {})[pick.id] || 0, own = Math.min(need || 0, have), uni = ((need || 0) - own) * ((R.uniRate || [1, 2, 4, 8])[pick.rar]), sh = wallet.shards || 0;
+      $('wdAct').insertAdjacentHTML('afterend', `<div class="wd-up"><span>Cấp <b>${lv}</b>/${S.GEAR_MAX_LV}${lv ? ' · chỉ số chính +' + (lv / 10) : ''}</span>` +
+        (lv < S.GEAR_MAX_LV ? `<button class="pill buy shd" id="wdUp" ${sh >= uni ? '' : 'disabled'}>Nâng cấp</button><div class="wd-sp"><i class="shard sp"></i>Mảnh ${esc(pick.name)}: <b>${have}/${need}</b><i class="bar"><u style="width:${Math.min(100, have / need * 100)}%"></u></i></div>` +
+          `<small>${uni ? 'Còn thiếu ' + (need - own) + ' mảnh → bù bằng <i class="shard"></i>' + uni + ' mảnh vạn năng (bạn có ' + sh + ')' : 'Đủ mảnh của món này.'} Mở rương ra trùng món này sẽ được ${(R.dup || [10])[pick.rar] || 10} mảnh.</small>` : '<em>Tối đa</em>') + '</div>');
       if ($('wdUp')) $('wdUp').onclick = () => { Sound.boop(); Net.send({ t: 'upgradeGear', id: pick.id }); }; }
     $('wdAct').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: pick.slot, id: isWorn ? null : pick.id }); gearTry = null; };
   }
@@ -2786,12 +2788,12 @@ function renderShop() {
     const gems = wallet ? wallet.gems || 0 : 0, tot = S.GEAR.length, have = items.length, gr = (wallet && wallet.gemRules) || {}, dupR = ((wallet && wallet.rules) || {}).dup || [5, 15, 40], crR = ((wallet && wallet.rules) || {}).craft || [20, 60, 150];
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : (wallet.chests || []).map((ch, i) => {
       const od = ch.odds.map((o, k) => o ? `<em class="r${k}">${S.GEAR_RARITY[k]} ${o}%</em>` : '').join('');
-      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i></span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món ngẫu nhiên. Món đã có sẽ đổi thành mảnh.</small></div><div class="chest-pay">` +
+      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i></span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món ngẫu nhiên. Trùng món đã có thì nhận mảnh của món đó.</small></div><div class="chest-pay">` +
         (ch.gold ? `<button class="pill buy" data-pay="gold" ${gold >= ch.gold ? '' : 'disabled'}><i class="coin"></i>${ch.gold}</button>` : '') +
         (ch.gems ? `<button class="pill buy gemb" data-pay="gems" ${gems >= ch.gems ? '' : 'disabled'}><i class="gem"></i>${ch.gems}</button>` : '') + '</div></div>';
-    }).join('') + ((wallet && wallet.rules && wallet.rules.packs) || []).map((k) => `<div class="gear-item chest-row pack-row r0" data-pack="${k.id}"><span class="shard big"></span><div class="gi"><b>${k.shards} mảnh</b><small>Dùng để ghép món của bộ đồ và nâng cấp đồ.</small></div><div class="chest-pay">` +
+    }).join('') + ((wallet && wallet.rules && wallet.rules.packs) || []).map((k) => `<div class="gear-item chest-row pack-row r0" data-pack="${k.id}"><span class="shard big"></span><div class="gi"><b>${k.shards} mảnh vạn năng</b><small>Thay cho mảnh riêng của bất kỳ món nào khi nâng cấp, và để ghép món của bộ đồ.</small></div><div class="chest-pay">` +
       (k.gems ? `<button class="pill buy gemb" ${gems >= k.gems ? '' : 'disabled'}><i class="gem"></i>${k.gems}</button>` : `<button class="pill buy" ${gold >= k.gold ? '' : 'disabled'}><i class="coin"></i>${k.gold}</button>`) + '</div></div>').join('') +
-      `<p class="tiny shop-hint">Món đã có sẽ đổi thành mảnh: Thường ${dupR[0]}, Hiếm ${dupR[1]}, Sử thi ${dupR[2]}. Ghép một món: ${crR[0]} / ${crR[1]} / ${crR[2]} mảnh.</p>` +
+      `<p class="tiny shop-hint">Mỗi món có mảnh riêng: mở rương trùng món đã có được ${dupR[0]} mảnh của món đó, dùng để nâng cấp món đó. Mảnh vạn năng bù cho mảnh còn thiếu (1 mảnh riêng = 1 / 2 / 4 / 8 vạn năng theo bậc) và ghép món của bộ đồ (${crR[0]} / ${crR[1]} / ${crR[2]} / ${crR[3] || 400}).</p>` +
       `<p class="tiny shop-hint">Bạn đang có ${have}/${tot} món. Kim cương: thắng online +${gr.online || 1}, vô địch Giải đấu +${gr.champ || 10} (mỗi ngày một lần), đăng nhập ngày thứ 7 +${gr.streak7 || 5}.</p>`;
     $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}</small>`;
     $('gearList').querySelectorAll('.chest-row button').forEach((b) => { b.onclick = () => { Sound.boop(); const row = b.closest('.chest-row'); if (row.dataset.pack) Net.send({ t: 'buyShards', id: row.dataset.pack }); else Net.send({ t: 'openChest', id: row.dataset.chest, pay: b.dataset.pay }); }; });
@@ -2829,14 +2831,14 @@ function chestPop(ch) {
   let el = $('chestPop'); if (!el) { el = document.createElement('div'); el.id = 'chestPop'; document.body.appendChild(el); }
   el.className = 'chest-pop r' + it.rar;
   el.innerHTML = `<div class="cp-card"><small>Bạn nhận được</small><div class="cp-ic">${gearIconImg(it.id)}</div><b>${esc(it.name)}</b><span class="rar">${S.GEAR_RARITY[it.rar]}</span><div class="mods">${gearModChips(it.mods)}</div>` +
-    (ch.dup ? `<p class="cp-dup">Bạn đã có món này → đổi thành <b><i class="shard"></i>${ch.shards} mảnh</b></p><div class="cp-btn"><button class="cta" id="cpClose">Nhận mảnh</button></div></div>`
+    (ch.dup ? `<p class="cp-dup">Bạn đã có món này → nhận <b><i class="shard sp"></i>${ch.shards} mảnh ${esc(it.name)}</b><br><small>Dùng để nâng cấp chính món này trong Trang bị.</small></p><div class="cp-btn"><button class="cta" id="cpClose">Nhận mảnh</button></div></div>`
       : `<div class="cp-btn"><button class="cta" id="cpWear">Mặc ngay</button><button class="pill" id="cpClose">Đóng</button></div></div>`);
   const close = () => { el.className = 'chest-pop hidden'; };
   $('cpClose').onclick = () => { Sound.boop(); close(); };
   if ($('cpWear')) $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
 }
 function onWallet(msg) {
-  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, gems: msg.gems || 0, shards: msg.shards || 0, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
+  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
   document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
