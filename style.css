@@ -1048,17 +1048,13 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 .quest .q-btn.can{background:linear-gradient(180deg,#ffe58a,#ffb21a) !important;color:#4a2c00 !important;border-color:#fff8dc;box-shadow:0 4px 0 #b97a00,0 0 16px rgba(255,200,61,.85) !important;animation:canpulse 1.4s ease-in-out infinite}
 .quest .q-btn.done{background:rgba(63,207,154,.2) !important;border-color:rgba(159,242,207,.7);color:#9ff2cf !important}
 .quest .q-btn{width:100px;flex:none;text-align:center;padding-left:6px;padding-right:6px;white-space:nowrap}
-/* scrollbars: a slim rounded pill that floats over the content, no track, brighter on hover. Chrome ignores the ::-webkit rules as soon
-   as scrollbar-width / scrollbar-color are set (it then draws its own blocky bar), so those two are only given to browsers without them. */
-::-webkit-scrollbar{width:10px;height:8px;background:transparent}
-::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.26);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:36px}
-::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{background:rgba(255,255,255,.5);background-clip:padding-box}
-::-webkit-scrollbar-button{display:none;width:0;height:0}
-@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}}
-/* shop icon: a shopping bag, not a coin */
-.ico-shop{display:inline-block;width:20px;height:20px;vertical-align:-4px;margin-right:5px;flex:none;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 8V6.5a4 4 0 0 1 8 0V8' fill='none' stroke='%232a1d18' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M4.2 8h15.6l1.3 12.2a1.6 1.6 0 0 1-1.6 1.8H4.5a1.6 1.6 0 0 1-1.6-1.8z' fill='%23ff7a6b' stroke='%232a1d18' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M4 12.5h16' stroke='%23fff' stroke-opacity='.55' stroke-width='1.6'/%3E%3Ccircle cx='8.6' cy='11' r='1.1' fill='%232a1d18'/%3E%3Ccircle cx='15.4' cy='11' r='1.1' fill='%232a1d18'/%3E%3C/svg%3E")}
-.lobby-char button .ico-shop{width:19px;height:19px;margin:0}
+/* scrollbars: the browser's own bar takes room and pushes the content to one side, so it is switched off everywhere; the game draws
+   a slim floating indicator over the edge of whatever is being scrolled (#scrollTip, see game.js) */
+*{scrollbar-width:none}
+::-webkit-scrollbar{width:0;height:0;display:none}
+#scrollTip{position:fixed;z-index:999;width:4px;border-radius:4px;background:rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.18);pointer-events:none;opacity:0;transition:opacity .35s}
+#scrollTip.on{opacity:1;transition:opacity .1s}
+
 /* level rewards on the rewards screen */
 .lvl-box{background:var(--card);border:2px solid var(--card-b);border-radius:14px;padding:10px 12px;margin-bottom:6px}
 .lvl-box small{color:var(--ink2);font-size:12px;font-weight:700}

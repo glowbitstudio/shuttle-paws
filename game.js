@@ -4322,6 +4322,13 @@ $('tourStart').onclick = () => { Sound.init(); startTour(); };
 $('tourReset').onclick = () => { tour.round = 0; saveAll(); renderTour(); Sound.boop(); };
 $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 
+// Floating scroll indicator: shown at the right edge of whatever element is being scrolled, fades out when the scrolling stops.
+(function () { let tip = null, timer = 0;
+  document.addEventListener('scroll', (ev) => { const el = ev.target; if (!el || el.nodeType !== 1 || el.scrollHeight <= el.clientHeight + 2) return;
+    if (!tip) { tip = document.createElement('div'); tip.id = 'scrollTip'; document.body.appendChild(tip); }
+    const r = el.getBoundingClientRect(), room = r.height - 12, h = Math.max(26, room * el.clientHeight / el.scrollHeight), p = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    tip.style.height = h + 'px'; tip.style.top = (r.top + 6 + (room - h) * p) + 'px'; tip.style.left = (r.right - 8) + 'px'; tip.classList.add('on');
+    clearTimeout(timer); timer = setTimeout(() => tip.classList.remove('on'), 700); }, true); })();
 const botOpts = Object.assign({ mode: '1v1', diff: 1, points: 11, games: 1, venue: 0 }, store.get('sp.botOpts', {}));
 // What challenger bots have learned from everyone: fetched over HTTP (gzip, cached, 304 when unchanged) only when this player is about
 // to meet the challenger and the server has a newer version than this device. The signed copy is rebuilt here so it can be handed back.
