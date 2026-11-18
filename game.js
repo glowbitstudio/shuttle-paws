@@ -2606,7 +2606,7 @@ function chestPop(ch) {
   if ($('cpWear')) $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
 }
 function onWallet(msg) {
-  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
+  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
   document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
@@ -2618,6 +2618,7 @@ function onWallet(msg) {
     else toast('+' + g.gold + ' vàng', g.why, 'star');
   } else if (g && g.why && (screen === 'rewards' || !$('over').classList.contains('hidden'))) toast(g.why, '', 'clock');
   if (g && g.gems > 0) { if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast"><i class="gem"></i>+${g.gems} kim cương</div>`); else toast('+' + g.gems + ' kim cương', g.why, 'star'); }
+  if (g && g.levelUp > 0) toast('Lên cấp ' + wallet.level + '!', '+' + g.levelUp + ' kim cương', 'star');
   const ch = msg.chest; if (ch && ch.ok) { Sound.ach(); chestPop(ch); } else if (ch) toast(ch.why, '', 'lock');
   const b = msg.bought;
   if (b && b.ok) { profile.char = b.char; infoChar = b.char; saveAll(); Net.profile(); Sound.ach(); toast('Đã mở khoá ' + charById(b.char).name, '−' + b.spent + ' vàng', 'check'); showPreview(true); }
@@ -2634,7 +2635,7 @@ function renderWallet() {
   if (screen === 'chars') renderChars();
   if (screen === 'gear') { renderGear(); showPreview(true); }
   if (screen === 'shop') { renderShop(); showPreview(true); }
-  if (screen === 'home') { const c = charById(profile.char); $('homeChar').textContent = c.name + ' · Sức mạnh ' + S.powerOf(c.id, myGear()); }
+  if (screen === 'home') { const c = charById(profile.char); $('homeChar').textContent = c.name + ' · Cấp ' + ((wallet && wallet.level) || 1) + ' · Sức mạnh ' + S.powerOf(c.id, myGear()); }
 }
 function renderRewards() {
   const el = $('rewardsBody');
@@ -3787,9 +3788,10 @@ function updateCamera(dt, t) {
   const portrait = viewH > viewW;
   let tx, ty, tz, lx, ly, lz;
   if (!session && (screen === 'chars' || screen === 'gear' || screen === 'shop' || screen === 'home')) {
-    const side = portrait ? 0 : screen === 'home' ? 0.55 : 1.35;
+    const wideLobby = screen === 'home' && !portrait && viewW > 820 && viewH > 480;   // wide lobby: play cards along the bottom, so the character stands in the middle
+    const side = portrait || wideLobby ? 0 : screen === 'home' ? 0.55 : 1.35;
     const lob = portrait && screen === 'home';   // lobby on a tall screen: the character stands just above the buttons, a little closer
-    tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (lob ? 6.3 : portrait ? 7.2 : 5.6); lx = side; ly = lob ? 0.35 : portrait ? -1.0 : 1.2; lz = 3.2;
+    tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (lob ? 6.3 : portrait ? 7.2 : 5.6); lx = side; ly = lob ? 0.35 : portrait ? -1.0 : wideLobby ? 0.55 : 1.2; lz = 3.2;
     if (screen === 'gear' || screen === 'shop') {   // dressing room: move in on the part of the body being dressed ([look height, distance])
       const f = gearSlot === 'head' ? [1.62, 4.4] : gearSlot === 'face' ? [1.56, 3.5] : gearSlot === 'neck' ? [1.3, 3.5] : gearSlot === 'sets' || gearSlot === 'chests' ? [1.05, 5.3] : gearSlot === 'shoes' ? [0.62, 3.5] : gearSlot === 'racket' ? [1.4, 5.2] : gearSlot === 'shorts' ? [0.95, 3.7] : gearSlot === 'wrist' ? [1.1, 3.6] : [1.25, 3.9];
       const d = f[1] * (portrait ? 1.5 : 1);
@@ -4271,7 +4273,7 @@ function seg(id, getter, setter) {
 
 function renderHome() {
   const c = charById(profile.char);
-  $('homeFace').innerHTML = faceImg(c.id); $('homeName').textContent = profile.name; $('homeChar').textContent = c.name + ' · Sức mạnh ' + S.powerOf(c.id, myGear());
+  $('homeFace').innerHTML = faceImg(c.id); $('homeName').textContent = profile.name; $('homeChar').textContent = c.name + ' · Cấp ' + ((wallet && wallet.level) || 1) + ' · Sức mạnh ' + S.powerOf(c.id, myGear());
   renderWallet();
   $('homeStats').textContent = `${P.matches} trận · ${P.wins} thắng · ${Object.keys(achieved).length}/${ACH.length} thành tích`;
   $('homeTour').textContent = tour.cups ? `${tour.cups} cúp · đang ở ${TOUR[tour.round].name}` : tour.round ? `Đang ở ${TOUR[tour.round].name} · cố lên!` : '5 vòng đấu loại trực tiếp';

@@ -26,6 +26,10 @@ const CHESTS = [
   { id: 'c2', name: 'Rương Sử thi', gold: 0, gems: 30, odds: [0, 0, 88, 12] },
   { id: 'c3', name: 'Rương Huyền thoại', gold: 0, gems: 90, odds: [0, 0, 40, 60] },
 ];
+// levels: experience from every finished match; level n starts at 40 * (n - 1)^2 xp; each new level pays one diamond
+const levelOf = (xp) => Math.floor(Math.sqrt((xp || 0) / 40)) + 1, levelXp = (lv) => 40 * (lv - 1) * (lv - 1);
+const XP_ONLINE = [12, 30], XP_LOCAL_WIN = [6, 9, 12, 16, 24], XP_LOCAL_LOSS = 4;
+function addXp(e, n) { const l0 = levelOf(e.xp); e.xp = (e.xp || 0) + n; const up = levelOf(e.xp) - l0; if (up > 0) e.gems += up; return { xp: n, levelUp: up }; }
 function openChest(p, id, pay, now, rnd) {
   const e = ensure(p, now), c = CHESTS.find((x) => x.id === id), gems = pay === 'gems', R = rnd || Math.random;
   const price = c ? (gems ? c.gems : c.gold) : 0;
@@ -55,6 +59,7 @@ function ensure(p, now, char) {
   const e = p.eco;
   if (!e.items) e.items = [];
   if (typeof e.gems !== 'number') e.gems = 0;
+  if (typeof e.xp !== 'number') e.xp = 0;
   if (typeof e.shards !== 'number') e.shards = 0;
   if (!e.lv) e.lv = {};
   if (!e.sh) e.sh = {};
@@ -68,7 +73,7 @@ function view(p, now) {
   const canLogin = e.login.day !== d;
   const next = e.login.day === d - 1 ? e.login.streak % LOGIN_REWARDS.length + 1 : 1;   // the streak day a claim today would be
   return {
-    t: 'wallet', gold: e.gold, gems: e.gems, shards: e.shards, sh: Object.assign({}, e.sh), lv: Object.assign({}, e.lv), rules: { dup: DUP_SHARDS, craft: CRAFT_COST, upSp: UP_SP, uniRate: UNI_RATE, setGems: SET_GEMS, packs: SHARD_PACKS }, chests: CHESTS, gemRules: { online: GEM_ONLINE_WIN, champ: GEM_CHAMP, streak7: GEM_STREAK7 }, owned: e.owned.slice(), prices: PRICES, free: FREE_CHARS,
+    t: 'wallet', xp: e.xp, level: levelOf(e.xp), levelAt: levelXp(levelOf(e.xp)), levelNext: levelXp(levelOf(e.xp) + 1), gold: e.gold, gems: e.gems, shards: e.shards, sh: Object.assign({}, e.sh), lv: Object.assign({}, e.lv), rules: { dup: DUP_SHARDS, craft: CRAFT_COST, upSp: UP_SP, uniRate: UNI_RATE, setGems: SET_GEMS, packs: SHARD_PACKS }, chests: CHESTS, gemRules: { online: GEM_ONLINE_WIN, champ: GEM_CHAMP, streak7: GEM_STREAK7 }, owned: e.owned.slice(), prices: PRICES, free: FREE_CHARS,
     items: e.items.slice(), equip: Object.assign({}, e.equip),
     login: { can: canLogin, streak: canLogin ? next : e.login.streak, reward: canLogin ? LOGIN_REWARDS[next - 1] : 0, rewards: LOGIN_REWARDS },
     quests: QUESTS.map((q) => ({ id: q.id, name: q.name, goal: q.goal, reward: q.reward, prog: Math.min(q.goal, e.quests.prog[q.key] || 0), claimed: e.quests.claimed.includes(q.id) })),
@@ -82,8 +87,8 @@ function progress(e, win, online) {
 // online match finished on this server: always trusted
 function grantOnline(p, win, now) {
   const e = ensure(p, now), gold = win ? ONLINE_WIN : ONLINE_LOSS;
-  e.gold += gold; progress(e, win, true); const gems = win ? GEM_ONLINE_WIN : 0; e.gems += gems;
-  return { gold, gems, why: win ? 'Thắng trận online' : 'Hoàn thành trận online' };
+  e.gold += gold; progress(e, win, true); const x = addXp(e, XP_ONLINE[win ? 1 : 0]), gems = (win ? GEM_ONLINE_WIN : 0) + x.levelUp; e.gems += win ? GEM_ONLINE_WIN : 0;
+  return { gold, gems, xp: x.xp, levelUp: x.levelUp, why: win ? 'Thắng trận online' : 'Hoàn thành trận online' };
 }
 // local match reported by the client: bounded
 function grantLocal(p, msg, now) {
@@ -95,7 +100,8 @@ function grantLocal(p, msg, now) {
   const want = win ? LOCAL_WIN[diff] : LOCAL_LOSS, gold = Math.max(0, Math.min(want, LOCAL_DAILY_CAP - e.local.gold));
   e.local.gold += gold; e.gold += gold;
   let gems = 0; if (msg.champ && win && e.champDay !== dayOf(now)) { e.champDay = dayOf(now); gems = GEM_CHAMP; e.gems += gems; }   // tournament title: once a day
-  return { gold, gems, why: gold < want ? 'Đã chạm trần vàng đấu bot hôm nay' : win ? 'Thắng trận' : 'Hoàn thành trận' };
+  const x = addXp(e, win ? XP_LOCAL_WIN[diff] : XP_LOCAL_LOSS); gems += x.levelUp;
+  return { gold, gems, xp: x.xp, levelUp: x.levelUp, why: gold < want ? 'Đã chạm trần vàng đấu bot hôm nay' : win ? 'Thắng trận' : 'Hoàn thành trận' };
 }
 function claimLogin(p, now) {
   const e = ensure(p, now), d = dayOf(now);
@@ -180,4 +186,4 @@ function equip(p, slot, id, now) {
 // ids worn right now (only owned, known items)
 function equipped(p, now) { const e = ensure(p, now); return Object.values(e.equip).filter((id) => e.items.includes(id) && Sim.gearById(id)).map((id) => (e.lv[id] ? id + '+' + e.lv[id] : id)); }
 
-module.exports = { buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_SP, UNI_RATE, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };
+module.exports = { levelOf, levelXp, XP_ONLINE, XP_LOCAL_WIN, XP_LOCAL_LOSS, buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_SP, UNI_RATE, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };

@@ -260,6 +260,25 @@ function leaveMatch(c, reason, grace) {
 }
 
 // ------------------------------------------------------------------ messages
+// Quick match by strength: the player who has waited longest is paired with the queued player closest in power, as long as the gap
+// is inside that player's tolerance: 150 power at once, 120 more for every second waited, anyone after 15 s (so nobody waits for long).
+function matchQuick() {
+  const now = Date.now();
+  quickQueue = quickQueue.filter((q) => q.ws.readyState === 1 && !q.match && !q.room && !q.spectating);
+  quickQueue.sort((x, y) => x.qAt - y.qAt);
+  for (let i = 0; i < quickQueue.length; i++) {
+    const a = quickQueue[i], wait = (now - a.qAt) / 1000, tol = wait >= 15 ? Infinity : 150 + 120 * wait;
+    let best = null, gap = Infinity;
+    for (const b of quickQueue) { if (b === a) continue; const g = Math.abs((b.qPower || 1800) - (a.qPower || 1800)); if (g < gap) { gap = g; best = b; } }
+    if (best && gap <= tol) {
+      quickQueue = quickQueue.filter((q) => q !== a && q !== best);
+      send(a, { t: 'found', power: best.qPower }); send(best, { t: 'found', power: a.qPower });
+      startMatch(Math.random() < 0.5 ? [a, best] : [best, a], { mode: '1v1', points: 11, games: 1, venue: Math.floor(Math.random() * Sim.VENUES.length) }, null);
+      i = -1;                                             // the queue changed: start over
+    }
+  }
+}
+setInterval(() => { if (quickQueue.length > 1) matchQuick(); }, 1000).unref();
 const handlers = {
   hello(c, msg) {
     let id = clean(msg.id, 40), secret = clean(msg.secret, 80);
@@ -337,11 +356,9 @@ const handlers = {
     if (c.match) return;
     leaveRoom(c);
     quickQueue = quickQueue.filter((q) => q !== c && q.ws.readyState === 1 && !q.match && !q.room && !q.spectating);
-    const other = quickQueue.shift();
-    if (other) {
-      send(other, { t: 'found' }); send(c, { t: 'found' });
-      startMatch(Math.random() < 0.5 ? [c, other] : [other, c], { mode: '1v1', points: 11, games: 1, venue: Math.floor(Math.random() * Sim.VENUES.length) }, null);
-    } else { quickQueue.push(c); send(c, { t: 'queued' }); }
+    c.qPower = Sim.powerOf(c.char, Eco.equipped(data.players[c.id], Date.now())); c.qAt = Date.now();
+    quickQueue.push(c); send(c, { t: 'queued', power: c.qPower });
+    matchQuick();
   },
   unquick(c) { quickQueue = quickQueue.filter((q) => q !== c); send(c, { t: 'unqueued' }); },
   createRoom(c, msg) {

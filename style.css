@@ -1030,3 +1030,15 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 #score{background:linear-gradient(180deg,#1c5a5c,#113c40) !important;border:2px solid rgba(243,207,134,.8);border-radius:16px !important}
 
 #setCam button,#botDiff button{padding-left:9px;padding-right:9px}
+
+/* lobby layout v3 (wide screens): character in the middle, three play cards in a row along the bottom, menu dock on the right, character buttons in a column on the left */
+@media (min-width:821px) and (orientation:landscape) and (min-height:481px){
+  .screen.lobby{grid-template-columns:auto 1fr auto !important;grid-template-rows:auto 1fr auto !important;grid-template-areas:"top top top" "char . side" "play play play" !important}
+  .lobby-char{flex-direction:column;align-self:center;align-items:stretch;justify-content:center;gap:12px;padding:0}
+  .lobby-char button{justify-content:flex-start;padding:11px 22px;font-size:17px}
+  .lobby-side{align-self:center}
+  .screen.lobby .lobby-play{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:min(1040px,100%);margin:0 auto;align-self:end}
+  .screen.lobby .lobby-play .tiny{grid-column:1/-1}
+  .screen.lobby .lobby-play .big-btn{min-height:84px}
+  .screen.lobby .lobby-play .big-btn.wide-btn{grid-column:auto !important}
+}

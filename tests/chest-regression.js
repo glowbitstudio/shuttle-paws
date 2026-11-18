@@ -38,12 +38,17 @@ for (const [id, pay] of [['c0', 'gold'], ['c1', 'gold']]) {
   assert.equal(E.setPrice(p.eco, 'ninja'), 180); assert(!E.buySet(p, 'ninja', T0).ok, 'no diamonds'); p.eco.shards = 60; E.craftGear(p, 'nj_head', T0); assert.equal(E.setPrice(p.eco, 'ninja'), 150);
   p.eco.gems = 150; const b = E.buySet(p, 'ninja', T0); assert(b.ok && p.eco.gems === 0); assert.equal(S.GEAR.filter((g) => g.set === 'ninja').every((g) => p.eco.items.includes(g.id) && p.eco.equip[g.slot] === g.id), true);
   assert(!E.buySet(p, 'ninja', T0).ok, 'already complete'); assert.equal(E.setPrice({ items: [] }, 'idol'), Math.ceil(380 * 2 / 6)); assert.deepEqual(S.setBonus(['id_face', 'id_neck']).map((b) => [b.n, b.size, b.bonus]), [[2, 2, 0.25]]); assert.equal(S.setBonus(['th_face', 'th_shirt', 'th_back'])[0].bonus, 0.5); assert(!E.buySet(p, 'nope', T0).ok); const v = E.view(p, T0); assert(v.rules && v.rules.setGems.length === 4 && E.setPrice(P().eco || (E.ensure(p, T0), { items: [] }), 'angel') === 820 && typeof v.shards === 'number' && v.lv && v.sh && v.rules.upSp.length === 5 && v.rules.uniRate.length === 4); }
-// diamonds: online win, tournament title once a day, 7th login day
-{ const p = P(); E.ensure(p, T0); assert.equal(E.grantOnline(p, true, T0).gems, 1); assert.equal(E.grantOnline(p, false, T0).gems, 0); assert.equal(p.eco.gems, 1);
-  const a = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0); assert.equal(a.gems, 10);
-  const b = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0 + 60000); assert.equal(b.gems, 0, 'one title a day');
-  assert.equal(E.grantLocal(p, { win: false, champ: true, diff: 3, dur: 120 }, T0 + DAY).gems, 0, 'a lost final gives nothing');
-  assert.equal(E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 10 }, T0 + DAY + 60000).gems || 0, 0, 'too short');
-  assert.equal(E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0 + DAY + 120000).gems, 10); assert.equal(p.eco.gems, 21);
+// diamonds: online win, tournament title once a day, 7th login day (a diamond paid for a new level is counted apart)
+{ const p = P(), G = (r) => (r.gems || 0) - (r.levelUp || 0); E.ensure(p, T0); assert.equal(G(E.grantOnline(p, true, T0)), 1); assert.equal(G(E.grantOnline(p, false, T0)), 0);
+  const a = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0); assert.equal(G(a), 10);
+  const b = E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0 + 60000); assert.equal(G(b), 0, 'one title a day');
+  assert.equal(G(E.grantLocal(p, { win: false, champ: true, diff: 3, dur: 120 }, T0 + DAY)), 0, 'a lost final gives nothing');
+  assert.equal(G(E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 10 }, T0 + DAY + 60000)), 0, 'too short');
+  assert.equal(G(E.grantLocal(p, { win: true, champ: true, diff: 3, dur: 120 }, T0 + DAY + 120000)), 10); assert.equal(p.eco.gems, 21 + E.levelOf(p.eco.xp) - 1);
   const q = P(); let gems = 0; for (let d = 0; d < 7; d++) gems += E.claimLogin(q, T0 + d * DAY).gems; assert.equal(gems, 5); assert.equal(q.eco.gems, 5); }
+// levels: xp per match, level n starts at 40 * (n - 1)^2, one diamond per new level
+{ const p = P(); E.ensure(p, T0); assert.deepEqual([E.levelOf(0), E.levelOf(39), E.levelOf(40), E.levelOf(160), E.levelXp(3)], [1, 1, 2, 3, 160]);
+  let g = E.grantOnline(p, true, T0); assert.deepEqual([g.xp, g.levelUp], [30, 0]); g = E.grantOnline(p, true, T0); assert.deepEqual([p.eco.xp, g.levelUp, p.eco.gems], [60, 1, 3]);
+  const v = E.view(p, T0); assert.deepEqual([v.level, v.xp, v.levelAt, v.levelNext], [2, 60, 40, 160]);
+  assert.equal(E.grantLocal(p, { win: true, diff: 4, dur: 120 }, T0 + 1e6).xp, 24); assert.equal(E.grantLocal(p, { win: true, diff: 1, dur: 5 }, T0 + 3e6).xp, undefined, 'a match that was too short gives no xp'); }
 console.log('PASS chests: prices, payment kinds, odds, duplicates become shards; crafting, upgrade levels, shard packs, diamond-priced sets; diamonds from online wins, one tournament title a day, 7th login day');
