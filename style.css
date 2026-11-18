@@ -1117,7 +1117,7 @@ body .stage-name.ch{bottom:128px}
   .char-dock-in{flex-direction:column;align-items:stretch;gap:8px;width:calc(100% - 16px);padding:8px 10px}
   .char-dock .char-info p:first-of-type{display:none}
   .char-dock #charsDone{width:100%;min-height:44px}
-  #s-chars.screen.stage{padding-bottom:156px}
+  #s-chars.screen.stage{padding-bottom:172px}
   #s-chars.screen.stage .panel.side{max-height:38vh}
   body .stage-name.ch{top:10px;bottom:auto}
 }
@@ -1131,3 +1131,20 @@ body .stage-name.ch{bottom:128px}
   #s-chars.screen.stage .panel.side{max-height:calc(100vh - 16px)}
   body .stage-name.ch{top:6px;bottom:auto}
 }
+/* home top bar never runs off the screen: the player chip shrinks and cuts its text, money and the settings button keep their place */
+.lobby-top .profile-chip{flex:0 1 auto;min-width:0;overflow:hidden}
+.lobby-top .profile-chip>span:last-child{min-width:0;overflow:hidden}
+.lobby-top .profile-chip b,.lobby-top .profile-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:520px){
+  .lobby-top{gap:6px}.lobby-top .profile-chip{max-width:none;gap:8px;padding:3px 10px 3px 4px}
+  .lobby-cash{gap:5px}.lobby-cash .gold-chip{padding:4px 8px;font-size:13px;gap:4px}.lobby-cash .gold-chip .coin,.lobby-cash .gold-chip .gem{width:13px;height:13px;margin-right:0}
+  .lobby-cash .round-btn{width:36px;height:36px}
+  .login-row{grid-template-columns:repeat(7,1fr)!important;gap:4px}.login-day{padding:5px 0!important}.login-day small{font-size:10px}.login-day b{font-size:12px}.login-day b .coin{width:11px;height:11px;margin-right:2px}
+}
+/* settings button: a solid ring and the gradient kept inside it (a see-through ring over the gradient looked chipped at the top and bottom) */
+.round-btn{border:2px solid #8fc9c4!important;background-clip:padding-box!important;background-origin:padding-box}
+/* venues that open with the level */
+.venue.locked{filter:saturate(.35) brightness(.72)}.venue.locked b,.venue.locked small{opacity:.75}
+.venue .vlock{position:absolute;right:8px;bottom:6px;display:inline-flex;align-items:center;gap:4px;font-style:normal;font:800 12px var(--display);color:#ffd76a;background:rgba(0,0,0,.45);border-radius:999px;padding:2px 8px}
+.venue .vlock .ico{width:12px;height:12px}
+.lvl-map{min-height:13px;font-size:10px!important;color:#7fe3c4!important;text-align:center;line-height:1.1}

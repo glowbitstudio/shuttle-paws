@@ -2192,7 +2192,8 @@ function startLocal(opts) {
   const dare = () => { if (d < 4) return undefined; const top = S.GEAR_SETS.filter((x) => S.GEAR.find((g) => g.set === x.id).rar >= 2), st = top[Math.floor(Math.random() * top.length)]; return S.GEAR.filter((g) => g.set === st.id).map((g) => g.id); };   // challenger bots wear a random full set
   slots.push({ name: opts.oppName || names[1], char: opts.opp || pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
-  const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;
+  const openV = S.VENUES.map((v, i) => i).filter((i) => venueOpen(i) || opts.anyVenue);   // a random venue comes from the ones this player has opened
+  const venueIdx = opts.venue < 0 ? openV[Math.floor(Math.random() * openV.length)] : opts.venue;
   const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit, moveAssist: d >= 4 ? false : undefined, autoSave: d >= 4 ? false : undefined });   // challenger matches play by the online rules: no auto-run, no auto-return, no auto-save
   if (d >= 4) {   // the challenger starts from the shared memory (60% of it) plus what it remembers about this player
     const G = store.get('sp.dareG', null) || { front: 0, bad: {} }, mem = store.get('sp.dare', null) || { front: 0, bad: {} }, bad = {};
@@ -2616,6 +2617,7 @@ function chestPop(ch) {
   if ($('cpWear')) $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
 }
 function onWallet(msg) {
+  store.set('sp.level', msg.level || 1);
   wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {}, free: msg.freeChests || {}, levelRewards: msg.levelRewards || [] };
   document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
@@ -2630,7 +2632,7 @@ function onWallet(msg) {
   if (g && g.gems > 0) { if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast"><i class="gem"></i>+${g.gems} kim cương</div>`); else toast('+' + g.gems + ' kim cương', g.why, 'star'); }
   if (g && g.levelUp > 0) {   // level up: gold, a diamond and maybe a free chest waiting in the shop
     const cn = (g.levelChests || []).map((id) => ((wallet.chests || []).find((c) => c.id === id) || {}).name).filter(Boolean);
-    const line = (g.levelGold ? '+' + g.levelGold + ' vàng · ' : '') + '+' + g.levelUp + ' kim cương' + (cn.length ? ' · ' + cn.join(', ') + ' miễn phí (mở ở Cửa hàng)' : '');
+    const line = (g.levelGold ? '+' + g.levelGold + ' vàng · ' : '') + '+' + g.levelUp + ' kim cương' + (cn.length ? ' · ' + cn.join(', ') + ' miễn phí (mở ở Cửa hàng)' : '') + S.VENUES.filter((v, i) => i >= 6 && venueLevel(i) > wallet.level - g.levelUp && venueLevel(i) <= wallet.level).map((v) => ' · sân mới: ' + v.name).join('');
     if (!$('over').classList.contains('hidden')) $('overAch').insertAdjacentHTML('afterbegin', `<div class="toast lvl"><i class="lvl-star"></i>Lên cấp ${wallet.level}!<small>${esc(line)}</small></div>`); else toast('Lên cấp ' + wallet.level + '!', line, 'star');
   }
   overLevel();
@@ -2664,7 +2666,7 @@ function renderRewards() {
   }).join('');
   el.innerHTML = `<p class="gold-line"><span class="gold-chip"><i class="coin"></i><b>${wallet.gold}</b></span></p>` +
     `<h3>Cấp ${wallet.level}</h3><div class="lvl-box"><div class="q-bar lvl-bar"><i style="width:${Math.round(S.clamp((wallet.xp - wallet.levelAt) / Math.max(1, wallet.levelNext - wallet.levelAt), 0, 1) * 100)}%"></i></div><small>${wallet.xp - wallet.levelAt}/${wallet.levelNext - wallet.levelAt} kinh nghiệm · đánh xong trận nào cũng được cộng</small>` +
-    `<div class="lvl-row">${(wallet.levelRewards || []).map((r) => `<div class="lvl-card${r.chest ? ' has' : ''}"><small>Cấp ${r.level}</small><span class="lvl-slot">${r.chest ? `<span class="chest t${+r.chest[1]} mini"><i></i></span>` : '<em></em>'}</span><b><i class="coin"></i>${r.gold}</b><b><i class="gem"></i>${r.gems}</b></div>`).join('')}</div></div>` +
+    `<div class="lvl-row">${(wallet.levelRewards || []).map((r) => `<div class="lvl-card${r.chest ? ' has' : ''}"><small>Cấp ${r.level}</small><span class="lvl-slot">${r.chest ? `<span class="chest t${+r.chest[1]} mini"><i></i></span>` : '<em></em>'}</span><b><i class="coin"></i>${r.gold}</b><b><i class="gem"></i>${r.gems}</b><small class="lvl-map">${(S.VENUES.find((v, i) => i >= 6 && venueLevel(i) === r.level) || { name: '' }).name}</small></div>`).join('')}</div><small>Mỗi cấp từ 2 đến 10 mở thêm một sân đấu (tên sân ghi dưới mỗi ô).</small></div>` +
     `<h3>Quà đăng nhập</h3><div class="login-row">${days}</div>` +
     `<button class="cta" id="loginClaim" ${L.can ? '' : 'disabled'}>${L.can ? `Nhận quà ngày ${L.streak} · ${L.reward} vàng` : 'Hôm nay đã nhận · mai quay lại nhé'}</button>` +
     `<h3>Nhiệm vụ hôm nay</h3>${quests}` +
@@ -4282,7 +4284,14 @@ function go(name) {
   showPreview(true);
   ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, profile: renderProfile, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
 }
-document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { Sound.init(); Sound.boop(); go(b.dataset.go); }));
+// Back buttons lead to the screen the player came from (profile -> gear -> shop -> back -> gear -> back -> profile), not always to the menu.
+const navStack = [];
+document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { Sound.init(); Sound.boop();
+  const from = screen; let to = b.dataset.go;
+  if (b.classList.contains('back')) { let prev = navStack.pop(); while (prev && prev === from) prev = navStack.pop(); if (prev) to = prev; }
+  else if (to === 'home') navStack.length = 0;
+  else if (from && from !== to && SCREENS.includes(from)) { navStack.push(from); if (navStack.length > 12) navStack.shift(); }
+  go(to); if (to === 'home') navStack.length = 0; }));
 
 function seg(id, getter, setter) {
   const el = $(id);
@@ -4350,16 +4359,20 @@ function dareSync() {
 }
 const VENUE_COLORS = { gym: 'linear-gradient(135deg,#f6b98f,#e58f63)', arena: 'linear-gradient(135deg,#2f3d7a,#151b33)', roof: 'linear-gradient(135deg,#ff8a65,#6a4c9c)', beach: 'linear-gradient(135deg,#7fd0f5,#d9b77a)', park: 'linear-gradient(135deg,#8fd47e,#4f9f4a)', snow: 'linear-gradient(135deg,#a9cdee,#6f93bb)' };
 const WIND_TAG = { none: '', steady: icon('wind'), gusty: icon('gust'), any: icon('swirl') };
+const venueLevel = (i) => (i < 6 ? 1 : i - 4);
+const myLevel = () => (wallet ? wallet.level : +store.get('sp.level', 1) || 1);
+const venueOpen = (i) => i < 0 || venueLevel(i) <= myLevel();
 function venueCards(el, getter, setter, allowRandom) {
   el.innerHTML = '';
   const list = (allowRandom ? [{ id: 'random', name: 'Ngẫu nhiên', desc: 'Để số phận quyết định', wind: 'rand' }] : []).concat(S.VENUES);
   list.forEach((v, i) => {
     const idx = allowRandom ? i - 1 : i;
     const b = document.createElement('button');
-    b.className = 'venue' + (getter() === idx ? ' on' : '');
+    const open = venueOpen(idx); if (!open && getter() === idx) setter(allowRandom ? -1 : 0);
+    b.className = 'venue' + (getter() === idx ? ' on' : '') + (open ? '' : ' locked');
     b.style.background = VENUE_COLORS[v.id] || 'linear-gradient(135deg,#ffb38a,#ff7a59)';
-    b.innerHTML = `<span class="wind-tag">${WIND_TAG[v.wind] !== undefined ? WIND_TAG[v.wind] : icon('dice')}</span><b>${esc(v.name)}</b><small>${esc(v.desc)}</small>`;
-    b.onclick = () => { setter(idx); el.querySelectorAll('.venue').forEach((x) => x.classList.toggle('on', x === b)); Sound.boop(); };
+    b.innerHTML = `<span class="wind-tag">${WIND_TAG[v.wind] !== undefined ? WIND_TAG[v.wind] : icon('dice')}</span><b>${esc(v.name)}</b><small>${esc(v.desc)}</small>` + (open ? '' : `<em class="vlock">${icon('lock')}Cấp ${venueLevel(idx)}</em>`);
+    b.onclick = () => { if (!open) { Sound.boop(); toast('Sân mở ở cấp ' + venueLevel(idx), 'Bạn đang ở cấp ' + myLevel() + '. Đánh xong trận nào cũng được kinh nghiệm.', 'lock'); return; } setter(idx); el.querySelectorAll('.venue').forEach((x) => x.classList.toggle('on', x === b)); Sound.boop(); };
     el.appendChild(b);
   });
 }
