@@ -2773,7 +2773,7 @@ function finishMatch(res) {
         store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own, pos, T: ownT });
         const nm = (cb.newMem || []).map((r) => r.map((v) => Math.round(v * 100) / 100)); store.set('sp.dareM', S.dareCompact((store.get('sp.dareM', []) || []).concat(nm.map((r) => r.slice())), 400));   // the shots of this match, kept on this device
         const rpos = {}; for (const k in cb.learn.pos || {}) if (k !== '_all') rpos[k] = r2(cb.learn.pos[k] - (+((d0.mem.pos || {})[k]) || 0));
-        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT, mem: nm.slice(-250), log: (m.dareLog || []).slice(-60) }); } }
+        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT, mem: nm.slice(-250), log: Net.dareLog ? (m.dareLog || []).slice(-60) : undefined }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
@@ -4310,6 +4310,14 @@ $('tourReset').onclick = () => { tour.round = 0; saveAll(); renderTour(); Sound.
 $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 
 const botOpts = Object.assign({ mode: '1v1', diff: 1, points: 11, games: 1, venue: 0 }, store.get('sp.botOpts', {}));
+// What challenger bots have learned from everyone: fetched over HTTP (gzip, cached, 304 when unchanged) only when this player is about
+// to meet the challenger and the server has a newer version than this device. The signed copy is rebuilt here so it can be handed back.
+let dareBusy = false;
+function dareSync() {
+  if (dareBusy || !Net.dareN || Net.dareN === ((store.get('sp.dareG', null) || {}).n || 0) || typeof fetch !== 'function') return; dareBusy = true;
+  fetch('dare.json').then((r) => (r.status === 200 ? r.text().then((text) => { const d = JSON.parse(text), sig = r.headers.get('X-Dare-Sig');
+    store.set('sp.dareG', d); if (sig) store.set('sp.dareT', btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') + '.' + sig); }) : null)).catch(() => {}).then(() => { dareBusy = false; });
+}
 const VENUE_COLORS = { gym: 'linear-gradient(135deg,#f6b98f,#e58f63)', arena: 'linear-gradient(135deg,#2f3d7a,#151b33)', roof: 'linear-gradient(135deg,#ff8a65,#6a4c9c)', beach: 'linear-gradient(135deg,#7fd0f5,#d9b77a)', park: 'linear-gradient(135deg,#8fd47e,#4f9f4a)', snow: 'linear-gradient(135deg,#a9cdee,#6f93bb)' };
 const WIND_TAG = { none: '', steady: icon('wind'), gusty: icon('gust'), any: icon('swirl') };
 function venueCards(el, getter, setter, allowRandom) {
@@ -4343,7 +4351,7 @@ function renderBot() {
   seg('botAssist', () => settings.assist, (v) => { settings.assist = +v; saveAll(); Net.profile(); });
   const save = () => store.set('sp.botOpts', botOpts);
   seg('botMode', () => botOpts.mode, (v) => { botOpts.mode = v; save(); });
-  seg('botDiff', () => botOpts.diff, (v) => { botOpts.diff = +v; save(); });
+  seg('botDiff', () => botOpts.diff, (v) => { botOpts.diff = +v; save(); if (botOpts.diff >= 4) dareSync(); });
   seg('botPts', () => botOpts.points, (v) => { botOpts.points = +v; save(); });
   seg('botGames', () => botOpts.games, (v) => { botOpts.games = +v; save(); });
   venueCards($('botVenues'), () => botOpts.venue, (v) => { botOpts.venue = v; save(); }, true);
@@ -4459,7 +4467,7 @@ const Net = {
     let ws;
     try { ws = new WebSocket(this.url()); } catch (e) { this.status('Địa chỉ server không hợp lệ', false); return; }
     this.ws = ws;
-    ws.onopen = () => { this.send({ t: 'hello', dareT: store.get('sp.dareT', null) || undefined, backup: store.get('sp.backup', null) || undefined, id: profile.id, secret: profile.secret, name: profile.name, char: profile.char, assist: settings.assist, hand: settings.hand }); this.retry = 0; };
+    ws.onopen = () => { this.send({ t: 'hello', dareN: (store.get('sp.dareG', null) || {}).n || 0, backup: store.get('sp.backup', null) || undefined, id: profile.id, secret: profile.secret, name: profile.name, char: profile.char, assist: settings.assist, hand: settings.hand }); this.retry = 0; };
     ws.onmessage = (ev) => { let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; } this.onMsg(msg); };
     ws.onclose = () => {
       const was = this.ok; this.ok = false; this.ws = null; this.room = null;
@@ -4485,8 +4493,9 @@ const Net = {
         break;
       case 'swapAsk': if (screen === 'room' && !session) showSwapAsk(msg); else this.send({ t: 'swapReply', from: msg.from, ok: false }); break;
       case 'backup': store.set('sp.backup', msg.v); break;
+      case 'dareWant': { const t = store.get('sp.dareT', null); if (t) this.send({ t: 'dareRestore', dareT: t }); break; }   // the server lost its memory and this device holds a newer signed copy
       case 'welcome':
-        if (msg.dare) store.set('sp.dareG', msg.dare); if (msg.dareT) store.set('sp.dareT', msg.dareT);   // what challenger bots have learned from everyone
+        this.dareN = msg.dareN || 0; this.dareLog = !!msg.dareLog; if (botOpts.diff >= 4 || store.get('sp.dare', null)) dareSync();   // only players who meet the challenger fetch what it has learned
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);
         this.send({ t: 'lobby' });

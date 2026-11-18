@@ -32,6 +32,13 @@ const server = http.createServer((req, res) => {
   catch (e) { res.writeHead(400); res.end('bad request'); return; }
   if (p === '') p = 'index.html';
   if (p === 'api/health') { res.end('ok'); return; }
+  // The shared challenger memory is not pushed to every player at connect: a client that needs it fetches it here. The body is built and
+  // gzipped once per change, answered with 304 when the client already has this version, and can sit behind a CDN.
+  if (p === 'dare.json') { const d = dareHttp(); if (!d) { res.writeHead(204); res.end(); return; }
+    const h = { 'Content-Type': 'application/json', 'ETag': d.etag, 'Cache-Control': 'public, max-age=20', 'X-Dare-Sig': d.sig, 'Vary': 'Accept-Encoding' };
+    if (req.headers['if-none-match'] === d.etag) { res.writeHead(304, h); res.end(); return; }
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) { h['Content-Encoding'] = 'gzip'; res.writeHead(200, h); res.end(d.gz); } else { res.writeHead(200, h); res.end(d.text); }
+    return; }
   // client files only (data.json / server.js stay private): the fixed list + animation packs (anim*.js) + the lab
   if (!PUBLIC.has(p) && !/^(anim(_[a-z]+)?|lab)\.js$/.test(p)) { res.writeHead(404); res.end('not found'); return; }
   const file = path.join(ROOT, p);
@@ -70,12 +77,18 @@ const signBackup = (body) => crypto.createHmac('sha256', BACKUP_KEY).update(body
 function sendBackup(c) { if (!BACKUP_KEY || !c.id || !data.players[c.id]) return; const body = Buffer.from(JSON.stringify({ id: c.id, rec: data.players[c.id] })).toString('base64url'); c.ws.send(JSON.stringify({ t: 'backup', v: body + '.' + signBackup(body) })); }
 // The shared challenger memory travels the same way: every client keeps the last signed copy and hands it back at hello, so a server
 // that lost its data picks the memory up again from the first player who connects (the copy with more matches behind it wins).
+let dareVer = 0, dareCache = null, dareAsked = 0, dareWin = { t: 0, n: 0 }, dareHour = [];
+function dareHttp() { if (!BACKUP_KEY || !data.dare) return null; if (dareCache && dareCache.ver === dareVer) return dareCache;
+  const text = JSON.stringify(data.dare), sig = signBackup(Buffer.from(text).toString('base64url'));
+  return (dareCache = { ver: dareVer, text, sig, gz: require('zlib').gzipSync(text), etag: '"d' + sig.slice(0, 16) + '"' }); }
+// rally logs are for study: every match while it is quiet, one match in fifty when reports pour in
+const dareLogWant = () => { const now = Date.now(); while (dareHour.length && now - dareHour[0] > 3600000) dareHour.shift(); return dareHour.length < 40 || Math.random() < 0.02; };
 function dareTicket() { if (!BACKUP_KEY || !data.dare) return null; const body = Buffer.from(JSON.stringify(data.dare)).toString('base64url'); return body + '.' + signBackup(body); }
 function restoreDare(v) {
   if (!BACKUP_KEY || typeof v !== "string" || v.length > 250000) return;
   const [body, sig] = v.split('.'); if (!body || !sig) return;
   const a = Buffer.from(sig), b = Buffer.from(signBackup(body)); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return;
-  try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); if (o && o.n > ((data.dare && data.dare.n) || 0)) { data.dare = o; save(); console.log('restored challenger memory, matches:', o.n); } } catch (e) { /* not ours */ }
+  try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); if (o && o.n > ((data.dare && data.dare.n) || 0)) { data.dare = o; dareVer++; save(); console.log('restored challenger memory, matches:', o.n); } } catch (e) { /* not ours */ }
 }
 function readBackup(v, id, secret) {
   if (!BACKUP_KEY || typeof v !== 'string' || v.length > 60000) return null;
@@ -283,7 +296,8 @@ const handlers = {
   hello(c, msg) {
     let id = clean(msg.id, 40), secret = clean(msg.secret, 80);
     if (id && !data.players[id]) { const old = readBackup(msg.backup, id, secret); if (old) { data.players[id] = old; console.log('restored player from backup', id.slice(0, 8)); } }
-    restoreDare(msg.dareT);
+    restoreDare(msg.dareT);   // older clients hand their copy over at once; newer ones only say which version they hold and are asked when it is needed
+    if ((+msg.dareN || 0) > ((data.dare && data.dare.n) || 0) && Date.now() - dareAsked > 3000) { dareAsked = Date.now(); send(c, { t: 'dareWant' }); }
     const rec = id && data.players[id];
     if (!rec || rec.secret !== secret) { id = crypto.randomUUID(); secret = crypto.randomBytes(18).toString('hex'); data.players[id] = { secret, name: '', wins: 0, played: 0 }; save(); }
     c.id = id;
@@ -292,7 +306,7 @@ const handlers = {
     c.char = ownedChar(c, msg.char); c.hand = msg.hand === 'L' ? 'L' : 'R';
     c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     data.players[id].name = c.name;
-    send(c, { t: 'welcome', id, secret, dare: data.dare || null, dareT: dareTicket(), online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
+    send(c, { t: 'welcome', id, secret, dareN: (data.dare && data.dare.n) || 0, dareLog: dareLogWant(), online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
     send(c, Eco.view(data.players[id], Date.now())); save();
     rejoinOffer(c);
   },
@@ -321,9 +335,12 @@ const handlers = {
   // What challenger bots learned in one match on a player's machine, folded into a shared memory every challenger match starts from.
   // Reports come from clients, so each one is clamped, a player can send one a minute, and a single report moves the average by 2% at most.
   dareLogGet(c) { send(c, { t: 'dareLog', log: (data.dareLog || []).slice(-120) }); },
+  dareRestore(c, msg) { restoreDare(msg.dareT); },
   dareLearn(c, msg) {
     const P0 = (data.dare && data.dare.pos) || {};
-    const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;   // per player, not per connection
+    const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;
+    if (now - dareWin.t > 1000) dareWin = { t: now, n: 0 }; if (++dareWin.n > 8) return;   // at most 8 reports a second are worked in, whatever the crowd
+    dareHour.push(now); if (dareHour.length > 5000) dareHour.shift(); dareVer++;   // per player, not per connection
     const G = data.dare || (data.dare = { n: 0, front: 0, bad: {} }), a = Math.max(0.02, 1 / (G.n + 1)), num = (v, lo, hi) => Sim.clamp(+v || 0, lo, hi);
     G.front = Math.round(((1 - a) * G.front + a * num(msg.front, -0.8, 1.25)) * 1000) / 1000;
     for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift']) G.bad[k] = Math.round(((1 - a) * (G.bad[k] || 0) + a * num(msg.bad && msg.bad[k], 0, 6)) * 1000) / 1000;

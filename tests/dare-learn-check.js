@@ -3,14 +3,15 @@
 // a minute per player and comes back in the welcome message; a signed copy handed back at hello restores it after the server lost its data.
 const assert = require('node:assert/strict'), { spawn } = require('node:child_process'), fs = require('node:fs'), os = require('node:os'), path = require('node:path'), WebSocket = require('ws');
 const ROOT = path.join(__dirname, '..'), PORT = 3072, dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spdare-'));
-let srv = null;
+let srv = null, wanted = 0;
 const start = () => new Promise((res) => { srv = spawn(process.execPath, ['server.js'], { cwd: ROOT, env: Object.assign({}, process.env, { PORT, DATA_DIR: dir, BACKUP_KEY: 'k1' }) }); setTimeout(res, 1200); });
 const stop = () => new Promise((res) => { srv.kill(); setTimeout(res, 900); });
 process.on('exit', () => { try { srv.kill(); } catch (e) { /* gone */ } });
 const session = (hello, after) => new Promise((res, rej) => {
   const ws = new WebSocket('ws://127.0.0.1:' + PORT); let welcome = null;
   ws.on('open', () => ws.send(JSON.stringify(Object.assign({ t: 'hello', name: 'T', char: 'cat' }, hello))));
-  ws.on('message', (d) => { const m = JSON.parse(d); if (m.t === 'welcome') { welcome = m; for (const x of after || []) ws.send(JSON.stringify(x)); } });
+  // the memory itself comes over HTTP (welcome only carries its version); the signed copy is rebuilt the way the game does it
+  ws.on('message', (d) => { const m = JSON.parse(d); if (m.t === 'welcome') { welcome = m; fetch('http://127.0.0.1:' + PORT + '/dare.json').then(async (r) => { const text = r.status === 200 ? await r.text() : null; m.dare = text ? JSON.parse(text) : null; m.dareT = text ? Buffer.from(text).toString('base64url') + '.' + r.headers.get('x-dare-sig') : null; assert.equal(m.dareN, m.dare ? m.dare.n : 0); for (const x of after || []) ws.send(JSON.stringify(x)); }); } if (m.t === 'dareWant') wanted++; });
   ws.on('error', rej); setTimeout(() => { ws.close(); res(welcome); }, 900);
 });
 (async () => {
@@ -30,6 +31,8 @@ const session = (hello, after) => new Promise((res, rej) => {
   await stop(); fs.rmSync(path.join(dir, 'data.json'), { force: true }); await start();
   const e = await session({ dareT: d.dareT.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')) }); assert.equal(e.dare, null, 'tampered copy refused');
   const f = await session({ dareT: d.dareT }); assert.deepEqual(f.dare, d.dare, 'memory restored from the signed copy');
+  wanted = 0; await session({ dareN: 1 }); assert.equal(wanted, 0, 'a client with an older version is not asked for it'); await stop(); fs.rmSync(path.join(dir, 'data.json'), { force: true }); await start();
+  await session({ dareN: 2 }, [{ t: 'dareRestore', dareT: d.dareT }]); assert.equal(wanted, 1, 'an empty server asks a client that holds a version for its copy'); const f2 = await session({}); assert.deepEqual(f2.dare, d.dare, 'and takes it');
   const g = await session({ dareT: b.dareT }); assert.equal(g.dare.n, 2, 'an older copy does not replace a newer memory');
   await stop(); fs.rmSync(dir, { recursive: true, force: true });
   console.log('PASS dare-learn: reports clamped, averaged, one a minute per player, sent on welcome; signed copy restores the memory after data loss, tampered and older copies do not');
