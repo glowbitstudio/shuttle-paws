@@ -4212,7 +4212,7 @@ const CAM_NAMES = { high: 'Trên cao', mid: 'Vừa', low: 'Thấp', close: 'Sau 
 function setCamBtn() { $('camBtn').innerHTML = icon('camera') + 'Góc nhìn: ' + CAM_NAMES[settings.cam]; }
 function cycleCam() {
   const order = ['high', 'mid', 'low', 'close', 'full'];
-  settings.cam = order[(order.indexOf(settings.cam) + 1) % 3]; saveAll();
+  settings.cam = order[(order.indexOf(settings.cam) + 1) % order.length]; saveAll();
   setCamBtn();
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
 }
