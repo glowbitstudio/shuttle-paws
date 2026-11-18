@@ -23,6 +23,9 @@ with sync_playwright() as p:
         r['spent']=g0-pg.evaluate('()=>__w().gold');r['item']=pg.evaluate('()=>__w().items[0]');r['popShown']=pg.evaluate("()=>!!document.querySelector('#chestPop:not(.hidden) .cp-card')")
         pg.screenshot(path=str(OUT/f'{name}-chest-open.png'));pg.click('#cpWear');pg.wait_for_function("Object.values(__w().equip).length===1");pg.wait_for_timeout(600)
         r['wornAfter']=pg.evaluate("()=>Object.values(__w().equip)[0]");r['popClosed']=pg.evaluate("()=>document.getElementById('chestPop').classList.contains('hidden')")
+        g1=pg.evaluate('()=>({g:__w().gems,n:__w().items.length,s:__w().shards})');pg.click('.chest-row[data-chest="c3"] button[data-pay="gems"]');pg.wait_for_function(f"__w().gems==={g1['g']}-90");pg.wait_for_timeout(2000)
+        g2=pg.evaluate('()=>({n:__w().items.length,s:__w().shards})');r['legendChest']={'gems':90,'newItem':g2['n']-g1['n'],'shards':g2['s']-g1['s'],'rar':pg.evaluate("()=>document.querySelector('#chestPop .rar').textContent")}
+        pg.screenshot(path=str(OUT/f'{name}-chest-legend.png'))
         res[name]=r;ctx.close()
     b.close()
 print(json.dumps({'results':res,'errors':errs},ensure_ascii=False,indent=1))
