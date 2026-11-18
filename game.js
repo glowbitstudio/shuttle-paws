@@ -1943,6 +1943,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,
     rig: { hips: hipsPv.p, chest: chestPv.p, hipY, ankleY, legs },
+    netRoom: Math.max(1, P.size * P.head * P.sq[0] / 1.274) * (c.ear === 'koala' ? 1.13 : 1),   // big-headed characters need more room in front of them at the net
     gear: { headGear, wristGear, shoes: feet, neck: neckG, back: backG, face: faceG, torso, shorts } };   // detachable groups for the later gear system
   // dive clearance, measured once from this model's own meshes: how far the lying body has to be lifted for the torso
   // to rest on the floor, and how far the head tips back so the face / snout does not go through it
@@ -3199,7 +3200,7 @@ function animateAthlete(a, md, dt, t, m) {
   if (a.team !== undefined) {   // net guard: the room the pose needs in front of it (more when lying toward the net) is kept clear of the net plane
     const sgT = S.sgn(a.team), toNet = Math.max(0, -sgT * Math.cos(mdl.root.rotation.y));
     const lean = Math.max(md.lie, clamp(mdl.body.rotation.x / 1.25, 0, 1));   // lying, or just bent forward
-    const need = 0.48 + toNet * (0.26 + lean * 1.15), push = Math.max(0, need - mdl.root.position.z * sgT);
+    const need = (0.48 + toNet * (0.26 + lean * 1.15)) * (mdl.netRoom || 1), push = Math.max(0, need - mdl.root.position.z * sgT);
     md.netPush = push > (md.netPush || 0) ? push : damp(md.netPush || 0, push, 8, dt);
     mdl.root.position.z += sgT * md.netPush;
   }

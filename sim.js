@@ -102,8 +102,8 @@ const GEAR = [
   { id: 'ry_back', slot: 'back', set: 'royal', rar: 2, price: 2200, col: 0xc22a3a, name: 'Áo choàng đỏ', mods: { rch: 1, sta: 0.25, spd: -0.5 }, desc: 'Tung áo choàng, với thật xa; vướng nên chậm chân.' },
   { id: 'hr_head', slot: 'head', set: 'hero', rar: 2, price: 2200, col: 0xe0303a, name: 'Mũ siêu nhân', mods: { pow: 1, jmp: 0.25, sta: -0.5 }, desc: 'Sức mạnh chính nghĩa; hăng quá nên mau mệt.' },
   { id: 'hr_shirt', slot: 'shirt', set: 'hero', rar: 2, price: 2200, col: 0xe0303a, name: 'Áo siêu nhân', mods: { pow: 1, sta: 0.25, ctl: -0.5 }, desc: 'Đập như sấm; mạnh tay nên kém tinh tế.' },
-  { id: 'hr_pants', slot: 'shorts', set: 'hero', rar: 2, price: 2200, col: 0x2f5fd9, name: 'Quần siêu nhân', mods: { spd: 1, pow: 0.25, sta: -0.5 }, desc: 'Lao đi như tên bắn; tốn sức.' },
-  { id: 'hr_shoes', slot: 'shoes', set: 'hero', rar: 2, price: 2200, col: 0xffd23f, name: 'Bốt siêu nhân', mods: { spd: 1, jmp: 0.25, ctl: -0.5 }, desc: 'Nhanh và nảy; đà lớn nên khó dừng chuẩn.' },
+  { id: 'hr_pants', slot: 'shorts', set: 'hero', rar: 2, price: 2200, col: 0x2f5fd9, name: 'Quần siêu nhân', mods: { jmp: 1, pow: 0.25, sta: -0.5 }, desc: 'Bật lên như bay; tốn sức.' },
+  { id: 'hr_shoes', slot: 'shoes', set: 'hero', rar: 2, price: 2200, col: 0xffd23f, name: 'Bốt siêu nhân', mods: { jmp: 1, spd: 0.25, ctl: -0.5 }, desc: 'Nảy cao, nhanh hơn một chút; đà lớn nên khó dừng chuẩn.' },
   { id: 'hr_back', slot: 'back', set: 'hero', rar: 2, price: 2200, col: 0x2f5fd9, name: 'Áo choàng xanh', mods: { pow: 1, spd: 0.25, ctl: -0.5 }, desc: 'Bay vào đập cầu; áo bay phần phật nên kém khéo.' },
 ];
 // outfit sets: wearing 3 pieces of one set adds +0.25 to the set's stat, all 5 pieces +0.5 (inside the same +-2 cap)

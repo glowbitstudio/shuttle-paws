@@ -15,13 +15,20 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append(str(e)[:300]));pg.route('https://**/*',lambda r:r.abort())
     pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
     pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object"');pg.wait_for_timeout(800)
-    import os;T=int(os.environ.get('TILE','230'));pg.evaluate('(h)=>{window.__headOnly=h}',os.environ.get('HEAD')=='1')
+    import os;rows=[];T=int(os.environ.get('TILE','230'));pg.evaluate('(h)=>{window.__headOnly=h}',os.environ.get('HEAD')=='1')
     for ch in CH:
         sheet=Image.new('RGB',(len(IDS)*T,len(YAW)*T),'#39407a')
         for r,y in enumerate(YAW):
             for k,i in enumerate(IDS):
                 u=pg.evaluate("([c,i,y])=>__view(c,i?i.split('+'):[],y)",[ch,i,y]);im=Image.open(io.BytesIO(base64.b64decode(u.split(',')[1]))).convert('RGBA').resize((T,T))
                 sheet.paste(im,(k*T,r*T),im)
-        f=ROOT/f'{OUT}-{ch}.png';sheet.save(f);print('saved',f)
+        rows.append(sheet)
+        if os.environ.get('COMBINE')!='1': f=ROOT/f'{OUT}-{ch}.png';sheet.save(f);print('saved',f)
+    if os.environ.get('COMBINE')=='1':   # one row per character (its yaws side by side), eight characters per sheet
+        for n in range(0,len(rows),8):
+            part=rows[n:n+8];big=Image.new('RGB',(len(IDS)*T*len(YAW),len(part)*T),'#39407a')
+            for r,sh in enumerate(part):
+                for y in range(len(YAW)): big.paste(sh.crop((0,y*T,len(IDS)*T,(y+1)*T)),(y*len(IDS)*T,r*T))
+            f=ROOT/f'{OUT}-all{n//8+1}.png';big.save(f);print('saved',f,CH[n:n+8])
     b.close()
 print('items',IDS,'errors',errs)
