@@ -20,6 +20,8 @@ with sync_playwright() as p:
             pg.evaluate("()=>{const p=document.querySelector('#s-shop .panel');p.scrollTop=300;}");pg.wait_for_timeout(250)
             out['tip']=pg.evaluate("()=>{const t=document.getElementById('scrollTip');if(!t)return null;const r=t.getBoundingClientRect(),p=document.querySelector('#s-shop .panel').getBoundingClientRect();const hd=[...document.querySelectorAll('#s-shop .panel > *, #s-shop .panel > * > *')].filter(e=>getComputedStyle(e).position==='sticky').reduce((m,e)=>Math.max(m,e.getBoundingClientRect().bottom),p.top);return {belowPinned:Math.round(r.top-hd),pinnedH:Math.round(hd-p.top),on:t.classList.contains('on'),h:Math.round(r.height),fromRight:Math.round(p.right-r.right),insideY:r.top>=p.top&&r.bottom<=p.bottom};}")
             pg.screenshot(path=str(ROOT/'shots_scroll.png'))
+        out[scr]['pinned']=pg.evaluate("(sel)=>{const p=document.querySelector(sel),h=p.querySelector(':scope > header');if(!h||p.scrollHeight<=p.clientHeight+2)return null;p.scrollTop=220;const a=p.getBoundingClientRect(),b=h.getBoundingClientRect();return Math.round(b.top-a.top);}",f'#s-{scr} .panel')
+        if scr=='rewards': pg.wait_for_timeout(200);pg.screenshot(path=str(ROOT/'shots_scroll2.png'))
         pg.evaluate("()=>{const b=document.querySelector('.screen:not(.hidden) .back');if(b)b.click();}");pg.wait_for_timeout(500)
     b.close()
 print(json.dumps({'results':out,'errors':errs}))

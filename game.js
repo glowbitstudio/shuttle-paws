@@ -4322,6 +4322,9 @@ $('tourStart').onclick = () => { Sound.init(); startTour(); };
 $('tourReset').onclick = () => { tour.round = 0; saveAll(); renderTour(); Sound.boop(); };
 $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 
+// pinned title bars need each panel's top padding (it differs per screen size)
+function pinHeaders() { document.querySelectorAll('.panel').forEach((p) => p.style.setProperty('--pt', getComputedStyle(p).paddingTop)); }
+window.addEventListener('resize', pinHeaders); window.addEventListener('load', pinHeaders); setTimeout(pinHeaders, 0);
 // Floating scroll indicator: shown at the right edge of whatever element is being scrolled, fades out when the scrolling stops.
 (function () { let tip = null, timer = 0; const sticky = new WeakMap();
   document.addEventListener('scroll', (ev) => { const el = ev.target; if (!el || el.nodeType !== 1 || el.scrollHeight <= el.clientHeight + 2) return;

@@ -1082,3 +1082,5 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 #overAch .toast.lvl{background:linear-gradient(90deg,rgba(127,227,196,.28),rgba(127,227,196,.08));border-color:rgba(127,227,196,.6)}
 .lvl-star{display:inline-block;width:16px;height:16px;margin-right:6px;vertical-align:-2px;background:#7fe3c4;clip-path:polygon(50% 0,62% 35%,98% 35%,68% 57%,79% 92%,50% 70%,21% 92%,32% 57%,2% 35%,38% 35%)}
 #s-shop header h2{white-space:nowrap}@media (max-width:860px){#s-shop header h2{font-size:16px}#s-shop header .gold-chip{padding:3px 7px!important;font-size:12px!important}}
+/* every panel keeps its title bar pinned while the rest scrolls underneath (--pt = the panel's own top padding, set by the game) */
+.panel>header{position:sticky;top:calc(-1 * var(--pt,22px));z-index:6}
