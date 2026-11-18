@@ -136,9 +136,15 @@ function setBonus(ids) {
 }
 const GEAR_STAT_CAP = 2;                                   // gear can move one stat by at most +-2 points in total
 const STAT_KEYS = ['spd', 'jmp', 'pow', 'rch', 'ctl', 'sta'];
-const gearById = (id) => GEAR.find((g) => g.id === id) || null;
+// a worn item may carry its upgrade level as a suffix: 'r_pro+2'
+const GEAR_MAX_LV = 3, GEAR_LV_STEP = 0.1;
+const gearBase = (id) => String(id == null ? '' : id).split('+')[0], gearLv = (id) => Math.max(0, Math.min(GEAR_MAX_LV, (String(id == null ? '' : id).split('+')[1] | 0)));
+const gearById = (id) => { const b = gearBase(id); return GEAR.find((g) => g.id === b) || null; };
+// each level adds 0.1 to the item's strongest plus
+function gearAtLv(g, lv) { if (!lv) return g; let best = null; for (const k in g.mods) if (g.mods[k] > 0 && (best === null || g.mods[k] > g.mods[best])) best = k;
+  const mods = Object.assign({}, g.mods); if (best) mods[best] = Math.round((mods[best] + GEAR_LV_STEP * lv) * 100) / 100; return Object.assign({}, g, { lv, mods }); }
 // one item per slot (later ids win); unknown ids are ignored
-function gearSet(ids) { const by = {}; for (const id of ids || []) { const g = gearById(id); if (g) by[g.slot] = g; } return by; }
+function gearSet(ids) { const by = {}; for (const id of ids || []) { const g = gearById(id); if (g) by[g.slot] = gearAtLv(g, gearLv(id)); } return by; }
 function gearMods(ids) {
   const out = { spd: 0, jmp: 0, pow: 0, rch: 0, ctl: 0, sta: 0 }, set = gearSet(ids);
   for (const k in set) for (const s in set[k].mods) out[s] += set[k].mods[s];
@@ -1083,7 +1089,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
+  GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,
   clamp, lerp, damp, rand, randn, predictSelf, moveAthlete,

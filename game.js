@@ -2482,7 +2482,7 @@ function showSwapAsk(msg) {
 }
 
 // ================================================================ gear / shop (the server owns items and gold; this shows them and sends requests)
-const myGear = () => (wallet && wallet.equip && wallet.items ? Object.values(wallet.equip).filter((id) => wallet.items.includes(id)) : []);
+const myGear = () => (wallet && wallet.equip && wallet.items ? Object.values(wallet.equip).filter((id) => wallet.items.includes(id)).map((id) => (wallet.lv && wallet.lv[id] ? id + '+' + wallet.lv[id] : id)) : []);
 let gearSlot = 'racket', gearTry = null, gearTrySet = null;
 // what the stage character wears: my gear, with the item being looked at swapped into its slot
 function previewGear() {
@@ -2577,6 +2577,9 @@ function renderGear() {
     $('wdDetail').innerHTML = `<div class="wd-card r${pick.rar}"><div class="wd-big">${gearIconImg(pick.id)}</div><div class="gi"><b>${esc(pick.name)}</b><span class="rar">${S.GEAR_RARITY[pick.rar]}</span>` +
       `<div class="mods">${gearModChips(pick.mods)}</div><small>${esc(pick.desc)}</small></div></div>${cmp}` +
       `<button class="cta" id="wdAct" data-act="${isWorn ? 'off' : 'on'}">${isWorn ? 'Tháo ra' : 'Mặc vào'}</button>` + setsHtml;
+    { const lv = (wallet.lv || {})[pick.id] || 0, up = (((wallet.rules || {}).up) || [[8, 20, 40], [16, 40, 80], [32, 80, 160]])[pick.rar][lv], sh = wallet.shards || 0;
+      $('wdAct').insertAdjacentHTML('afterend', `<div class="wd-up"><span>Cấp <b>${lv}</b>/${S.GEAR_MAX_LV}${lv ? ' · chỉ số chính +' + (lv / 10) : ''}</span>` + (lv < S.GEAR_MAX_LV ? `<button class="pill buy shd" id="wdUp" ${sh >= up ? '' : 'disabled'}>Nâng cấp <i class="shard"></i>${up}</button>` : '<em>Tối đa</em>') + `<small>Bạn có <i class="shard"></i>${sh} mảnh</small></div>`);
+      if ($('wdUp')) $('wdUp').onclick = () => { Sound.boop(); Net.send({ t: 'upgradeGear', id: pick.id }); }; }
     $('wdAct').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: pick.slot, id: isWorn ? null : pick.id }); gearTry = null; };
   }
   renderGearStats(c, shown);
@@ -2599,7 +2602,8 @@ function renderShop() {
   $('gearTabs').innerHTML = [['chests', 'Rương'], ['sets', 'Bộ đồ']].concat(S.GEAR_SLOTS).map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
   $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR.filter((it) => it.slot === gearSlot).map((it) => {
     const own = items.includes(it.id), on = set[it.slot] && set[it.slot].id === it.id;
-    const btn = own ? `<span class="own">${on ? 'Đang mặc' : 'Đã có'}</span>` : `<button class="pill buy" data-act="buy" ${gold >= it.price ? '' : 'disabled'}><i class="coin"></i>${it.price}</button>`;
+    const cc = ((wallet && wallet.rules && wallet.rules.craft) || [20, 60, 150])[it.rar], sh = wallet ? wallet.shards || 0 : 0;
+    const btn = own ? `<span class="own">${on ? 'Đang mặc' : 'Đã có'}</span>` : it.set ? `<button class="pill buy shd" data-act="craft" ${sh >= cc ? '' : 'disabled'}><i class="shard"></i>${cc}</button>` : `<button class="pill buy" data-act="buy" ${gold >= it.price ? '' : 'disabled'}><i class="coin"></i>${it.price}</button>`;
     return `<div class="gear-item r${it.rar}${gearTry === it.id ? ' try' : ''}" data-item="${it.id}"><span class="ic">${gearIconImg(it.id)}</span>` +
       `<div class="gi"><b>${esc(it.name)}</b><span class="rar">${S.GEAR_RARITY[it.rar]}</span><div class="mods">${gearModChips(it.mods)}</div><small>${esc(it.desc)}</small></div>${btn}</div>`;
   }).join('');
@@ -2607,23 +2611,26 @@ function renderShop() {
   $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${tryIt ? ' · đang thử ' + esc(tryIt.name) : ''}</small>`;
   $('gearTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; gearTrySet = null; Sound.boop(); showPreview(true); renderShop(); }; });
   if (gearSlot === 'chests') {   // chests: a random item you do not own yet
-    const gems = wallet ? wallet.gems || 0 : 0, tot = S.GEAR.length, have = items.length, gr = (wallet && wallet.gemRules) || {};
+    const gems = wallet ? wallet.gems || 0 : 0, tot = S.GEAR.length, have = items.length, gr = (wallet && wallet.gemRules) || {}, dupR = ((wallet && wallet.rules) || {}).dup || [5, 15, 40], crR = ((wallet && wallet.rules) || {}).craft || [20, 60, 150];
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : (wallet.chests || []).map((ch, i) => {
       const od = ch.odds.map((o, k) => o ? `<em class="r${k}">${S.GEAR_RARITY[k]} ${o}%</em>` : '').join('');
-      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i></span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món bạn chưa có.</small></div><div class="chest-pay">` +
+      return `<div class="gear-item chest-row r${i}" data-chest="${ch.id}"><span class="chest t${i}"><i></i></span><div class="gi"><b>${esc(ch.name)}</b><div class="mods">${od}</div><small>Ra một món ngẫu nhiên. Món đã có sẽ đổi thành mảnh.</small></div><div class="chest-pay">` +
         (ch.gold ? `<button class="pill buy" data-pay="gold" ${gold >= ch.gold ? '' : 'disabled'}><i class="coin"></i>${ch.gold}</button>` : '') +
-        (ch.gems ? `<button class="pill buy gem" data-pay="gems" ${gems >= ch.gems ? '' : 'disabled'}><i class="gem"></i>${ch.gems}</button>` : '') + '</div></div>';
-    }).join('') + `<p class="tiny shop-hint">Bạn đang có ${have}/${tot} món. Kim cương: thắng online +${gr.online || 1}, vô địch Giải đấu +${gr.champ || 10} (mỗi ngày một lần), đăng nhập ngày thứ 7 +${gr.streak7 || 5}.</p>`;
+        (ch.gems ? `<button class="pill buy gemb" data-pay="gems" ${gems >= ch.gems ? '' : 'disabled'}><i class="gem"></i>${ch.gems}</button>` : '') + '</div></div>';
+    }).join('') + ((wallet && wallet.rules && wallet.rules.packs) || []).map((k) => `<div class="gear-item chest-row pack-row r0" data-pack="${k.id}"><span class="shard big"></span><div class="gi"><b>${k.shards} mảnh</b><small>Dùng để ghép món của bộ đồ và nâng cấp đồ.</small></div><div class="chest-pay">` +
+      (k.gems ? `<button class="pill buy gemb" ${gems >= k.gems ? '' : 'disabled'}><i class="gem"></i>${k.gems}</button>` : `<button class="pill buy" ${gold >= k.gold ? '' : 'disabled'}><i class="coin"></i>${k.gold}</button>`) + '</div></div>').join('') +
+      `<p class="tiny shop-hint">Món đã có sẽ đổi thành mảnh: Thường ${dupR[0]}, Hiếm ${dupR[1]}, Sử thi ${dupR[2]}. Ghép một món: ${crR[0]} / ${crR[1]} / ${crR[2]} mảnh.</p>` +
+      `<p class="tiny shop-hint">Bạn đang có ${have}/${tot} món. Kim cương: thắng online +${gr.online || 1}, vô địch Giải đấu +${gr.champ || 10} (mỗi ngày một lần), đăng nhập ngày thứ 7 +${gr.streak7 || 5}.</p>`;
     $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}</small>`;
-    $('gearList').querySelectorAll('.chest-row button').forEach((b) => { b.onclick = () => { Sound.boop(); Net.send({ t: 'openChest', id: b.closest('.chest-row').dataset.chest, pay: b.dataset.pay }); }; });
+    $('gearList').querySelectorAll('.chest-row button').forEach((b) => { b.onclick = () => { Sound.boop(); const row = b.closest('.chest-row'); if (row.dataset.pack) Net.send({ t: 'buyShards', id: row.dataset.pack }); else Net.send({ t: 'openChest', id: row.dataset.chest, pay: b.dataset.pay }); }; });
     return;
   }
   if (gearSlot === 'sets') {   // outfit sets: try a whole set on, buy the missing pieces in one go
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR_SETS.map((st) => {
-      const ps = S.GEAR.filter((g) => g.set === st.id), own = ps.filter((g) => items.includes(g.id)).length, cost = ps.filter((g) => !items.includes(g.id)).reduce((a, g) => a + g.price, 0);
+      const ps = S.GEAR.filter((g) => g.set === st.id), own = ps.filter((g) => items.includes(g.id)).length, cost = Math.ceil((((wallet.rules || {}).setGems) || [60, 150, 320])[ps[0].rar] * (ps.length - own) / ps.length), myGems = wallet.gems || 0;
       return `<div class="gear-item set-row r${ps[0].rar}${gearTrySet === st.id ? ' try' : ''}" data-set="${st.id}"><div class="gi"><b>Bộ ${esc(st.name)}</b><span class="rar">${S.GEAR_RARITY[ps[0].rar]} · có ${own}/${ps.length}</span>` +
         `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>Mặc 3 món: +0.25 ${STAT_NAMES[st.stat]} · đủ 5 món: +0.5 ${STAT_NAMES[st.stat]}</small></div>` +
-        (cost ? `<button class="pill buy" data-act="buyset" ${gold >= cost ? '' : 'disabled'}><i class="coin"></i>${cost}</button>` : '<span class="own">Đã đủ bộ</span>') + '</div>';
+        (cost ? `<button class="pill buy gemb" data-act="buyset" ${myGems >= cost ? '' : 'disabled'}><i class="gem"></i>${cost}</button>` : '<span class="own">Đã đủ bộ</span>') + '</div>';
     }).join('');
     const ts = gearTrySet && S.GEAR_SETS.find((x) => x.id === gearTrySet);
     $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${ts ? ' · đang thử bộ ' + esc(ts.name) : ''}</small>`;
@@ -2631,7 +2638,7 @@ function renderShop() {
       const id = row.dataset.set;
       row.onclick = () => { gearTrySet = id; Sound.boop(); showPreview(true); renderShop(); };
       const b = row.querySelector('button');
-      if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); for (const g of S.GEAR) if (g.set === id && !wallet.items.includes(g.id)) Net.send({ t: 'buyGear', id: g.id }); };
+      if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); Net.send({ t: 'buySet', id }); };
     });
     return;
   }
@@ -2639,7 +2646,7 @@ function renderShop() {
     const id = row.dataset.item;
     row.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderShop(); };
     const b = row.querySelector('button');
-    if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); gearTry = null; Net.send({ t: 'buyGear', id }); };
+    if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); gearTry = null; Net.send({ t: b.dataset.act === 'craft' ? 'craftGear' : 'buyGear', id }); };
   });
 }
 
@@ -2650,14 +2657,16 @@ function chestPop(ch) {
   let el = $('chestPop'); if (!el) { el = document.createElement('div'); el.id = 'chestPop'; document.body.appendChild(el); }
   el.className = 'chest-pop r' + it.rar;
   el.innerHTML = `<div class="cp-card"><small>Bạn nhận được</small><div class="cp-ic">${gearIconImg(it.id)}</div><b>${esc(it.name)}</b><span class="rar">${S.GEAR_RARITY[it.rar]}</span><div class="mods">${gearModChips(it.mods)}</div>` +
-    `<div class="cp-btn"><button class="cta" id="cpWear">Mặc ngay</button><button class="pill" id="cpClose">Đóng</button></div></div>`;
+    (ch.dup ? `<p class="cp-dup">Bạn đã có món này → đổi thành <b><i class="shard"></i>${ch.shards} mảnh</b></p><div class="cp-btn"><button class="cta" id="cpClose">Nhận mảnh</button></div></div>`
+      : `<div class="cp-btn"><button class="cta" id="cpWear">Mặc ngay</button><button class="pill" id="cpClose">Đóng</button></div></div>`);
   const close = () => { el.className = 'chest-pop hidden'; };
   $('cpClose').onclick = () => { Sound.boop(); close(); };
-  $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
+  if ($('cpWear')) $('cpWear').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: it.slot, id: it.id }); close(); };
 }
 function onWallet(msg) {
-  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, gems: msg.gems || 0, chests: msg.chests || [], gemRules: msg.gemRules || {} };
-  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; });
+  wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, gems: msg.gems || 0, shards: msg.shards || 0, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {} };
+  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
+  if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
   if (!isUnlocked(charById(profile.char))) { profile.char = 'cat'; saveAll(); Net.profile(); }
   const g = msg.grant;
