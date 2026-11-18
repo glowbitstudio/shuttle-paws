@@ -661,6 +661,9 @@ function doHit(m, a, shotName, target, q, label, pw) {
     const X = a.learn.T && a.lastKey && a.learn.T['x|' + a.lastKey + '|' + a.lastShot], xn = X ? X[0] + X[1] + X[2] : 0;   // the side the reply usually comes to: wait there
     if (xn >= 3) { const top = X[0] > X[2] ? 0 : 2; a.tx = X[top] / xn > 0.55 ? (top === 0 ? -1.1 : 1.1) * sgn(a.team) : X[1] / xn > 0.55 ? 0 : a.tx; }
     if (yn >= 3) { if (Y[2] / yn > 0.4 && xn < 3) a.tx = 0; if (Y[3] / yn > 0.4) a.tz = sgn(a.team) * clamp(Math.abs(a.tz) + 0.45, 2.3, 4.9); }
+    // concrete memory: after this shot, in moments like this one, the reply came back to these exact spots - go to their weighted middle
+    { const mr = a.hist && a.hist.length ? a.hist[a.hist.length - 1][3] : null; if (mr && a.learn.mem) { let k0 = 0, ux = 0, uz = 0; dareNear(a.learn, mr, (r, k) => { if (r[6] === mr[6] && r[11] > -8) { k0 += k; ux += k * r[11]; uz += k * r[12]; } });
+        if (k0 >= 1.2) { a.tx = clamp(ux / k0, -2.2, 2.2) * sgn(a.team); a.tz = sgn(a.team) * clamp(uz / k0, 1.0, 5.4); } } }
   }   // the challenger's learned spot after this very shot
 }
 
@@ -790,6 +793,14 @@ const dareSide = (u) => (u < -0.9 ? 0 : u > 0.9 ? 2 : 1);
 const dareZone = (z) => (z < 2.6 ? 0 : z < 4.6 ? 1 : 2), DARE_SHOTS = ['smash', 'clear', 'drop', 'drive', 'net', 'lift'];
 function dareKey(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; const inc = m.shuttle.lastShotName; return '' + dareZone(Math.abs(b.z)) + dareZone(Math.abs(o.z)) + (o.diveT >= 0 || o.recoverT > 0 ? 1 : 0) + (inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1); }   // 4th: the shot coming at it - soft (drop / net), high (clear / lift / serve) or fast (smash / drive)
 function dareCell(L, k, n) { const T = L.T || (L.T = {}); return T[k] || (T[k] = new Array(n).fill(0)); }
+// ---- concrete memory (L.mem): one record for every shot the challenger has played, with the exact positions, not zones.
+// r = [its x, its depth, opponent x, opponent depth, opponent down, incoming shot class, shot, aim x, aim depth, weight, won, reply x, reply depth]
+// (x seen from the bot's own end, depth = distance from the net; reply = where the answer to that shot came back, -9 = unknown).
+// A decision looks up the records closest to the present moment and asks what happened there.
+function dareCtx(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; const sg = sgn(b.team), inc = m.shuttle.lastShotName;
+  return [b.x * sg, Math.abs(b.z), o.x * sg, Math.abs(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0, inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1]; }
+function dareNear(L, c, fn) { const M = L.mem; if (!M) return;
+  for (const r of M) { const d = Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[2] - c[2], 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0); if (d < 2.5) fn(r, r[9] * Math.exp(-d)); } }
 function botChooseShot(m, b) {
   let shot = botChooseShot0(m, b);
   if (b.diff >= 4) {
@@ -804,9 +815,14 @@ function botChooseShot(m, b) {
       const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) <= n && ok(x));
       if (alt.length) shot = alt[Math.floor(Math.random() * alt.length)];
     }
+    const ctx = dareCtx(m, b);
+    { const sum = {}, win = {}; dareNear(L, ctx, (r, k) => { const x = DARE_SHOTS[r[6]]; sum[x] = (sum[x] || 0) + k; win[x] = (win[x] || 0) + k * r[10]; });   // what happened in the moments most like this one
+      const sc = (x) => ((win[x] || 0) + 0.5) / ((sum[x] || 0) + 1);
+      if ((sum[shot] || 0) >= 1.2) { let best = shot, bs = sc(shot); for (const x of DARE_SHOTS) if (x !== shot && ok(x) && (sum[x] || 0) >= 0.6 && sc(x) > bs + 0.1) { bs = sc(x); best = x; } if (best !== shot && Math.random() < 0.85) shot = best; } }
     if (Math.random() < 0.05) { const any = DARE_SHOTS.filter(ok); if (any.length) shot = any[Math.floor(Math.random() * any.length)]; }   // now and then something else, so untried shots get a chance
     b.prevShot = b.lastShot || null; b.prevKey = b.lastKey || null; b.lastShot = shot; b.lastKey = key;
-    (b.hist || (b.hist = [])).push([key, shot]); if (b.hist.length > 6) b.hist.shift();   // its shots of this rally, oldest first
+    { const H = b.hist || (b.hist = []), pv = H[H.length - 1]; if (pv && pv[3]) { pv[3][11] = ctx[0]; pv[3][12] = ctx[1]; }   // the reply to its previous shot came back to exactly here
+      H.push([key, shot, undefined, ctx.concat([DARE_SHOTS.indexOf(shot), 0, 0, 0, 0, -9, -9])]); if (H.length > 6) H.shift(); }   // its shots of this rally, oldest first
   }
   return shot;
 }
@@ -828,6 +844,14 @@ function dareAim(m, b, shot, t) {
   let away = Math.abs(t.x - o.x) > 1.2;
   if (c[0] + c[2] >= 4 && Math.abs(rA - rS) > 0.12 && Math.random() < 0.8 && (rA > rS) !== away) { away = !away; t.x = clamp(away ? (o.x > 0 ? -W : W) : o.x, -W, W); }
   const h = b.hist && b.hist[b.hist.length - 1]; if (h) h[2] = away ? 0 : 1;
+  const mr = h && h[3], sg = sgn(b.team);
+  if (mr && b.learn.mem) {      // where did this shot, from about here, against an opponent standing about there, win? its own aim, either side line or the middle
+    const cand = [t.x * sg, -W, 0, W], S = [0, 0, 0, 0], V = [0, 0, 0, 0];
+    dareNear(b.learn, mr, (r, k) => { if (r[6] !== mr[6]) return; for (let i = 0; i < 4; i++) { const g = k * Math.exp(-Math.pow((r[7] - cand[i]) / 0.9, 2)); S[i] += g; V[i] += g * r[10]; } });
+    let bi = 0, bs = (V[0] + 0.5) / (S[0] + 1); for (let i = 1; i < 4; i++) { const v = (V[i] + 0.5) / (S[i] + 1); if (S[i] >= 0.8 && v > bs + 0.12) { bs = v; bi = i; } }
+    if (bi && Math.random() < 0.85) t.x = clamp(cand[bi] * sg, -W, W);
+  }
+  if (mr) { mr[7] = t.x * sg; mr[8] = Math.abs(t.z); }
   return t;
 }
 function botLearn(m, winner) {
@@ -837,7 +861,7 @@ function botLearn(m, winner) {
     const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
     // every shot it played in this rally shares in the result: the last one fully, each earlier one half as much as the one after it
     // (1, 0.5, 0.25 ...). A rally it threw away with its own error is charged to that last shot alone.
-    { const H = b.hist && b.hist.length ? b.hist : b.lastKey && b.lastShot ? [[b.lastKey, b.lastShot]] : []; let wt = 1; for (let i = H.length - 1; i >= 0; i--) { rec(H[i][0], H[i][1], wt); if (H[i][2] !== undefined) { const c = dareCell(L, 's|' + H[i][0] + '|' + H[i][1], 4); c[H[i][2] * 2] += wt; if (won) c[H[i][2] * 2 + 1] += wt; } if (own && !won) break; wt *= 0.5; } }
+    { const H = b.hist && b.hist.length ? b.hist : b.lastKey && b.lastShot ? [[b.lastKey, b.lastShot]] : []; let wt = 1; for (let i = H.length - 1; i >= 0; i--) { rec(H[i][0], H[i][1], wt); const mr = H[i][3]; if (mr) { mr[9] = wt; mr[10] = won ? 1 : 0; if (i === H.length - 1 && !won && !own && s.z * sg > 0) { mr[11] = s.x * sg; mr[12] = sz; } const M = L.mem || (L.mem = []); M.push(mr); if (M.length > 700) M.shift(); (b.newMem || (b.newMem = [])).push(mr); } if (H[i][2] !== undefined) { const c = dareCell(L, 's|' + H[i][0] + '|' + H[i][1], 4); c[H[i][2] * 2] += wt; if (won) c[H[i][2] * 2 + 1] += wt; } if (own && !won) break; wt *= 0.5; } }
     if (!won) {
       const mine = s.z * sg > 0 && !own;                                              // the reply landed on its side
       if (b.lastKey && b.lastShot) {
@@ -1321,7 +1345,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  botLearn, botLesson, dareAim, dareSide, botChooseShot, dareKey, dareZone, DARE_SHOTS,
+  botLearn, botLesson, dareAim, dareSide, dareCtx, dareNear, botChooseShot, dareKey, dareZone, DARE_SHOTS,
   GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,

@@ -15,11 +15,12 @@ const session = (hello, after) => new Promise((res, rej) => {
 });
 (async () => {
   await start();
-  const a = await session({}, [{ t: 'dareLearn', front: 5, bad: { smash: 99, drop: 1, hack: 3 }, pos: { smash: 9, drop: -9, hack: 1 }, T: { 'c|2111|smash': [6, 0], 'y|2111|smash': [6, 0, 0, 0, 999], 'r|2111|smash': [6], 'x|bad': [1], 'c|999|smash': [1, 1], 'c|2111|hack': [1, 1] } }, { t: 'dareLearn', front: -5, bad: { smash: 0 } }]);
+  const a = await session({}, [{ t: 'dareLearn', front: 5, bad: { smash: 99, drop: 1, hack: 3 }, pos: { smash: 9, drop: -9, hack: 1 }, mem: [[-1.5, 4.8, 0, 1.2, 0, 1, 0, 1.8, 4.5, 1, 0, -2, 0.8], [1, 2, 3], [-1.5, 4.8, 0, 1.2, 0, 1, 9, 1.8, 4.5, 1, 0, -2, 0.8], 'x'], T: { 'c|2111|smash': [6, 0], 'y|2111|smash': [6, 0, 0, 0, 999], 'r|2111|smash': [6], 'x|bad': [1], 'c|999|smash': [1, 1], 'c|2111|hack': [1, 1] } }, { t: 'dareLearn', front: -5, bad: { smash: 0 } }]);
   assert.equal(a.dare, null, 'nothing learned yet'); assert.equal(a.dareT, null);
   const b = await session({ id: a.id, secret: a.secret }, [{ t: 'dareLearn', front: -5, bad: {} }]);
   assert.deepEqual([b.dare.n, b.dare.front, b.dare.bad.smash, b.dare.bad.drop, b.dare.bad.hack], [1, 1.25, 6, 1, undefined], 'first report clamped; the second one in the same minute ignored');
   assert.deepEqual([b.dare.pos.smash, b.dare.pos.drop, b.dare.pos.hack], [1.25, -0.8, undefined], 'positions per situation clamped too');
+  assert.deepEqual(b.dare.mem, [[-1.5, 4.8, 0, 1.2, 0, 1, 0, 1.8, 4.5, 1, 0, -2, 0.8]], 'only well-formed shot records are kept');
   assert.deepEqual(b.dare.T, { 'c|2111|smash': [6, 0], 'y|2111|smash': [6, 0, 0, 0, 40], 'r|2111|smash': [6, 0, 0] }, 'situation table: known keys only, fixed lengths, clamped');
   await session({}, [{ t: 'dareLearn', front: 0, bad: { smash: 0 }, pos: { smash: 0 } }]);            // another player
   const d = await session({ id: a.id, secret: a.secret });

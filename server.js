@@ -338,6 +338,8 @@ const handlers = {
     }
     // the full rally record of that match (every hit, positions, result) is kept for study: the last 300 rallies of all players
     if (Array.isArray(msg.log) && JSON.stringify(msg.log).length < 120000) data.dareLog = (data.dareLog || []).concat(msg.log.slice(-60).map((r) => ({ p: c.id.slice(0, 6), at: now, w: r && r.w, last: r && r.last, land: r && r.land, ev: r && Array.isArray(r.ev) ? r.ev.slice(0, 40) : [] }))).slice(-300);
+    // concrete memories: one record per shot the challenger played in that match (13 numbers); the newest 700 of all players are kept
+    if (Array.isArray(msg.mem)) { const okm = msg.mem.slice(-250).filter((r) => Array.isArray(r) && r.length === 13 && r.every((x) => typeof x === 'number' && isFinite(x) && Math.abs(x) < 20) && r[6] >= 0 && r[6] <= 5 && r[9] > 0 && r[9] <= 1 && (r[10] === 0 || r[10] === 1)); G.mem = (G.mem || []).concat(okm).slice(-700); }
     G.n = Math.min(G.n + 1, 1e6); save();
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
