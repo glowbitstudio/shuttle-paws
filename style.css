@@ -1048,3 +1048,6 @@ body.wd-dragging,body.wd-dragging *{cursor:grabbing !important}
 .quest .q-btn.can{background:linear-gradient(180deg,#ffe58a,#ffb21a) !important;color:#4a2c00 !important;border-color:#fff8dc;box-shadow:0 4px 0 #b97a00,0 0 16px rgba(255,200,61,.85) !important;animation:canpulse 1.4s ease-in-out infinite}
 .quest .q-btn.done{background:rgba(63,207,154,.2) !important;border-color:rgba(159,242,207,.7);color:#9ff2cf !important}
 .quest .q-btn{width:100px;flex:none;text-align:center;padding-left:6px;padding-right:6px;white-space:nowrap}
+/* scrollbars in the new skin: thin, cream on dark jade */
+*{scrollbar-width:thin;scrollbar-color:rgba(243,207,134,.75) rgba(6,30,32,.35)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:rgba(6,30,32,.35);border-radius:8px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#f3cf86,#d9a94e);border-radius:8px}::-webkit-scrollbar-corner{background:transparent}
