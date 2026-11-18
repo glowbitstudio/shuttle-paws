@@ -806,10 +806,11 @@ function dareCtx(m, b) { let o = null; for (const x of m.athletes) if (x.team !=
   const c = [b.x * sg, Math.abs(b.z), o.x * sg, Math.abs(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0, inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1]; c.dt = Math.round(Math.min(3, m.clock - (m.shuttle.hitClock === undefined ? m.clock - 1.5 : m.shuttle.hitClock)) * 100) / 100; c.sta = Math.round(b.sta * 100) / 100; return c; }
 function dareNear(L, c, fn) { const M = L.mem; if (!M) return;
   const cd = c.length > 13 ? c[13] : c.dt, cs = c.length > 13 ? c[14] : c.sta;   // how rushed it is and how tired: only compared when both moments know them
-  for (const r of M) { let d = (r.length > 13 && cd !== undefined ? Math.pow((r[13] - cd) / 0.9, 2) + Math.pow((r[14] - cs) / 0.6, 2) : 0) + Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[2] - c[2], 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0); if (d < 2.5) fn(r, r[9] * Math.exp(-d)); } }
-// When the memory is full the oldest record is not thrown away: it is folded into the most similar record still kept (same shot, same
-// result, same opponent state and incoming class, everything within ~0.7 m), which moves to their weighted middle and grows heavier.
-// So a moment met a hundred times stays as one heavy record; only an old one-off with nothing like it is forgotten.
+  for (const r of M) { const base = (r.length > 13 && cd !== undefined ? Math.pow((r[13] - cd) / 0.9, 2) + Math.pow((r[14] - cs) / 0.6, 2) : 0) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0);
+    const d = base + Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow(r[2] - c[2], 2); if (d < 2.5) fn(r, r[9] * Math.exp(-d));
+    // the mirror image: what happened on the left teaches about the right too (weaker, forehand and backhand are not the same)
+    const dm = base + Math.pow((-r[0] - c[0]) / 1.2, 2) + Math.pow(-r[2] - c[2], 2);
+    if (dm < 2.5) { const q = r.slice(); q[0] = -r[0]; q[2] = -r[2]; q[7] = -r[7]; if (r[11] > -8) q[11] = -r[11]; fn(q, r[9] * Math.exp(-dm) * 0.6); } } }
 function dareCompact(M, max) {
   const P = [0, 1, 2, 3, 7, 8, 13, 14];
   let spare = 2 * max;   // a heavy record with nothing like it left goes back to the end instead of being dropped (a bounded number of times)
