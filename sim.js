@@ -647,7 +647,10 @@ function doHit(m, a, shotName, target, q, label, pw) {
   planTeam(m, 1 - a.team, r, s.pred.inside);
   coverHomes(m, a.team);
   for (const o of m.athletes) if (o.team === a.team && o.ctrl === 'bot') { o.plan = null; o.tx = o.home.x; o.tz = o.home.z; o.jumpAt = -1; }
-  if (a.ctrl === 'bot' && a.learn && a.learn.pos && a.lastShot && a.learn.pos[a.lastShot]) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - a.learn.pos[a.lastShot] * 0.8, 2.3, 4.7);   // the challenger's learned spot after this very shot
+  if (a.ctrl === 'bot' && a.learn && a.lastShot) {   // the challenger goes where the reply to this shot, in this situation, usually comes back
+    const R = a.learn.T && a.lastKey && a.learn.T['r|' + a.lastKey + '|' + a.lastShot], n = R ? R[0] + R[1] + R[2] : 0, P = a.learn.pos && a.learn.pos[a.lastShot];
+    if (n >= 3) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - ((R[0] - R[2]) / n) * 1.2, 2.3, 4.7); else if (P) a.tz = sgn(a.team) * clamp(Math.abs(a.home.z) - P * 0.8, 2.3, 4.7);
+  }   // the challenger's learned spot after this very shot
 }
 
 function chooseTarget(m, a, shotName, aimX, pw) {
@@ -766,15 +769,30 @@ function planTeam(m, team, r, landIn) {
 // The challenger (level 5) learns inside a match. b.learn.bad[shot] counts how often a shot of its own was followed by a lost point
 // (its own error, or the reply won the rally); a shot that keeps failing is swapped for another one that fits the contact height.
 // b.learn.front moves its base position: forward after losing to short replies while it stood deep, back after being lobbed.
+// Situation table (L.T, flat: key -> numbers). A situation = where the bot is (net / mid / rear), where the nearest opponent is, and
+// whether that opponent is down (diving or getting up).
+//   'c|sit|shot' = [times played, rallies won]      -> which shot pays in this situation
+//   'r|sit|shot' = [short, mid, deep]               -> where the reply to that shot comes back (where the bot had to hit it, or where it landed)
+//   'y|sit|shot' = [beaten short, beaten deep, beaten wide, beaten for pace, own error]   -> why the rally was lost after that shot
+const dareZone = (z) => (z < 2.6 ? 0 : z < 4.6 ? 1 : 2), DARE_SHOTS = ['smash', 'clear', 'drop', 'drive', 'net', 'lift'];
+function dareKey(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; return '' + dareZone(Math.abs(b.z)) + dareZone(Math.abs(o.z)) + (o.diveT >= 0 || o.recoverT > 0 ? 1 : 0); }
+function dareCell(L, k, n) { const T = L.T || (L.T = {}); return T[k] || (T[k] = new Array(n).fill(0)); }
 function botChooseShot(m, b) {
   let shot = botChooseShot0(m, b);
   if (b.diff >= 4) {
-    const L = b.learn || (b.learn = { front: 0, bad: {} }), n = L.bad[shot] || 0, s = m.shuttle.p, az = Math.abs(b.z);
-    if (n >= 2 && s.y >= 1.05 && Math.random() < Math.min(0.8, n * 0.25)) {
-      const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) <= n && (x !== 'smash' || (s.y > 1.58 && az < 5.6)) && (x !== 'drive' || s.y >= 1.5) && (x !== 'drop' || s.y >= 1.75));
+    const L = b.learn || (b.learn = { front: 0, bad: {} }), s = m.shuttle.p, az = Math.abs(b.z), key = dareKey(m, b), T = L.T || (L.T = {});
+    if (b.lastKey && b.lastShot) dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(az)]++;   // the reply to its last shot came back to where it stands now
+    const ok = (x) => (x === 'smash' ? s.y > 1.58 && az < 5.6 : x === 'drive' ? s.y >= 1.5 : x === 'drop' ? s.y >= 1.75 : x === 'clear' ? s.y >= 1.05 : x === 'net' ? s.y < 1.75 && az < 3 : s.y < 1.5);
+    const rate = (x) => { const c = T['c|' + key + '|' + x]; return c ? (c[1] + 1) / (c[0] + 2) : 0.5; }, c0 = T['c|' + key + '|' + shot], n = L.bad[shot] || 0;
+    if (c0 && c0[0] >= 3) {            // enough rallies seen in this very situation: play what has won most here
+      let best = shot, bs = rate(shot); for (const x of DARE_SHOTS) if (x !== shot && ok(x) && rate(x) > bs + 0.08) { bs = rate(x); best = x; }
+      if (best !== shot && Math.random() < 0.8) shot = best;
+    } else if (n >= 2 && s.y >= 1.05 && Math.random() < Math.min(0.3, n * 0.05)) {   // no data for this situation yet: only a weak nudge from the plain "this shot keeps failing" memory
+      const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) <= n && ok(x));
       if (alt.length) shot = alt[Math.floor(Math.random() * alt.length)];
     }
-    b.prevShot = b.lastShot || b.prevShot || null; b.lastShot = shot;
+    if (Math.random() < 0.05) { const any = DARE_SHOTS.filter(ok); if (any.length) shot = any[Math.floor(Math.random() * any.length)]; }   // now and then something else, so untried shots get a chance
+    b.prevShot = b.lastShot || null; b.prevKey = b.lastKey || null; b.lastShot = shot; b.lastKey = key;
   }
   return shot;
 }
@@ -789,16 +807,24 @@ function botLesson(L, key, sign) {
 }
 function botLearn(m, winner) {
   for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
-    const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z);
-    if (winner !== b.team) {
-      if (s.z * sg > 0 && m.shuttle.lastTeam !== b.team) {          // the reply landed on its side
+    const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z), won = winner === b.team, own = m.shuttle.lastTeam === b.team;
+    const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
+    rec(b.lastKey, b.lastShot, 1); if (!own) rec(b.prevKey, b.prevShot, 0.5);        // the shot before the last one set the rally up
+    if (!won) {
+      const mine = s.z * sg > 0 && !own;                                              // the reply landed on its side
+      if (b.lastKey && b.lastShot) {
+        const why = own ? 4 : !mine ? 3 : sz < 2.7 && bz > 3.2 ? 0 : sz > 4.6 && bz < 3.3 ? 1 : Math.abs(s.x - b.x) > 1.6 ? 2 : 3;
+        dareCell(L, 'y|' + b.lastKey + '|' + b.lastShot, 5)[why]++;
+        if (mine) dareCell(L, 'r|' + b.lastKey + '|' + b.lastShot, 3)[dareZone(sz)]++;
+      }
+      if (mine) {
         const sign = sz < 2.7 && bz > 3.2 ? 1 : sz > 4.6 && bz < 3.3 ? -1 : 0;   // beaten short while deep / beaten deep while close
         if (sign) { botLesson(L, b.lastShot || 'serve', sign); botLesson(L, '_all', sign); L.front = Math.round((L.pos._all || 0) * 50) / 100; }   // the general base moves half as far
       }
       if (b.lastShot) L.bad[b.lastShot] = (L.bad[b.lastShot] || 0) + 1;
-      if (b.prevShot && b.prevShot !== b.lastShot && m.shuttle.lastTeam !== b.team) L.bad[b.prevShot] = (L.bad[b.prevShot] || 0) + 0.4;
+      if (b.prevShot && b.prevShot !== b.lastShot && !own) L.bad[b.prevShot] = (L.bad[b.prevShot] || 0) + 0.4;
     } else if (b.lastShot && L.bad[b.lastShot]) L.bad[b.lastShot] = Math.max(0, L.bad[b.lastShot] - 0.5);   // it worked this time
-    b.lastShot = null; b.prevShot = null;
+    b.lastShot = null; b.prevShot = null; b.lastKey = null; b.prevKey = null;
   }
 }
 function botChooseShot0(m, b) {
@@ -1267,7 +1293,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  botLearn, botLesson,
+  botLearn, botLesson, botChooseShot, dareKey, dareZone, DARE_SHOTS,
   GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,

@@ -72,7 +72,7 @@ function sendBackup(c) { if (!BACKUP_KEY || !c.id || !data.players[c.id]) return
 // that lost its data picks the memory up again from the first player who connects (the copy with more matches behind it wins).
 function dareTicket() { if (!BACKUP_KEY || !data.dare) return null; const body = Buffer.from(JSON.stringify(data.dare)).toString('base64url'); return body + '.' + signBackup(body); }
 function restoreDare(v) {
-  if (!BACKUP_KEY || typeof v !== 'string' || v.length > 4000) return;
+  if (!BACKUP_KEY || typeof v !== 'string' || v.length > 80000) return;
   const [body, sig] = v.split('.'); if (!body || !sig) return;
   const a = Buffer.from(sig), b = Buffer.from(signBackup(body)); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return;
   try { const o = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); if (o && o.n > ((data.dare && data.dare.n) || 0)) { data.dare = o; save(); console.log('restored challenger memory, matches:', o.n); } } catch (e) { /* not ours */ }
@@ -327,6 +327,14 @@ const handlers = {
     G.front = Math.round(((1 - a) * G.front + a * num(msg.front, -0.8, 1.25)) * 1000) / 1000;
     for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift']) G.bad[k] = Math.round(((1 - a) * (G.bad[k] || 0) + a * num(msg.bad && msg.bad[k], 0, 6)) * 1000) / 1000;
     G.pos = {}; for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift', 'serve']) G.pos[k] = Math.round(((1 - a) * (P0[k] || 0) + a * num(msg.pos && msg.pos[k], -0.8, 1.25)) * 1000) / 1000;   // where to stand after each shot
+    // situation table: per (situation, shot) how often it was played / won, where the reply came back, why the rally was lost.
+    // Each report adds what one match saw; older counts fade by 2% a report and a cell never grows past 300.
+    const T = G.T || (G.T = {}), len = { c: 2, r: 3, y: 5 }; let seen = 0;
+    if (msg.T && typeof msg.T === 'object') for (const k in msg.T) {
+      if (++seen > 400 || !/^[cry]\|[0-2][0-2][01]\|(smash|clear|drop|drive|net|lift)$/.test(k) || !Array.isArray(msg.T[k])) continue;
+      const cell = T[k] || (T[k] = new Array(len[k[0]]).fill(0));
+      for (let i = 0; i < cell.length; i++) cell[i] = Math.min(300, Math.round((cell[i] * 0.98 + num(msg.T[k][i], 0, 40)) * 100) / 100);
+    }
     G.n = Math.min(G.n + 1, 1e6); save();
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },

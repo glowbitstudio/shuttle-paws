@@ -4,7 +4,7 @@ from pathlib import Path
 import json,sys
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1]
-HOOK="window.__st=()=>({state:session?session.m.state:'none',clock:session?Math.round(session.m.clock):0,score:session?session.m.score:null,net:!!(Net.ok),dareG:store.get('sp.dareG',null),dare:store.get('sp.dare',null)});\n"
+HOOK="window.__st=()=>({state:session?session.m.state:'none',clock:session?Math.round(session.m.clock):0,score:session?session.m.score:null,net:!!(Net.ok),dareG:(g=>g&&{n:g.n,cells:Object.keys(g.T||{}).length,sample:Object.entries(g.T||{}).slice(0,3)})(store.get('sp.dareG',null)),dare:(d=>d&&{cells:Object.keys(d.T||{}).length})(store.get('sp.dare',null))});\n"
 errs=[];out={}
 with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])

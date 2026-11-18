@@ -2200,6 +2200,10 @@ function startLocal(opts) {
     const start = { front: S.clamp(0.6 * (+G.front || 0) + (+mem.front || 0), -0.8, 1.25), bad };
     for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) { b.learn = { front: start.front, bad: Object.assign({}, bad), pos: Object.assign(Object.fromEntries(['smash', 'clear', 'drop', 'drive', 'net', 'lift', 'serve'].map((k) => [k, S.clamp(0.6 * (+((G.pos || {})[k]) || 0) + (+((mem.pos || {})[k]) || 0), -0.8, 1.25)])), { _all: start.front * 2 }) }; b.home.z = S.sgn(b.team) * S.clamp(Math.abs(b.home.z) - start.front * 0.8, 2.5, 4.5); b.tz = b.home.z; }
     m.dare0 = { g: { front: 0.6 * (+G.front || 0), bad: Object.fromEntries(Object.keys(bad).map((k) => [k, 0.6 * (+(G.bad || {})[k] || 0)])) }, mem };
+    { const GT = G.T || {}, MT = mem.T || {}, T0 = {}, gT = {};   // situation table: 60% of everyone's + this player's own
+      for (const k of new Set(Object.keys(GT).concat(Object.keys(MT)))) { const a = GT[k] || [], q = MT[k] || [], n = Math.max(a.length, q.length); gT[k] = Array.from({ length: n }, (_, x) => 0.6 * (+a[x] || 0)); T0[k] = gT[k].map((v, x) => v + (+q[x] || 0)); }
+      for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) { b.learn.T = {}; for (const k in T0) b.learn.T[k] = T0[k].slice(); }
+      m.dare0.gT = gT; m.dare0.memT = MT; }
   }
   beginSession('local', m, 0, { localOpts: opts, snapCam: true, tourRound: opts.tourRound });
 }
@@ -2764,9 +2768,11 @@ function finishMatch(res) {
       if (cb && d0) { const own = {}, rep = {}, r2 = (v) => Math.round(v * 100) / 100;   // own = half of what is not the shared part; rep = everything except this player's old memory
         for (const k in cb.learn.bad) { own[k] = r2(Math.max(0, cb.learn.bad[k] - (d0.g.bad[k] || 0)) * 0.5); rep[k] = r2(Math.max(0, cb.learn.bad[k] - (+(d0.mem.bad || {})[k] || 0))); }
         const pos = {}; for (const k in cb.learn.pos || {}) if (k !== '_all') pos[k] = r2(cb.learn.pos[k] * 0.6);   // where it stands after each of its shots against this player
-        store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own, pos });
+        const ownT = {}, repT = {}, FT = cb.learn.T || {};   // own = 60% of what is not the shared part; repT = what this match added on top of this player's old table
+        for (const k in FT) { const g0 = (d0.gT || {})[k] || [], m0 = (d0.memT || {})[k] || [], o = FT[k].map((v, x) => r2(Math.max(0, v - (g0[x] || 0)) * 0.6)), r = FT[k].map((v, x) => r2(Math.max(0, v - (+m0[x] || 0) - (g0[x] || 0)))); if (o.some((v) => v > 0)) ownT[k] = o; if (r.some((v) => v > 0)) repT[k] = r; }
+        store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own, pos, T: ownT });
         const rpos = {}; for (const k in cb.learn.pos || {}) if (k !== '_all') rpos[k] = r2(cb.learn.pos[k] - (+((d0.mem.pos || {})[k]) || 0));
-        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos }); } }
+        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep, pos: rpos, T: repT }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
