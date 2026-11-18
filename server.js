@@ -510,7 +510,7 @@ wss.on('connection', (ws) => {
   const c = { ws, id: null, name: 'Khách', char: 'cat', room: null, match: null, slot: -1, spectating: null };
   clients.add(c);
   ws.on('message', (raw) => {
-    if (raw.length > 2000) return;
+    if (raw.length > 300000) return;   // hello carries signed copies and the end-of-match report carries the rally record: both are far larger than a normal message
     let msg; try { msg = JSON.parse(raw); } catch (e) { return; }
     if (!msg || typeof msg !== 'object' || Array.isArray(msg) || typeof msg.t !== 'string') return;
     const h = Object.prototype.hasOwnProperty.call(handlers, msg.t) ? handlers[msg.t] : null;
