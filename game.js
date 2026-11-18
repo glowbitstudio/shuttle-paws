@@ -1257,11 +1257,13 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
       mk(new THREE.CylinderGeometry(0.84, 0.85, 0.17, 28, 1, true), acc, 0, 0.12, 0, hat);
       mk(new THREE.TorusGeometry(1.53, 0.035, 5, 32), dk, 0, 0.02, 0, hat).rotation.x = Math.PI / 2;
     } else {
-      mk(new THREE.SphereGeometry(0.9, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.y = 1.0;
-      const br = mk(new THREE.CylinderGeometry(1.55, 1.3, 0.3, 3), team, 0, 0.1, 0, hat, true); br.rotation.y = Math.PI;
-      const tr = mk(new THREE.TorusGeometry(1.55, 0.06, 5, 3), acc, 0, 0.26, 0, hat); tr.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-      mk(new THREE.SphereGeometry(0.16, 10, 8), acc, 0, 0.45, 0.8, hat);
-      const fe = mk(new THREE.SphereGeometry(0.2, 10, 8), toon(0xe0303a), 0.62, 0.55, -0.1, hat, true); fe.scale.set(0.4, 2.0, 0.7); fe.rotation.set(-0.5, 0, -0.35);
+      mk(new THREE.SphereGeometry(0.92, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.set(1, 1.05, 1.05);   // tall crown, round brim folded up high at both sides
+      mk(new THREE.CylinderGeometry(1.42, 1.48, 0.09, 32), team, 0, 0.03, 0, hat, true).scale.x = 0.9;
+      for (const sd of [-1, 1]) { const rl = mk(new THREE.SphereGeometry(0.3, 12, 8), team, sd * 1.12, 0.36, 0, hat, true); rl.scale.set(0.45, 1.35, 3.9); rl.rotation.z = sd * 0.62;
+        const tr = mk(new THREE.SphereGeometry(0.3, 10, 6), acc, sd * 1.3, 0.66, 0, hat); tr.scale.set(0.16, 0.2, 3.7); tr.rotation.z = sd * 0.62; }
+      mk(new THREE.CylinderGeometry(0.93, 0.95, 0.17, 24, 1, true), acc, 0, 0.14, 0, hat).scale.z = 1.05;
+      mk(new THREE.SphereGeometry(0.17, 10, 8), acc, 0, 0.5, 0.92, hat, true);
+      const fe = mk(new THREE.SphereGeometry(0.2, 10, 8), toon(0xe0303a), 0.5, 1.0, -0.2, hat, true); fe.scale.set(0.4, 2.2, 0.7); fe.rotation.set(-0.5, 0, -0.4);
     }
     return gr;
   }
@@ -1276,8 +1278,8 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
       mk(new THREE.CylinderGeometry(0.8, 0.87, 0.16, 24, 1, true), acc, 0, 0.14, 0, hat);
       mk(new THREE.CircleGeometry(0.17, 5), basic(0xfff3c4), 0, 0.5, 0.69, hat).rotation.set(-0.45, 0, Math.PI / 10);
     } else if (kind === 'cowboy') {   // creased crown, brim rolled up at both sides
-      const cr = mk(new THREE.SphereGeometry(0.82, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true); cr.scale.set(0.95, 1.0, 1.1);
-      mk(new THREE.SphereGeometry(0.3, 10, 6), dk, 0, 0.8, 0, hat).scale.set(0.5, 0.35, 2.2);
+      const cr = mk(new THREE.SphereGeometry(0.9, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true); cr.scale.set(0.95, 1.25, 1.1);
+      mk(new THREE.SphereGeometry(0.3, 10, 6), dk, 0, 1.1, 0, hat).scale.set(0.5, 0.35, 2.4);
       mk(new THREE.CylinderGeometry(1.5, 1.55, 0.07, 32), team, 0, 0.03, 0, hat, true).scale.x = 0.92;
       for (const sd of [-1, 1]) { const rl = mk(new THREE.SphereGeometry(0.3, 10, 8), team, sd * 1.3, 0.2, 0, hat, true); rl.scale.set(0.55, 0.75, 3.6); rl.rotation.z = sd * 0.5; }
       mk(new THREE.CylinderGeometry(0.8, 0.84, 0.15, 24, 1, true), acc, 0, 0.13, 0, hat).scale.z = 1.1;
@@ -1462,6 +1464,29 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     for (const a of [0.5, 1.1]) { const t = mk(new THREE.ConeGeometry(0.1, 0.46, 4), team, 0.42, 0.14, -0.98, fit); t.rotation.set(-0.5, 0, -a - 1.2); t.scale.z = 0.4; }
   }
   return gr;
+}
+// Gear groups (hat, glasses, neck, back) are built from many small meshes that never move against each other: bake them into one
+// mesh per material (outline shells into one more), so a fully dressed athlete costs a handful of draw calls instead of a hundred.
+function mergeStaticGroup(g) {
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), buckets = new Map(), m4 = new THREE.Matrix4(), nm = new THREE.Matrix3(), v = new THREE.Vector3(), list = [], keep = [];
+  g.traverse((o) => { if (o.isMesh) list.push(o); });
+  if (list.length < 3) return;
+  for (const o of list) {
+    const ge = o.geometry; m4.multiplyMatrices(inv, o.matrixWorld);
+    if (!ge.attributes.position || !ge.attributes.normal || Array.isArray(o.material) || o.material.map || m4.determinant() <= 0) { keep.push(o); continue; }
+    const key = o.material.uuid + '|' + (o.userData.isOutline ? 1 : 0) + '|' + o.renderOrder;
+    let b = buckets.get(key); if (!b) buckets.set(key, b = { mat: o.material, ol: !!o.userData.isOutline, ro: o.renderOrder, pos: [], nor: [] });
+    const gg = ge.index ? ge.toNonIndexed() : ge, P = gg.attributes.position, N = gg.attributes.normal; nm.getNormalMatrix(m4);
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m4); b.pos.push(v.x, v.y, v.z); v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); b.nor.push(v.x, v.y, v.z); }
+    if (gg !== ge) gg.dispose();
+  }
+  for (const o of keep) g.attach(o);                       // the few that cannot be baked stay as they are, moved up to the group
+  for (const c of g.children.slice()) if (!keep.includes(c)) { c.traverse((o) => { if (o.isMesh && !keep.includes(o)) o.geometry.dispose(); }); g.remove(c); }
+  for (const b of buckets.values()) {
+    const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3)); ge.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3));
+    const mm = new THREE.Mesh(ge, b.mat); mm.renderOrder = b.ro; mm.userData.noOutline = true; if (b.ol) mm.userData.isOutline = true; g.add(mm);
+  }
 }
 // in-match player size: the racket at full stretch reaches ~2.1 m, matching the sim's hit zone (REACH_H)
 const PLAYER_SCALE = 0.92;
@@ -1921,8 +1946,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   } else if (GI.neck === 'tt_neck') {   // red envelope on a gold cord
     laceTube(0.008, toon(0xf2c230), 0.12); const pb = lace(0, 0.03, 0.12); NK(new THREE.BoxGeometry(0.085, 0.12, 0.016), toon(GL.neck), pb.x, pb.y - 0.06, pb.z + 0.004, true); NK(new THREE.CircleGeometry(0.024, 14), basic(0xf2c230), pb.x, pb.y - 0.065, pb.z + 0.014); NK(new THREE.BoxGeometry(0.085, 0.022, 0.018), toon(0xf2c230), pb.x, pb.y - 0.012, pb.z + 0.005);
   } else if (GI.neck === 'st_neck') {   // red scarf tied in front
-    const rd = toon(GL.neck, DS); for (const sd of [-1, 1]) strip(sd * 0.16 * tx, cy - 0.04, 0, cy - 0.12, 0.075, 0.014, rd);
-    for (const sd of [-1, 1]) strip(0, cy - 0.12, sd * 0.045, cy - 0.23, 0.05, 0.02, rd); NK(new THREE.SphereGeometry(0.028, 10, 8), toon(shadeHex(GL.neck, -0.2)), 0, cy - 0.12, chestZ(0, cy - 0.12) + 0.03, true);
+    const rd = toon(GL.neck, DS); for (const sd of [-1, 1]) strip(sd * 0.18 * tx, cy - 0.03, 0, cy - 0.13, 0.12, 0.014, rd);
+    for (const sd of [-1, 1]) strip(0, cy - 0.13, sd * 0.06, cy - 0.29, 0.075, 0.02, rd); NK(new THREE.SphereGeometry(0.04, 10, 8), toon(shadeHex(GL.neck, -0.2)), 0, cy - 0.12, chestZ(0, cy - 0.13) + 0.035, true);
   } else if (GI.neck === 'ic_neck') {   // snowflake on a silver chain
     laceTube(0.008, toon(0xdfe5ee), 0.13); const pb = lace(0, 0.03, 0.13);
     for (let k = 0; k < 3; k++) { const b = NK(new THREE.BoxGeometry(0.014, 0.13, 0.012), toon(0xffffff), pb.x, pb.y - 0.06, pb.z + 0.004); b.rotation.z = k * Math.PI / 3; } NK(new THREE.OctahedronGeometry(0.028), toon(GL.neck), pb.x, pb.y - 0.06, pb.z + 0.012, true);
@@ -1977,7 +2002,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (const [x, dy, k] of [[-0.1, 0.13, 0], [0.09, 0.1, 1], [-0.02, 0.03, 1], [-0.17, 0.0, 1], [0.16, -0.01, 0], [0.06, -0.07, 0], [-0.09, -0.08, 1], [0.21, 0.09, 1], [-0.22, 0.1, 0]]) { const f = decal(new THREE.CircleGeometry(0.036, 5), k ? wh : pk2, x * tx, tc + dy, 0.006); f.rotateZ(x * 9); decal(new THREE.CircleGeometry(0.012, 8), ye, x * tx, tc + dy, 0.009); } }
   else if (GI.shirt === 'hr_shirt') { const ye = toon(0xffd23f); decal(new THREE.CircleGeometry(0.085, 24), basic(0xffd23f), 0, tc + 0.07, 0.007); decal(new THREE.CircleGeometry(0.058, 5), basic(0xe0303a), 0, tc + 0.07, 0.01).rotateZ(Math.PI / 10); hoop(tc - 0.105, 0.026, ye); decal(new THREE.BoxGeometry(0.07, 0.06, 0.02), toon(0xffffff), 0, tc - 0.105, 0.016); }
   const cape = (col, clasp) => {   // hangs from the shoulders to the knees, open at the front
-    const cp = BK(new THREE.SphereGeometry(0.3, 20, 10, Math.PI * 1.06, Math.PI * 0.88, 0.42, 1.22), toon(col, { side: THREE.DoubleSide }), 0, tc - 0.12, -0.015); cp.scale.set(tx * 1.14, ty * 1.3, tz * 1.3);
+    const cp = BK(new THREE.SphereGeometry(0.3, 20, 10, Math.PI * 1.02, Math.PI * 0.96, 0.4, 1.5), toon(col, { side: THREE.DoubleSide }), 0, tc - 0.12, -0.015); cp.scale.set(tx * 1.14, ty * 1.3, tz * 1.3);
     const rl = BK(new THREE.TorusGeometry(0.155, 0.032, 8, 22), toon(clasp), 0, cy + 0.005, 0, true); rl.rotation.x = Math.PI / 2;
     BK(new THREE.SphereGeometry(0.03, 10, 8), gold, 0, cy - 0.02, 0.165);
   };
@@ -2082,7 +2107,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     hoop(tc - 0.118, 0.022, toon(0x16181f)); decal(new THREE.CircleGeometry(0.05, 5), basic(0xff3d2a), 0, tc + 0.1, 0.006).rotateZ(-Math.PI / 10 + Math.PI); hoop(tc + 0.2, 0.014, toon(0xff7a1f)); }
   const fan = (col, col2, sd, n, len, wide, y0) => { const wg4 = new THREE.Group(); wg4.position.set(sd * 0.07, tc + y0, bz - 0.03); wg4.rotation.set(0.1, sd * 0.5, 0); backG.add(wg4);
     for (let i = 0; i < n; i++) { const a = 0.55 + i * (1.5 / n), m = add(new THREE.ConeGeometry(wide, len * (1 - i * 0.1), 3), toon(i % 2 ? col2 : col, DS), sd * Math.sin(a) * len * 0.5, Math.cos(a) * len * 0.5, -0.02 - i * 0.004, wg4); m.rotation.z = -sd * a; m.scale.z = 0.12; } return wg4; };
-  if (GI.back === 'dm_back') { for (const sd of [-1, 1]) { const w = fan(GL.back, 0x8a1020, sd, 4, 0.56, 0.13, 0.14); const bone = add(new THREE.CylinderGeometry(0.014, 0.014, 0.42, 5), toon(0x23232b), sd * 0.15, 0.13, -0.035, w); bone.rotation.z = -sd * 0.85; noOL(bone); noOL(add(new THREE.ConeGeometry(0.02, 0.06, 5), toon(0xfff3c4), sd * 0.31, 0.275, -0.035, w)); } }
+  if (GI.back === 'dm_back') { for (const sd of [-1, 1]) { const w = fan(0xc22a3a, GL.back, sd, 3, 0.5, 0.2, 0.14); const bone = add(new THREE.CylinderGeometry(0.014, 0.014, 0.42, 5), toon(0x23232b), sd * 0.15, 0.13, -0.035, w); bone.rotation.z = -sd * 0.85; noOL(bone); noOL(add(new THREE.ConeGeometry(0.02, 0.06, 5), toon(0xfff3c4), sd * 0.31, 0.275, -0.035, w)); } }
   else if (GI.back === 'be_back') {   // two pairs of clear wings and a stinger
     const wm = basic(GL.back, { transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide });
     for (const sd of [-1, 1]) for (const [y, len, rot] of [[0.14, 0.3, 1.0], [0.02, 0.22, 1.7]]) { const w = BK(new THREE.SphereGeometry(0.07, 12, 8), wm, sd * (0.08 + Math.sin(rot) * len * 0.5), tc + y + Math.cos(rot) * len * 0.5, bz - 0.04); w.scale.set(0.9, len / 0.14, 0.12); w.rotation.set(0, sd * 0.4, -sd * rot); w.renderOrder = 3;
@@ -2261,6 +2286,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     }
   }
   addOutlines(body, 0.018);
+  for (const gg of [headGear, faceG, neckG, backG]) mergeStaticGroup(gg);
   root.traverse((m) => { if (m.isMesh && !m.userData.isOutline && !(m.material && m.material.transparent)) m.castShadow = true; });
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,

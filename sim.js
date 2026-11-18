@@ -227,7 +227,7 @@ const GEAR = [
   { id: 'hu_head', slot: 'head', set: 'hunter', rar: 1, price: 900, col: 0x3d7a3a, name: 'Mũ thợ săn', mods: { rch: 1, pow: -0.5 }, desc: 'Mắt tinh như cú, với xa; nhẹ tay.' },
   { id: 'hu_back', slot: 'back', set: 'hunter', rar: 1, price: 900, col: 0x7a5230, name: 'Ống tên', mods: { rch: 0.5, ctl: 0.5, spd: -0.5 }, desc: 'Ngắm là trúng; vướng lưng nên chậm.' },
   { id: 'hu_wrist', slot: 'wrist', set: 'hunter', rar: 1, price: 900, col: 0x7a5230, name: 'Bao tay da', mods: { ctl: 1, pow: -0.5 }, desc: 'Tay vững như kéo cung; không đập mạnh.' },
-  { id: 'kn_head', slot: 'head', set: 'knight', rar: 2, price: 2200, col: 0xc9d2e0, name: 'Mũ giáp hiệp sĩ', mods: { sta: 1, pow: 0.25, spd: -0.5 }, desc: 'Không gì làm nao núng; nặng nên chậm.' },
+  { id: 'kn_head', slot: 'head', set: 'knight', rar: 2, price: 2200, col: 0x8f9bb0, name: 'Mũ giáp hiệp sĩ', mods: { sta: 1, pow: 0.25, spd: -0.5 }, desc: 'Không gì làm nao núng; nặng nên chậm.' },
   { id: 'kn_shirt', slot: 'shirt', set: 'knight', rar: 2, price: 2200, col: 0xb8c2d4, name: 'Giáp bạc', mods: { sta: 1, ctl: 0.25, jmp: -0.5 }, desc: 'Vững như thành; giáp nặng khó bật.' },
   { id: 'kn_shoes', slot: 'shoes', set: 'knight', rar: 2, price: 2200, col: 0x9aa5b8, name: 'Giày sắt', mods: { pow: 1, sta: 0.25, spd: -0.5 }, desc: 'Trụ cực chắc; bước nặng nề.' },
   { id: 'kn_back', slot: 'back', set: 'knight', rar: 2, price: 2200, col: 0x3f6fd9, name: 'Khiên tròn', mods: { sta: 1, rch: 0.25, spd: -0.5 }, desc: 'Che chắn phía sau; vác khiên nên chậm.' },
