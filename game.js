@@ -2194,6 +2194,7 @@ function startLocal(opts) {
   if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;
   const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit, moveAssist: d >= 4 ? false : undefined, autoSave: d >= 4 ? false : undefined });   // challenger matches play by the online rules: no auto-run, no auto-return, no auto-save
+  if (d >= 4) { const mem = store.get('sp.dare', null); if (mem) for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) b.learn = { front: +mem.front || 0, bad: Object.assign({}, mem.bad || {}) }; }
   beginSession('local', m, 0, { localOpts: opts, snapCam: true, tourRound: opts.tourRound });
 }
 
@@ -2752,6 +2753,7 @@ function finishMatch(res) {
   if (tourMsg) $('rematchInfo').innerHTML = tourMsg;
   if (me >= 0) {
     if (won) Sound.win(); else Sound.lose();
+    if (session.kind === 'local') { const cb = m.athletes.find((b) => b.ctrl === 'bot' && b.diff >= 4 && b.learn); if (cb) { const bad = {}; for (const k in cb.learn.bad) bad[k] = Math.round(cb.learn.bad[k] * 50) / 100; store.set('sp.dare', { front: Math.round(cb.learn.front * 70) / 100, bad }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
@@ -3230,6 +3232,15 @@ function animateAthlete(a, md, dt, t, m) {
     const need = (0.48 + toNet * (0.26 + lean * 1.15)) * (mdl.netRoom || 1), push = Math.max(0, need - mdl.root.position.z * sgT);
     md.netPush = push > (md.netPush || 0) ? push : damp(md.netPush || 0, push, 8, dt);
     mdl.root.position.z += sgT * md.netPush;
+    { // floor guard: while the body is in a low pose its lowest point (sampled vertices, racket excluded) may not go under the court
+      const low = a.diveT >= 0 || a.recoverT > 0 || (md.matchClip && md.matchClip !== 'ready') || Math.abs(mdl.body.rotation.x) > 0.12 || (md.crouch || 0) > 0.03 || Math.abs(md.lunge || 0) > 0.03;
+      let need = 0;
+      if (low) { mdl.root.updateMatrixWorld(true); let y0 = 9; const V = floorV;
+        mdl.body.traverse((o) => { if (!o.isMesh || o.userData.isOutline || !o.geometry.attributes.position) return; for (let q = o; q && q !== mdl.body; q = q.parent) if (q === mdl.wrist) return;
+          const p = o.geometry.attributes.position, e = o.matrixWorld.elements, st = p.count > 60 ? 5 : 2; for (let k = 0; k < p.count; k += st) { const y = e[1] * p.getX(k) + e[5] * p.getY(k) + e[9] * p.getZ(k) + e[13]; if (y < y0) y0 = y; } });
+        need = Math.max(0, 0.012 - y0); }
+      md.floorUp = need > (md.floorUp || 0) ? need : damp(md.floorUp || 0, need, 9, dt);
+      if (md.floorUp > 0.0005) mdl.root.position.y += md.floorUp; }
   }
   mdl.body.position.y = by;
   mdl.body.rotation.x = damp(mdl.body.rotation.x, tiltX, 14, dt);
@@ -3754,6 +3765,7 @@ function hideMeter() {
 
 const camPos = new THREE.Vector3(0, 7, 14), camLook = new THREE.Vector3(0, 1, -2);
 let camShake = 0;   // smash impact
+const floorV = new THREE.Vector3();
 let camOverride = null, debugSpeed = 1, freeCam = null, debugPose = null;
 const CAM_PRESET = (mode, portrait) => (mode === 'mid' ? { ty: portrait ? 12.5 : 8.0, tz: portrait ? 17 : 16.0, lz: portrait ? 0.3 : -0.5 } : mode === 'low' ? { ty: portrait ? 9.5 : 5.6, tz: portrait ? 19 : 17.5, lz: portrait ? -1.0 : -2.5 } : null);
 const HIGH_FOV = [36, 50];   // [landscape, portrait]

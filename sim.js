@@ -539,7 +539,7 @@ function startServe(m) {
     if (a.i === m.serverIdx) { a.x = courtX(T, right) * 1.0; a.z = sgn(T) * (d ? 2.5 : 3.2); }
     else if (a.i === m.receiverIdx) { a.x = courtX(R, right) * 1.0; a.z = sgn(R) * (d ? 2.6 : 3.0); }
     else { a.x = courtX(a.team, !right) * 1.35; a.z = sgn(a.team) * 4.4; }
-    a.home = { x: d ? courtX(a.team, myRight) * 1.3 : 0, z: sgn(a.team) * (d ? 3.4 : 3.7) };
+    a.home = { x: d ? courtX(a.team, myRight) * 1.3 : 0, z: sgn(a.team) * (d ? 3.4 : 3.7) }; if (a.learn) a.home.z = sgn(a.team) * clamp(Math.abs(a.home.z) - a.learn.front * 0.8, 2.5, 4.5);   // the challenger's learned base position
     a.tx = a.x; a.tz = a.z;
   }
   const s = m.shuttle;
@@ -762,7 +762,35 @@ function planTeam(m, team, r, landIn) {
   }
 }
 
+// The challenger (level 5) learns inside a match. b.learn.bad[shot] counts how often a shot of its own was followed by a lost point
+// (its own error, or the reply won the rally); a shot that keeps failing is swapped for another one that fits the contact height.
+// b.learn.front moves its base position: forward after losing to short replies while it stood deep, back after being lobbed.
 function botChooseShot(m, b) {
+  let shot = botChooseShot0(m, b);
+  if (b.diff >= 4) {
+    const L = b.learn || (b.learn = { front: 0, bad: {} }), n = L.bad[shot] || 0, s = m.shuttle.p, az = Math.abs(b.z);
+    if (n >= 2 && s.y >= 1.05 && Math.random() < Math.min(0.8, n * 0.25)) {
+      const alt = ['clear', 'drop', 'drive', 'smash'].filter((x) => x !== shot && (L.bad[x] || 0) < n && (x !== 'smash' || (s.y > 1.58 && az < 5.6)) && (x !== 'drive' || s.y >= 1.5) && (x !== 'drop' || s.y >= 1.75));
+      if (alt.length) shot = alt[Math.floor(Math.random() * alt.length)];
+    }
+    b.lastShot = shot;
+  }
+  return shot;
+}
+function botLearn(m, winner) {
+  for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
+    const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z);
+    if (winner !== b.team) {
+      if (s.z * sg > 0 && m.shuttle.lastTeam !== b.team) {          // the reply landed on its side
+        if (sz < 2.7 && bz > 3.2) L.front = Math.min(1.25, L.front + 0.45);          // beaten short while standing deep
+        else if (sz > 4.6 && bz < 3.3) L.front = Math.max(-0.8, L.front - 0.45);     // beaten deep while standing close
+      }
+      if (b.lastShot) L.bad[b.lastShot] = (L.bad[b.lastShot] || 0) + 1;
+    } else if (b.lastShot && L.bad[b.lastShot]) L.bad[b.lastShot] = Math.max(0, L.bad[b.lastShot] - 0.5);   // it worked this time
+    b.lastShot = null;
+  }
+}
+function botChooseShot0(m, b) {
   const d = DIFF[b.diff], s = m.shuttle.p, az = Math.abs(b.z);
   if (s.y > 1.58 && az < 5.6 && b.sta >= 0.15 && Math.random() < d.smash * clamp(b.sta / 0.6, 0.25, 1)) return 'smash';
   if (s.y < 1.05) return az < 2.6 && Math.random() < 0.55 ? 'net' : 'lift';
@@ -1132,6 +1160,7 @@ function judge(m, inside) {
 function changeEnds(m) { m.windBase += Math.PI; m.wind.x = -m.wind.x; m.wind.z = -m.wind.z; emit(m, { type: 'ends' }); }
 
 function awardPoint(m, winner, why) {
+  botLearn(m, winner);
   m.state = 'point'; m.stateT = 0;
   restAll(m, POINT_REST, POINT_REST_DEEP);  // brief point rest; cannot refund a typical rally while fresh
   const wasServing = m.serverTeam === winner;
