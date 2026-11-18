@@ -42,7 +42,7 @@ const CHARS = [
 ];
 // ---- gear. Every item trades something for something (no pure buffs); rarer items trade on better terms.
 // mods are in character-stat points (the same 1..5 scale as CHARS.stats). Net value per item: common +0.25, rare +0.5, epic +0.75.
-const GEAR_SLOTS = [['racket', 'Vợt'], ['shoes', 'Giày'], ['shirt', 'Áo'], ['shorts', 'Quần'], ['wrist', 'Băng tay'], ['head', 'Đội đầu'], ['neck', 'Cổ'], ['back', 'Lưng']];
+const GEAR_SLOTS = [['racket', 'Vợt'], ['shoes', 'Giày'], ['shirt', 'Áo'], ['shorts', 'Quần'], ['wrist', 'Băng tay'], ['head', 'Đội đầu'], ['face', 'Kính'], ['neck', 'Cổ'], ['back', 'Lưng']];
 const GEAR_RARITY = ['Thường', 'Hiếm', 'Sử thi'];
 const GEAR = [
   { id: 'r_light', slot: 'racket', rar: 0, price: 300,  col: 0x4fb8e8, name: 'Vợt nhẹ',            mods: { ctl: 0.75, pow: -0.5 }, desc: 'Vung nhanh, đặt cầu chuẩn hơn nhưng đập yếu đi.' },
@@ -63,13 +63,56 @@ const GEAR = [
   { id: 'h_band',  slot: 'head',   rar: 0, price: 300,  col: 0xe8503a, name: 'Khăn buộc đầu',      mods: { sta: 0.75, ctl: -0.5 }, desc: 'Mồ hôi không vào mắt, đỡ mệt; hơi vướng tầm nhìn.' },
   { id: 'h_focus', slot: 'head',   rar: 1, price: 900,  col: 0x2f8f6a, name: 'Mũ lưỡi trai',       mods: { ctl: 1, jmp: -0.5 }, desc: 'Đánh chuẩn hơn; chặt nên ngại bật cao.' },
   { id: 'h_pro',   slot: 'head',   rar: 2, price: 2200, col: 0xf2c230, name: 'Vương miện vô địch', mods: { rch: 0.75, ctl: 0.5, spd: -0.5 }, desc: 'Đọc cầu sớm, với xa; tự tin quá nên chậm chân.' },
+  { id: 'e_sport', slot: 'face',   rar: 0, price: 300,  col: 0x4fb8e8, name: 'Kính thể thao',      mods: { ctl: 0.75, rch: -0.5 }, desc: 'Nhìn cầu rõ, đánh chuẩn hơn; dây đeo vướng nên với kém.' },
+  { id: 'e_shade', slot: 'face',   rar: 1, price: 900,  col: 0x23262f, name: 'Kính râm',           mods: { spd: 0.5, pow: 0.5, ctl: -0.5 }, desc: 'Ngầu nên chạy hăng, đập hăng; tối nên kém chính xác.' },
+  { id: 'e_pro',   slot: 'face',   rar: 2, price: 2200, col: 0xf2c230, name: 'Kính phi công',      mods: { rch: 1, ctl: 0.25, sta: -0.5 }, desc: 'Thấy cầu từ xa, với sớm; căng mắt nên mau mệt.' },
   { id: 'n_towel', slot: 'neck',   rar: 0, price: 300,  col: 0xffffff, name: 'Khăn lau mồ hôi',    mods: { sta: 0.75, spd: -0.5 }, desc: 'Lau khô nhanh, đỡ mệt; vướng cổ nên chạy chậm hơn.' },
   { id: 'n_chain', slot: 'neck',   rar: 1, price: 900,  col: 0x4fd6e0, name: 'Dây chuyền may mắn', mods: { ctl: 0.5, rch: 0.5, pow: -0.5 }, desc: 'Bình tĩnh và với xa hơn; ngại đập hết lực.' },
   { id: 'n_medal', slot: 'neck',   rar: 2, price: 2200, col: 0xf2c230, name: 'Huy chương vàng',    mods: { pow: 1, rch: 0.25, jmp: -0.5 }, desc: 'Khí thế nhà vô địch; nặng cổ nên bật kém hơn.' },
+  { id: 'n_bell',  slot: 'neck',   rar: 0, price: 300,  col: 0xe8503a, name: 'Vòng cổ chuông',     mods: { spd: 0.75, ctl: -0.5 }, desc: 'Chuông reo rộn ràng, chạy hăng; leng keng nên mất tập trung.' },
+  { id: 'n_bow',   slot: 'neck',   rar: 1, price: 900,  col: 0x8a5cf0, name: 'Nơ cổ',              mods: { ctl: 0.5, jmp: 0.5, pow: -0.5 }, desc: 'Lịch lãm: khéo và nhẹ chân; ngại đập mạnh.' },
+  { id: 'n_pearl', slot: 'neck',   rar: 2, price: 2200, col: 0xfff6ee, name: 'Vòng ngọc trai',     mods: { sta: 0.75, ctl: 0.5, pow: -0.5 }, desc: 'Thư thái, bền sức và khéo; quý quá nên không dám đập hết lực.' },
   { id: 'b_pack',  slot: 'back',   rar: 0, price: 300,  col: 0x2fa8a0, name: 'Balo nước',          mods: { sta: 0.75, jmp: -0.5 }, desc: 'Luôn có nước uống; đeo balo nên khó bật cao.' },
   { id: 'b_bag',   slot: 'back',   rar: 1, price: 900,  col: 0xd9483b, name: 'Túi vợt dự phòng',   mods: { pow: 1, spd: -0.5 }, desc: 'Vợt căng dây mới, đập mạnh; nặng lưng nên chậm chân.' },
   { id: 'b_wings', slot: 'back',   rar: 2, price: 2200, col: 0xfff3c4, name: 'Đôi cánh nhỏ',       mods: { jmp: 1, spd: 0.25, ctl: -0.5 }, desc: 'Bật cao như bay; đà lớn nên khó đánh tinh tế.' },
+  { id: 'bc_head', slot: 'head', set: 'beach', rar: 0, price: 300, col: 0xf2d28a, name: 'Mũ rơm', mods: { sta: 0.75, jmp: -0.5 }, desc: 'Che nắng, đỡ mệt; vành rộng nên ngại bật cao.' },
+  { id: 'bc_shirt', slot: 'shirt', set: 'beach', rar: 0, price: 300, col: 0x2ec4b6, name: 'Áo hoa đi biển', mods: { spd: 0.75, pow: -0.5 }, desc: 'Mát và nhẹ, chạy nhanh; vải mỏng nên thiếu lực.' },
+  { id: 'bc_pants', slot: 'shorts', set: 'beach', rar: 0, price: 300, col: 0xff8a3d, name: 'Quần bơi', mods: { jmp: 0.75, ctl: -0.5 }, desc: 'Thoải mái bật nhảy; trơn nên kém khéo.' },
+  { id: 'bc_shoes', slot: 'shoes', set: 'beach', rar: 0, price: 300, col: 0xffd23f, name: 'Dép quai hậu', mods: { ctl: 0.75, spd: -0.5 }, desc: 'Bám sân, đứng vững; dép nên chạy chậm.' },
+  { id: 'bc_back', slot: 'back', set: 'beach', rar: 0, price: 300, col: 0xff5e7a, name: 'Phao bơi', mods: { sta: 0.75, spd: -0.5 }, desc: 'Vui là khỏe; vướng hông nên chậm chân.' },
+  { id: 'nj_head', slot: 'head', set: 'ninja', rar: 1, price: 900, col: 0x2b2f45, name: 'Khăn trùm ninja', mods: { spd: 1, sta: -0.5 }, desc: 'Nhẹ đầu, lướt nhanh; bí nên mau mệt.' },
+  { id: 'nj_shirt', slot: 'shirt', set: 'ninja', rar: 1, price: 900, col: 0x2b2f45, name: 'Áo ninja', mods: { ctl: 0.5, spd: 0.5, pow: -0.5 }, desc: 'Gọn gàng, nhanh và khéo; không hợp đập lực.' },
+  { id: 'nj_pants', slot: 'shorts', set: 'ninja', rar: 1, price: 900, col: 0x23263a, name: 'Quần ninja', mods: { spd: 0.5, jmp: 0.5, sta: -0.5 }, desc: 'Bó gọn, nhanh và bật tốt; bó nên mau mỏi.' },
+  { id: 'nj_shoes', slot: 'shoes', set: 'ninja', rar: 1, price: 900, col: 0x2b2f45, name: 'Giày ninja', mods: { spd: 1, pow: -0.5 }, desc: 'Êm như mèo, chạy rất nhanh; đế mềm nên trụ yếu.' },
+  { id: 'nj_back', slot: 'back', set: 'ninja', rar: 1, price: 900, col: 0x8a2f2f, name: 'Kiếm gỗ', mods: { pow: 1, ctl: -0.5 }, desc: 'Khí thế kiếm sĩ, đập mạnh; vướng lưng nên kém khéo.' },
+  { id: 'pr_head', slot: 'head', set: 'pirate', rar: 1, price: 900, col: 0x2a2430, name: 'Mũ thuyền trưởng', mods: { pow: 1, spd: -0.5 }, desc: 'Oai phong, đập mạnh; mũ to nên chậm chân.' },
+  { id: 'pr_shirt', slot: 'shirt', set: 'pirate', rar: 1, price: 900, col: 0xfff6e8, name: 'Áo sọc thủy thủ', mods: { sta: 1, ctl: -0.5 }, desc: 'Dẻo dai như dân đi biển; rộng nên kém khéo.' },
+  { id: 'pr_pants', slot: 'shorts', set: 'pirate', rar: 1, price: 900, col: 0x7a5230, name: 'Quần ống rộng', mods: { pow: 0.5, sta: 0.5, jmp: -0.5 }, desc: 'Trụ vững, bền sức; rộng nên khó bật.' },
+  { id: 'pr_shoes', slot: 'shoes', set: 'pirate', rar: 1, price: 900, col: 0x5a3d22, name: 'Bốt da', mods: { pow: 1, jmp: -0.5 }, desc: 'Trụ chắc, đập mạnh; nặng nên bật kém.' },
+  { id: 'pr_back', slot: 'back', set: 'pirate', rar: 1, price: 900, col: 0x8a5a2b, name: 'Rương kho báu', mods: { rch: 1, spd: -0.5 }, desc: 'Tham nên với rất xa; nặng lưng nên chậm chân.' },
+  { id: 'as_head', slot: 'head', set: 'astro', rar: 2, price: 2200, col: 0xf4f6fa, name: 'Mũ phi hành gia', mods: { jmp: 1, rch: 0.25, ctl: -0.5 }, desc: 'Bật như không trọng lực; kính dày nên kém khéo.' },
+  { id: 'as_shirt', slot: 'shirt', set: 'astro', rar: 2, price: 2200, col: 0xf4f6fa, name: 'Áo du hành', mods: { sta: 1, jmp: 0.25, pow: -0.5 }, desc: 'Có bình dưỡng khí, rất bền sức; cồng kềnh nên đập yếu.' },
+  { id: 'as_pants', slot: 'shorts', set: 'astro', rar: 2, price: 2200, col: 0xf4f6fa, name: 'Quần du hành', mods: { jmp: 1, sta: 0.25, spd: -0.5 }, desc: 'Bật cao; dày nên chạy chậm.' },
+  { id: 'as_shoes', slot: 'shoes', set: 'astro', rar: 2, price: 2200, col: 0xdfe5ee, name: 'Giày mặt trăng', mods: { jmp: 1, ctl: 0.25, spd: -0.5 }, desc: 'Đế nảy như trên mặt trăng; to nên chậm chân.' },
+  { id: 'as_back', slot: 'back', set: 'astro', rar: 2, price: 2200, col: 0x4f8fe8, name: 'Ba lô phản lực', mods: { spd: 1, jmp: 0.25, ctl: -0.5 }, desc: 'Phóng vèo vèo; đà lớn nên khó đánh tinh tế.' },
+  { id: 'ry_head', slot: 'head', set: 'royal', rar: 2, price: 2200, col: 0xf2c230, name: 'Vương miện hoàng gia', mods: { ctl: 1, rch: 0.25, spd: -0.5 }, desc: 'Điềm tĩnh, chính xác; nặng đầu nên chậm chân.' },
+  { id: 'ry_shirt', slot: 'shirt', set: 'royal', rar: 2, price: 2200, col: 0x6a3fd0, name: 'Áo hoàng tộc', mods: { ctl: 1, sta: 0.25, pow: -0.5 }, desc: 'Thanh lịch, đánh rất khéo; không hợp đập lực.' },
+  { id: 'ry_pants', slot: 'shorts', set: 'royal', rar: 2, price: 2200, col: 0xfff6ee, name: 'Quần hoàng tộc', mods: { ctl: 1, jmp: 0.25, spd: -0.5 }, desc: 'Bước đi khoan thai, chuẩn xác; không vội được.' },
+  { id: 'ry_shoes', slot: 'shoes', set: 'royal', rar: 2, price: 2200, col: 0xf2c230, name: 'Giày nạm vàng', mods: { rch: 1, ctl: 0.25, jmp: -0.5 }, desc: 'Bước dài, với xa; nặng nên bật kém.' },
+  { id: 'ry_back', slot: 'back', set: 'royal', rar: 2, price: 2200, col: 0xc22a3a, name: 'Áo choàng đỏ', mods: { rch: 1, sta: 0.25, spd: -0.5 }, desc: 'Tung áo choàng, với thật xa; vướng nên chậm chân.' },
+  { id: 'hr_head', slot: 'head', set: 'hero', rar: 2, price: 2200, col: 0xe0303a, name: 'Mũ siêu nhân', mods: { pow: 1, jmp: 0.25, sta: -0.5 }, desc: 'Sức mạnh chính nghĩa; hăng quá nên mau mệt.' },
+  { id: 'hr_shirt', slot: 'shirt', set: 'hero', rar: 2, price: 2200, col: 0xe0303a, name: 'Áo siêu nhân', mods: { pow: 1, sta: 0.25, ctl: -0.5 }, desc: 'Đập như sấm; mạnh tay nên kém tinh tế.' },
+  { id: 'hr_pants', slot: 'shorts', set: 'hero', rar: 2, price: 2200, col: 0x2f5fd9, name: 'Quần siêu nhân', mods: { spd: 1, pow: 0.25, sta: -0.5 }, desc: 'Lao đi như tên bắn; tốn sức.' },
+  { id: 'hr_shoes', slot: 'shoes', set: 'hero', rar: 2, price: 2200, col: 0xffd23f, name: 'Bốt siêu nhân', mods: { spd: 1, jmp: 0.25, ctl: -0.5 }, desc: 'Nhanh và nảy; đà lớn nên khó dừng chuẩn.' },
+  { id: 'hr_back', slot: 'back', set: 'hero', rar: 2, price: 2200, col: 0x2f5fd9, name: 'Áo choàng xanh', mods: { pow: 1, spd: 0.25, ctl: -0.5 }, desc: 'Bay vào đập cầu; áo bay phần phật nên kém khéo.' },
 ];
+// outfit sets: wearing 3 pieces of one set adds +0.25 to the set's stat, all 5 pieces +0.5 (inside the same +-2 cap)
+const GEAR_SETS = [{ id: 'beach', name: 'Mùa hè', stat: 'sta' }, { id: 'ninja', name: 'Ninja', stat: 'spd' }, { id: 'pirate', name: 'Hải tặc', stat: 'pow' },
+  { id: 'astro', name: 'Phi hành gia', stat: 'jmp' }, { id: 'royal', name: 'Hoàng gia', stat: 'ctl' }, { id: 'hero', name: 'Siêu nhân', stat: 'pow' }];
+function setBonus(ids) {
+  const set = gearSet(ids), n = {}; for (const k in set) if (set[k].set) n[set[k].set] = (n[set[k].set] || 0) + 1;
+  return GEAR_SETS.filter((s) => n[s.id]).map((s) => ({ id: s.id, name: s.name, stat: s.stat, n: n[s.id], bonus: n[s.id] >= 5 ? 0.5 : n[s.id] >= 3 ? 0.25 : 0 }));
+}
 const GEAR_STAT_CAP = 2;                                   // gear can move one stat by at most +-2 points in total
 const STAT_KEYS = ['spd', 'jmp', 'pow', 'rch', 'ctl', 'sta'];
 const gearById = (id) => GEAR.find((g) => g.id === id) || null;
@@ -78,6 +121,7 @@ function gearSet(ids) { const by = {}; for (const id of ids || []) { const g = g
 function gearMods(ids) {
   const out = { spd: 0, jmp: 0, pow: 0, rch: 0, ctl: 0, sta: 0 }, set = gearSet(ids);
   for (const k in set) for (const s in set[k].mods) out[s] += set[k].mods[s];
+  for (const b of setBonus(ids)) out[b.stat] += b.bonus;
   for (const s of STAT_KEYS) out[s] = clamp(out[s], -GEAR_STAT_CAP, GEAR_STAT_CAP);
   return out;
 }
@@ -1018,7 +1062,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  GEAR, GEAR_SLOTS, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
+  GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,
   clamp, lerp, damp, rand, randn, predictSelf, moveAthlete,

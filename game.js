@@ -137,11 +137,12 @@ function renderGearIcon(key) {
   mdl.root.updateMatrixWorld(true);
   const box = new THREE.Box3();
   const parts = slot === 'racket' ? [mdl.wrist] : slot === 'shoes' ? mdl.feet : slot === 'shirt' ? [mdl.gear.torso] : slot === 'shorts' ? [mdl.gear.shorts] : slot === 'wrist' ? [mdl.gear.wristGear[0]]
-    : slot === 'head' ? [mdl.head] : slot === 'neck' ? [mdl.gear.neck] : [mdl.gear.back, mdl.gear.torso];
+    : slot === 'head' ? [mdl.head] : slot === 'face' ? [mdl.gear.face] : slot === 'neck' ? [mdl.gear.neck] : [mdl.gear.back, mdl.gear.torso];
   for (const p of parts) box.expandByObject(p);
   if (slot === 'shorts') box.min.y -= 0.2;
   if (slot === 'neck') { box.min.y -= 0.16; box.max.y += 0.04; }
   if (slot === 'shirt') box.expandByScalar(0.09);
+  if (slot === 'face') box.expandByScalar(0.05);
   if (slot === 'wrist') box.expandByScalar(0.07);
   const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), r = Math.max(0.12, Math.max(sz.x, sz.y) * 0.56);
   const dist = r / Math.tan(THREE.MathUtils.degToRad(12));
@@ -1226,14 +1227,64 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     const br = place(0, 0.83, 0.57, 1.09); mk(new THREE.CapsuleGeometry(0.013, 0.05, 2, 6), rimM, 0, 0, 0, br).rotation.z = Math.PI / 2;
     return gr;
   }
-  if (kind === 'visor') {   // sun visor: band + a wide brim over the brow
-    ring(0.46, 0.13, team); ring(0.52, 0.03, acc, 1.045);
-    const brim = mk(new THREE.CylinderGeometry(0.78, 0.78, 0.05, 28, 1, false, -1.05, 2.1), team, 0, 0.36, 0.5, fit, true); brim.rotation.x = 0.22;
-    const edge = mk(new THREE.TorusGeometry(0.78, 0.03, 6, 24, 2.1), acc, 0, 0.36, 0.5, fit); edge.rotation.set(Math.PI / 2 + 0.22, 0, Math.PI / 2 - 1.05);
+  if (kind === 'visor') {   // baseball cap: dome over the top of the head, button, band and a brim tipped down over the brow
+    if (!fit.parent) gr.add(fit);
+    const cap = new THREE.Group(); cap.rotation.x = -0.2; fit.add(cap);
+    const dk = toon(shadeHex(teamColor, -0.28), { side: THREE.DoubleSide });
+    mk(new THREE.SphereGeometry(1.06, 28, 10, 0, Math.PI * 2, 0, Math.acos(0.26)), team, 0, 0, 0, cap, true);
+    mk(new THREE.CylinderGeometry(1.035, 1.05, 0.09, 32, 1, true), dk, 0, 0.3, 0, cap);
+    mk(new THREE.SphereGeometry(0.1, 10, 8), acc, 0, 1.07, 0, cap);
+    const front = mk(new THREE.SphereGeometry(1.075, 14, 8, -0.5, 1.0, 0.5, 0.72), acc, 0, 0, 0, cap); front.rotation.y = 0;
+    const brim = mk(new THREE.CylinderGeometry(0.86, 0.86, 0.1, 28, 1, false, -1.0, 2.0), dk, 0, 0.27, 0.42, cap, true); brim.rotation.x = 0.36; brim.scale.z = 1.12;
     return gr;
   }
-  if (kind === 'crown') {   // small crown worn on top: band, five points, gems
-    const top = new THREE.Group(); top.position.set(0, 0.84, 0.05); top.rotation.x = -0.1; top.scale.setScalar(1.3); fit.add(top); if (!fit.parent) gr.add(fit);
+  if (kind === 'ninja') {   // hood over the top and back of the head, headband with a metal plate, two tails
+    if (!fit.parent) gr.add(fit);
+    const hood = new THREE.Group(); hood.rotation.x = -0.25; fit.add(hood);
+    mk(new THREE.SphereGeometry(1.06, 28, 12, 0, Math.PI * 2, 0, Math.acos(0.12)), team, 0, 0, 0, hood, true);
+    ring(0.47, 0.11, acc, 1.075, 0.2); mk(new THREE.BoxGeometry(0.42, 0.16, 0.06), toon(0xc9d2e0), 0, 0.5, 0.98, fit).rotation.x = -0.45;
+    mk(new THREE.SphereGeometry(0.13, 8, 6), acc, 0.25, 0.3, -1.0, fit);
+    for (const a of [0.4, 1.0]) { const t = mk(new THREE.ConeGeometry(0.1, 0.62, 4), acc, 0.42, 0.1, -1.04, fit); t.rotation.set(-0.5, 0, -a - 1.2); t.scale.z = 0.4; }
+    return gr;
+  }
+  if (kind === 'straw' || kind === 'tricorn') {   // hats with a brim: straw hat (round brim, ribbon) / captain's hat (three-cornered brim, feather)
+    if (!fit.parent) gr.add(fit);
+    const hat = new THREE.Group(); hat.position.set(0, 0.6, -0.02); hat.rotation.x = -0.14; fit.add(hat);
+    const dk = toon(shadeHex(teamColor, -0.2), { side: THREE.DoubleSide });
+    if (kind === 'straw') {
+      mk(new THREE.SphereGeometry(0.82, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.y = 0.72;
+      mk(new THREE.CylinderGeometry(1.5, 1.56, 0.06, 32), team, 0, 0.02, 0, hat, true);
+      mk(new THREE.CylinderGeometry(0.84, 0.85, 0.17, 28, 1, true), acc, 0, 0.12, 0, hat);
+      mk(new THREE.TorusGeometry(1.53, 0.035, 5, 32), dk, 0, 0.02, 0, hat).rotation.x = Math.PI / 2;
+    } else {
+      mk(new THREE.SphereGeometry(0.86, 22, 8, 0, Math.PI * 2, 0, Math.PI / 2), team, 0, 0, 0, hat, true).scale.y = 0.6;
+      const br = mk(new THREE.CylinderGeometry(1.5, 1.38, 0.2, 3), team, 0, 0.06, 0, hat, true); br.rotation.y = Math.PI;
+      const tr = mk(new THREE.TorusGeometry(1.5, 0.05, 5, 3), acc, 0, 0.17, 0, hat); tr.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      mk(new THREE.SphereGeometry(0.13, 10, 8), acc, 0, 0.3, 0.72, hat);
+      const fe = mk(new THREE.SphereGeometry(0.2, 10, 8), toon(0xe0303a), 0.62, 0.55, -0.1, hat, true); fe.scale.set(0.4, 2.0, 0.7); fe.rotation.set(-0.5, 0, -0.35);
+    }
+    return gr;
+  }
+  if (kind === 'astro') {   // glass bubble with a collar ring and an antenna
+    if (!fit.parent) gr.add(fit);
+    const gl = mk(new THREE.SphereGeometry(1.5, 28, 18), basic(0xcfeeff, { transparent: true, opacity: 0.2, depthWrite: false }), 0, 0.12, 0.04, fit); gl.renderOrder = 4;
+    const sh = mk(new THREE.SphereGeometry(1.51, 12, 6, 0.9, 0.5, 0.75, 0.55), basic(0xffffff, { transparent: true, opacity: 0.55, depthWrite: false }), 0, 0.12, 0.04, fit); sh.renderOrder = 5;
+    mk(new THREE.TorusGeometry(0.92, 0.17, 8, 28), team, 0, -0.98, 0, fit, true).rotation.x = Math.PI / 2;
+    mk(new THREE.TorusGeometry(0.92, 0.06, 6, 28), acc, 0, -0.84, 0, fit).rotation.x = Math.PI / 2;
+    mk(new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6), toon(0x8a93a6), 0.75, 1.55, 0, fit); mk(new THREE.SphereGeometry(0.09, 10, 8), toon(0xff5e5e), 0.75, 1.84, 0, fit);
+    return gr;
+  }
+  if (kind === 'hero') {   // helmet with a crest from the brow to the nape and a band over the brow
+    if (!fit.parent) gr.add(fit);
+    const hm = new THREE.Group(); hm.rotation.x = -0.22; fit.add(hm);
+    mk(new THREE.SphereGeometry(1.06, 28, 12, 0, Math.PI * 2, 0, Math.acos(0.2)), team, 0, 0, 0, hm, true);
+    mk(new THREE.CylinderGeometry(1.04, 1.07, 0.12, 32, 1, true), acc, 0, 0.24, 0, hm);
+    const cr = mk(new THREE.TorusGeometry(1.1, 0.1, 6, 20, Math.PI * 0.82), acc, 0, 0, 0, hm, true); cr.rotation.set(0, -Math.PI / 2, 0.3); cr.scale.z = 0.5;
+    mk(new THREE.CircleGeometry(0.2, 5), basic(0xffffff), 0, 0.62, 0.9, hm).rotation.set(-0.6, 0, Math.PI / 10);
+    return gr;
+  }
+  if (kind === 'crown' || kind === 'royal') {   // crown worn on top: band, points, gems ('royal': larger, with a velvet cap inside)
+    const top = new THREE.Group(); top.position.set(0, 0.84, 0.05); top.rotation.x = -0.1; top.scale.setScalar(kind === 'royal' ? 1.55 : 1.3); fit.add(top); if (kind === 'royal') { mk(new THREE.SphereGeometry(0.37, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), toon(0xc22a3a), 0, 0.14, 0, top).scale.y = 0.9; mk(new THREE.SphereGeometry(0.07, 8, 6), toon(0xffffff), 0, 0.5, 0, top); } if (!fit.parent) gr.add(fit);
     mk(new THREE.CylinderGeometry(0.4, 0.36, 0.2, 24, 1, true), team, 0, 0.1, 0, top, true);
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; mk(new THREE.ConeGeometry(0.105, 0.24, 4), team, Math.sin(a) * 0.37, 0.31, Math.cos(a) * 0.37, top, true).rotation.y = a + Math.PI / 4;
       mk(new THREE.SphereGeometry(0.05, 8, 6), toon(i % 2 ? 0xff5e7a : 0x5ad1ff), Math.sin(a + 0.52) * 0.385, 0.1, Math.cos(a + 0.52) * 0.385, top); }
@@ -1285,7 +1336,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const legMat = P.darkPaws ? pawMat : limbMat;
     add(new THREE.SphereGeometry(0.098, 14, 8), mShorts, 0, 0.0, 0, thigh);                 // hip ball: no gap under the shorts when the thigh swings
     // shorts leg. Default: to just above the knee, flared. Gear: p_light = short running cut, p_flex = tights over the knee, p_pro = long and baggy with a side stripe
-    const pk = GI.shorts, tight = pk === 'p_flex';
+    const pk = ({ nj_pants: 'p_flex', hr_pants: 'p_flex', bc_pants: 'p_light', ry_pants: 'p_pro', as_pants: 'p_pro', pr_pants: 'p_pro' })[GI.shorts] || GI.shorts, tight = pk === 'p_flex';
     const lgLen = 0.08 + (pk === 'p_light' ? Math.min(L1 * 0.4, 0.05) : Math.min(L1 * 0.9, 0.12)), lgR = tight ? 0.092 : pk === 'p_pro' ? 0.138 : pk === 'p_light' ? 0.116 : 0.122;
     const lg = add(new THREE.CylinderGeometry(tight ? 0.096 : 0.1, lgR, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
     if (!tight) { const lgHem = add(new THREE.TorusGeometry(lgR - 0.001, pk === 'p_pro' ? 0.013 : 0.009, 6, 20), pk === 'p_pro' ? toon(0x2a1f5a) : mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem); }
@@ -1297,7 +1348,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (tight) { const kr = add(new THREE.TorusGeometry(0.07, 0.011, 6, 18), toon(0x9fd0ff), 0, -0.05, -0.01, knee); kr.rotation.x = Math.PI / 2; noOL(kr); }
     add(new THREE.CapsuleGeometry(0.066, Math.max(0.01, L2 - 0.03), 4, 12), legMat, 0, -L2 / 2, -0.012, knee);    // shin, a little slimmer
     const ankle = new THREE.Group(); ankle.position.set(0, -L2, 0); knee.add(ankle); ankle.userData.side = s;
-    const sk = GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
+    const sk = ({ bc_shoes: 's_run', nj_shoes: 's_run', as_shoes: 's_spring', pr_shoes: 's_pro', ry_shoes: 's_pro', hr_shoes: 's_pro' })[GI.shoes] || GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
     if (P.webbed) {
       const shoe = add(new THREE.SphereGeometry(0.1, 14, 10), mOrange, 0, -0.04, 0.05, ankle); shoe.scale.set(1.25, 0.42, 1.7);
       for (const t of [-1, 0, 1]) add(new THREE.SphereGeometry(0.035, 8, 6), mOrange, t * 0.07, -0.05, 0.2, ankle).scale.set(1, 0.6, 1.2);
@@ -1305,7 +1356,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
         noOL(add(new THREE.CylinderGeometry(0.074, 0.08, sk === 's_pro' ? 0.085 : 0.055, 16), mShoe, 0, sk === 's_pro' ? 0.045 : 0.03, -0.01, ankle));
         if (sk === 's_spring') { const r = add(new THREE.TorusGeometry(0.08, 0.014, 6, 18), toon(0xffd23f), 0, 0.005, -0.01, ankle); r.rotation.x = Math.PI / 2; noOL(r); }
         if (sk === 's_run') { const r = add(new THREE.TorusGeometry(0.076, 0.008, 6, 18), mTrim, 0, 0.04, -0.01, ankle); r.rotation.x = Math.PI / 2; noOL(r); }
-        if (sk === 's_pro') wing();
+        if (GI.shoes === 's_pro') wing();
       }
     } else if (sk) {
       const fz = 0.02 + (P.foot - 1) * 0.06, lowY = sk === 's_run' ? 0.52 : 0.62;
@@ -1323,7 +1374,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
         const sole = add(new THREE.CylinderGeometry(0.098, 0.098, 0.028, 18), toon(0x2a1f5a), 0, -0.062, fz, ankle); sole.scale.set(0.95, 1, 1.45 * P.foot); noOL(sole);
         noOL(add(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 18), mShoe, 0, 0.045, -0.015, ankle));
         const cuffR = add(new THREE.TorusGeometry(0.08, 0.012, 6, 18), toon(0x2a1f5a), 0, 0.094, -0.015, ankle); cuffR.rotation.x = Math.PI / 2; noOL(cuffR);
-        wing();
+        if (GI.shoes === 's_pro') wing();
       }
     } else {
       const sock = add(new THREE.CylinderGeometry(0.074, 0.08, 0.06, 18), mTrim, 0, 0.04, -0.02, ankle); noOL(sock);
@@ -1342,7 +1393,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   const thC = Math.acos(Math.max(-0.98, Math.min(0, (0.345 - tc) / (0.27 * ty))));   // the shirt stops at the waistband; the rounded underside belongs to the shorts (no bodysuit tip between the legs)
   const torso = U(new THREE.SphereGeometry(0.27, 20, 16, 0, Math.PI * 2, 0, thC), mShirt, 0, tc, 0); torso.scale.set(tx, ty, tz);
   const seat = add(new THREE.SphereGeometry(0.27, 20, 6, 0, Math.PI * 2, thC, Math.PI - thC), mShorts, 0, tc, 0, upH); seat.scale.set(tx, ty, tz);
-  const hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(0.11 / (0.27 * ty), 2)) + 0.004, 0.012, 6, 30), mKit, 0, tc - 0.11, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
+  const hemD = tc - 0.362, hem = U(new THREE.TorusGeometry(0.27 * Math.sqrt(1 - Math.pow(hemD / (0.27 * ty), 2)) + 0.003, 0.011, 6, 30), GL.shirt !== undefined ? toon(shadeHex(GL.shirt, -0.2)) : mKit, 0, tc - hemD, 0); hem.rotation.x = Math.PI / 2; hem.scale.set(tx, tz, 1); noOL(hem); if (V.noHem) up.remove(hem);   // a full ring on the torso surface
   const collar = U(new THREE.TorusGeometry(0.13, 0.026, 8, 22), mKit, 0, tc + 0.27 * ty - 0.07, 0.0); collar.rotation.x = Math.PI / 2; noOL(collar);
   if (GI.shirt) { /* gear shirt: its own pattern, added below */ }
   else if (V.kit === 'hoop') { const hp = U(new THREE.TorusGeometry(0.268, 0.02, 6, 26), mKit, 0, tc + 0.03, 0); hp.rotation.x = Math.PI / 2; hp.scale.set(tx, tz, 1); noOL(hp); }
@@ -1528,6 +1579,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const out = new THREE.Mesh(ge, mat); hs.add(out); return noOL(out);
   };
   if (V.marks) V.marks({ H, U, dab, fuse, patch, stripe, band, toon, basic, noOL, cut: (m) => { cutters.push(m); return m; }, mBody, mBelly, mDark, tc, ty, tz, h, col: c });
+  const eyeAt = [];
   const eyeRim = [], eyeIris = [], eyePupil = [], eyeGlint = [], cheek = [], eyeLo = [];
   const mIris = toon(V.iris), mPupil = toon(0x1c1416), mLid = toon(0x2a1c1a);
   for (const s of [-1, 1]) {
@@ -1539,7 +1591,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (frog) H(new THREE.SphereGeometry(0.115, 14, 10), mBody, s * fxe, 0.23, 0.1);   // eye bump (no white ball behind the eye: it showed from the side)
     // house-style eye (v3): big round eye - dark rim, large coloured iris, big pupil, the shared wedge highlight plus a
     // tiny second sparkle, and a soft curved upper lid. Both eyes are fused per material after the loop.
-    const er = V.eyeR || (P.eye === 'dot' ? 0.062 : 0.074), wide = 0.94, tall = P.eye === 'fierce' ? 0.98 : 1.06;
+    const er = V.eyeR || (P.eye === 'dot' ? 0.062 : 0.074), wide = 0.94, tall = P.eye === 'fierce' ? 0.98 : 1.06; eyeAt.push([ex, ey, ez, er]);
     const rim = H(new THREE.SphereGeometry(er * 1.1, 14, 10), mLid, ex, ey, ez - 0.006); rim.scale.set(wide, tall, 0.45); eyeRim.push(rim);
     const iris = H(new THREE.SphereGeometry(er, 14, 10), mIris, ex, ey - er * 0.02, ez + 0.006); iris.scale.set(wide * 0.95, tall * 0.95, 0.45); eyeIris.push(iris);
     if (V.irisLo) { const lo = H(new THREE.SphereGeometry(er, 14, 6, 0, Math.PI * 2, Math.PI * 0.56, Math.PI * 0.44), toon(V.irisLo), ex, ey - er * 0.02, ez + 0.012); lo.scale.set(wide * 0.95, tall * 0.95, 0.45); eyeLo.push(lo); }   // lighter lower half of the iris
@@ -1630,21 +1682,72 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const navy = toon(0x2a1f5a); hoop(tc + 0.045, 0.034, navy); hoop(tc + 0.085, 0.008, mTrim); hoop(tc + 0.005, 0.008, mTrim);
     const sy = tc + 0.15, star = U(new THREE.CircleGeometry(0.036, 5), basic(0xffffff), -0.085 * h, sy, surfZ(sy) * 0.93 + 0.012); star.rotation.set(-0.35, -0.3 * h, Math.PI / 10); noOL(star);
   }
+  // glasses: in head space, in front of the eyes (they follow the head)
+  const faceG = new THREE.Group(); faceG.name = 'faceGear'; hs.add(faceG);
+  if (GI.face && eyeAt.length === 2) {
+    const kind = GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + 0.062;
+    const sx = kind === 'e_sport' ? 1.12 : kind === 'e_shade' ? 1.18 : 1.04, sy = kind === 'e_sport' ? 0.88 : kind === 'e_shade' ? 0.86 : 1.08, tube = kind === 'e_shade' ? 0.016 : kind === 'e_sport' ? 0.02 : 0.009;
+    const R = Math.min(eyeAt[0][3] * 1.2, (exA - 0.012) / (sx * 0.955));
+    const FG = (geo, mat, x, y, z, par) => noOL(add(geo, mat, x, y, z, par || faceG));
+    const rod = (a, b, r, mat) => { const d = new THREE.Vector3().subVectors(b, a), m = FG(new THREE.CylinderGeometry(r, r, d.length(), 6), mat, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m; };
+    const frameM = toon(kind === 'e_sport' ? GL.face : kind === 'e_shade' ? 0x1d1f27 : 0xf2c230);
+    const lensM = kind === 'e_sport' ? basic(0xbfeaff, { transparent: true, opacity: 0.36, depthWrite: false }) : kind === 'e_shade' ? basic(0x14161d) : basic(0xff9d3c, { transparent: true, opacity: 0.8, depthWrite: false });
+    const shine = basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false });
+    const AXx = 0.34 * P.sq[0], AXz = 0.34 * P.sq[2], sideX = AXx * 1.04 * Math.sqrt(Math.max(0.2, 1 - Math.pow(gy / (0.34 * P.sq[1]), 2)));   // head half-width at eye height
+    for (const s of [-1, 1]) {
+      const lg = new THREE.Group(); lg.position.set(s * exA, gy - (kind === 'e_pro' ? R * 0.12 : 0), gz); lg.rotation.y = s * 0.3; faceG.add(lg);
+      FG(new THREE.TorusGeometry(R, tube, 6, 24), frameM, 0, 0, 0, lg).scale.set(sx, sy, 1);
+      const ln = FG(new THREE.CircleGeometry(R, 24), lensM, 0, 0, 0.002, lg); ln.scale.set(sx, sy, 1); ln.renderOrder = 2;
+      const sh = FG(new THREE.PlaneGeometry(R * 0.62, R * 0.13), shine, -R * 0.22, R * 0.34, 0.007, lg); sh.rotation.z = 0.62; sh.renderOrder = 3;
+      if (kind !== 'e_sport') { const tr = kind === 'e_shade' ? 0.012 : 0.007, zm = gz * 0.6, a = new THREE.Vector3(s * (exA + R * sx * 0.93), gy + R * 0.25, gz - 0.035), m = new THREE.Vector3(s * (sideX * Math.sqrt(Math.max(0.1, 1 - Math.pow(zm / AXz, 2))) + 0.012), gy + 0.035, zm), b = new THREE.Vector3(s * (sideX + 0.006), gy + 0.03, -0.02); rod(a, m, tr, frameM); rod(m, b, tr, frameM); }
+    }
+    const bx = Math.max(0.004, exA - R * sx * 0.9);
+    rod(new THREE.Vector3(-bx, gy + R * sy * 0.2, gz + 0.022), new THREE.Vector3(bx, gy + R * sy * 0.2, gz + 0.022), kind === 'e_pro' ? 0.007 : tube * 0.8, frameM);
+    if (kind === 'e_pro') rod(new THREE.Vector3(-bx - 0.02, gy + R * sy * 0.62, gz + 0.012), new THREE.Vector3(bx + 0.02, gy + R * sy * 0.62, gz + 0.012), 0.006, frameM);
+    if (kind === 'e_sport') {   // elastic strap round the back of the head
+      const st = new THREE.Group(); st.position.y = gy; st.scale.set(sideX / 1.04, 0.34, AXz * sideX / (AXx * 1.04)); faceG.add(st);
+      const r = FG(new THREE.TorusGeometry(0.995, 0.045, 6, 36, Math.PI * 2 - 1.3), toon(shadeHex(GL.face, -0.45)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+    }
+  }
   const neckG = new THREE.Group(); neckG.name = 'neckGear'; up.add(neckG);
   const backG = new THREE.Group(); backG.name = 'backGear'; up.add(backG);
   const NK = (geo, mat, x, y, z, ol) => { const m = add(geo, mat, x, y, z, neckG); if (!ol) noOL(m); return m; }, BK = (geo, mat, x, y, z, ol) => { const m = add(geo, mat, x, y, z, backG); if (!ol) noOL(m); return m; };
   const cy = tc + 0.27 * ty - 0.07;                 // collar height
+  const chestZ = (x, y) => 0.27 * tz * Math.sqrt(Math.max(0.03, 1 - Math.pow((y - tc) / (0.27 * ty), 2) - Math.pow(x / (0.27 * tx), 2)));
+  // a necklace lies on the chest in a U from the shoulders down to mid-chest, so it shows below the chin
+  const lace = (u, lift) => { const x = u * 0.15 * tx, y = cy - 0.02 - 0.125 * (1 - u * u); return new THREE.Vector3(x, y, chestZ(x, y) + lift); };
   if (GI.neck === 'n_towel') {      // towel round the neck, both ends hanging on the chest
     const tw = toon(0xffffff), r = NK(new THREE.TorusGeometry(0.15, 0.042, 8, 22), tw, 0, cy + 0.005, 0, true); r.rotation.x = Math.PI / 2; r.scale.set(1, 0.9, 0.8);
-    for (const sd of [-1, 1]) { const y = cy - 0.1, e = NK(new THREE.CapsuleGeometry(0.04, 0.11, 3, 8), tw, sd * 0.085, y, surfZ(y) * 0.86 + 0.03, true); e.rotation.set(0.25, 0, -sd * 0.1); e.scale.z = 0.55;
-      const st = NK(new THREE.BoxGeometry(0.082, 0.014, 0.012), toon(0x4fb8e8), sd * 0.085, y - 0.055, surfZ(y - 0.055) * 0.86 + 0.052); st.rotation.x = 0.25; }
-  } else if (GI.neck === 'n_chain') {   // thin gold chain with a gem pendant
-    const ch = NK(new THREE.TorusGeometry(0.155, 0.008, 6, 28), toon(0xf2c230), 0, cy - 0.025, 0.02); ch.rotation.x = Math.PI / 2 + 0.42; ch.scale.set(1, 1.12, 1);
-    const py = cy - 0.1; NK(new THREE.OctahedronGeometry(0.034), toon(GL.neck), 0, py, surfZ(py) * 0.9 + 0.035).scale.set(0.8, 1.15, 0.6);
+    for (const sd of [-1, 1]) { const y = cy - 0.1, e = NK(new THREE.CapsuleGeometry(0.05, 0.15, 3, 8), tw, sd * 0.095, y - 0.02, surfZ(y) * 0.86 + 0.03, true); e.rotation.set(0.25, 0, -sd * 0.1); e.scale.z = 0.55;
+      const st = NK(new THREE.BoxGeometry(0.1, 0.018, 0.012), toon(0x4fb8e8), sd * 0.095, y - 0.1, surfZ(y - 0.1) * 0.86 + 0.06); st.rotation.x = 0.25; }
+  } else if (GI.neck === 'n_chain') {   // gold chain lying on the chest with a gem pendant
+    const pts = []; for (let k = -8; k <= 8; k++) pts.push(lace(k / 8, 0.012));
+    NK(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 32, 0.0085, 6), toon(0xf2c230), 0, 0, 0);
+    const pb = lace(0, 0.03); NK(new THREE.OctahedronGeometry(0.046), toon(GL.neck), pb.x, pb.y - 0.03, pb.z, true).scale.set(0.8, 1.2, 0.55);
+    NK(new THREE.SphereGeometry(0.016, 8, 6), toon(0xf2c230), pb.x, pb.y + 0.012, pb.z);
   } else if (GI.neck === 'n_medal') {   // ribbon in a V and a gold medal on the chest
     for (const sd of [-1, 1]) { const y = cy - 0.085, rb = NK(new THREE.BoxGeometry(0.036, 0.2, 0.01), toon(sd > 0 ? 0xd9483b : 0x3f6fd9), sd * 0.055, y, surfZ(y) * 0.9 + 0.03); rb.rotation.set(0.3, 0, sd * 0.5); }
     const my = cy - 0.185, md = NK(new THREE.CylinderGeometry(0.058, 0.058, 0.016, 20), toon(0xf2c230), 0, my, surfZ(my) * 0.93 + 0.04, true); md.rotation.x = Math.PI / 2 - 0.25;
     const ms = NK(new THREE.CircleGeometry(0.03, 5), basic(0xfff3c4), 0, my + 0.002, surfZ(my) * 0.93 + 0.05); ms.rotation.set(-0.25, 0, Math.PI / 10);
+  } else if (GI.neck === 'n_bell') {    // collar with a little gold bell
+    const cl = NK(new THREE.TorusGeometry(0.15, 0.024, 8, 24), toon(GL.neck), 0, cy - 0.005, 0.01, true); cl.rotation.x = Math.PI / 2 + 0.25;
+    const by = cy - 0.075, bzf = Math.max(surfZ(by) * 0.9, 0.15) + 0.045;
+    NK(new THREE.SphereGeometry(0.044, 12, 10), toon(0xf2c230), 0, by, bzf, true);
+    NK(new THREE.BoxGeometry(0.009, 0.034, 0.012), toon(0x5a3d12), 0, by - 0.016, bzf + 0.04); NK(new THREE.SphereGeometry(0.011, 6, 5), toon(0x5a3d12), 0, by + 0.004, bzf + 0.043);
+    for (const k of [-1, 1]) NK(new THREE.SphereGeometry(0.013, 6, 5), toon(0xffe9a8), k * 0.085, cy - 0.03, 0.135);
+  } else if (GI.neck === 'n_bow') {     // bow tie on a thin white collar
+    const cl = NK(new THREE.TorusGeometry(0.15, 0.014, 6, 24), toon(0xffffff), 0, cy - 0.005, 0.01); cl.rotation.x = Math.PI / 2 + 0.25;
+    const by = cy - 0.055, bzf = Math.max(surfZ(by) * 0.9, 0.15) + 0.04, dk = toon(shadeHex(GL.neck, -0.28));
+    for (const sd of [-1, 1]) { const lb = NK(new THREE.ConeGeometry(0.052, 0.095, 4), toon(GL.neck), sd * 0.058, by, bzf, true); lb.rotation.z = sd * Math.PI / 2; lb.scale.z = 0.45;
+      const cr = NK(new THREE.BoxGeometry(0.008, 0.05, 0.008), dk, sd * 0.05, by, bzf + 0.022); }
+    NK(new THREE.SphereGeometry(0.024, 10, 8), dk, 0, by, bzf + 0.012).scale.set(0.9, 1.2, 0.8);
+  } else if (GI.neck === 'n_pearl') {   // string of pearls on the chest (one mesh) with a larger pink pearl in the middle
+    const pos = [], nor = [], N = 19;
+    for (let i = 0; i < N; i++) { const q = lace((i / (N - 1)) * 2 - 1, 0.016), ge = new THREE.SphereGeometry(0.0215, 8, 6).toNonIndexed().translate(q.x, q.y, q.z);
+      for (const v of ge.attributes.position.array) pos.push(v); for (const v of ge.attributes.normal.array) nor.push(v); ge.dispose(); }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    NK(bg, toon(GL.neck), 0, 0, 0);
+    const pb = lace(0, 0.026); NK(new THREE.SphereGeometry(0.036, 12, 10), toon(0xff9fc4), pb.x, pb.y - 0.012, pb.z, true);
   }
   const bz = -surfZ(tc + 0.03);                     // torso back
   if (GI.back === 'b_pack') {       // small backpack with a water bottle in the side pocket
@@ -1666,7 +1769,51 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       const rt = add(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff), sd * 0.03, 0, 0, wg2); rt.scale.set(1, 1.1, 0.5); noOL(rt);
     }
   }
-  const headGear = GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
+  const setHead = { nj_head: ['ninja', 0xc22a3a], bc_head: ['straw', 0xe0303a], pr_head: ['tricorn', 0xf2c230], as_head: ['astro', 0x4f8fe8], ry_head: ['royal', 0xfff3c4], hr_head: ['hero', 0xffd23f] }[GI.head];
+  // ---- outfit sets: shirt details and back pieces
+  const decal = (geo, mat, x, y, lift, par) => { const z = chestZ(x, y), n = new THREE.Vector3(x / Math.pow(0.27 * tx, 2), (y - tc) / Math.pow(0.27 * ty, 2), z / Math.pow(0.27 * tz, 2)).normalize();
+    const m = add(geo, mat, x + n.x * lift, y + n.y * lift, z + n.z * lift, par || up); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); return noOL(m); };
+  const seam = (x0, y0, x1, y1, r, mat) => { const pts = []; for (let k = 0; k <= 8; k++) { const x = x0 + (x1 - x0) * k / 8, y = y0 + (y1 - y0) * k / 8; pts.push(new THREE.Vector3(x, y, chestZ(x, y) + 0.004)); } return noOL(U(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, r, 5), mat, 0, 0, 0)); };
+  const gold = toon(0xf2c230);
+  if (GI.shirt === 'nj_shirt') { const gr2 = toon(0x8a93a6); seam(0.14 * tx, cy - 0.01, -0.05 * tx, tc - 0.09, 0.013, gr2); seam(-0.14 * tx, cy - 0.01, 0.02 * tx, tc - 0.02, 0.013, gr2); hoop(tc - 0.105, 0.024, toon(0xc22a3a)); decal(new THREE.BoxGeometry(0.05, 0.055, 0.02), toon(0xc22a3a), 0.1 * h, tc - 0.105, 0.012); }
+  else if (GI.shirt === 'ry_shirt') { for (const dy of [0.13, 0.05, -0.03]) decal(new THREE.SphereGeometry(0.02, 8, 6), gold, 0, tc + dy, 0.006); hoop(tc - 0.115, 0.014, gold); seam(-0.035 * tx, cy - 0.02, -0.035 * tx, tc - 0.1, 0.006, gold); seam(0.035 * tx, cy - 0.02, 0.035 * tx, tc - 0.1, 0.006, gold);
+    for (const sd of [-1, 1]) { const ep = U(new THREE.SphereGeometry(0.07, 12, 8), gold, sd * 0.205 * tx, tc + 0.19, 0); ep.scale.set(1.15, 0.5, 1.1); for (let q = -1; q <= 1; q++) noOL(U(new THREE.SphereGeometry(0.018, 6, 5), gold, sd * 0.255 * tx, tc + 0.165, q * 0.045)); } }
+  else if (GI.shirt === 'as_shirt') { const bl = toon(0x4f8fe8); hoop(tc + 0.165, 0.013, bl); hoop(tc - 0.105, 0.018, bl); decal(new THREE.BoxGeometry(0.15, 0.095, 0.03), toon(0x5a6478), 0, tc + 0.055, 0.008); [0xff5e5e, 0x7dff9a, 0xffd23f].forEach((cc, i) => decal(new THREE.SphereGeometry(0.016, 8, 6), basic(cc), (i - 1) * 0.045, tc + 0.07, 0.027)); decal(new THREE.BoxGeometry(0.1, 0.014, 0.01), basic(0xbfeaff), 0, tc + 0.03, 0.026); }
+  else if (GI.shirt === 'pr_shirt') { const rd = toon(0xc22a3a); for (const dy of [0.15, 0.085, 0.02, -0.045]) hoop(tc + dy, 0.016, rd); hoop(tc - 0.11, 0.026, toon(0x5a3d22)); decal(new THREE.BoxGeometry(0.06, 0.06, 0.02), gold, 0, tc - 0.11, 0.016); }
+  else if (GI.shirt === 'bc_shirt') { const wh = basic(0xffffff), ye = basic(0xffd23f), pk2 = basic(0xff8fb8);
+    for (const [x, dy, k] of [[-0.1, 0.13, 0], [0.09, 0.1, 1], [-0.02, 0.03, 1], [-0.17, 0.0, 1], [0.16, -0.01, 0], [0.06, -0.07, 0], [-0.09, -0.08, 1], [0.21, 0.09, 1], [-0.22, 0.1, 0]]) { const f = decal(new THREE.CircleGeometry(0.036, 5), k ? wh : pk2, x * tx, tc + dy, 0.006); f.rotateZ(x * 9); decal(new THREE.CircleGeometry(0.012, 8), ye, x * tx, tc + dy, 0.009); } }
+  else if (GI.shirt === 'hr_shirt') { const ye = toon(0xffd23f); decal(new THREE.CircleGeometry(0.085, 24), basic(0xffd23f), 0, tc + 0.07, 0.007); decal(new THREE.CircleGeometry(0.058, 5), basic(0xe0303a), 0, tc + 0.07, 0.01).rotateZ(Math.PI / 10); hoop(tc - 0.105, 0.026, ye); decal(new THREE.BoxGeometry(0.07, 0.06, 0.02), toon(0xffffff), 0, tc - 0.105, 0.016); }
+  const cape = (col, clasp) => {   // hangs from the shoulders to the knees, open at the front
+    const cp = BK(new THREE.SphereGeometry(0.3, 20, 10, Math.PI * 1.06, Math.PI * 0.88, 0.42, 1.85), toon(col, { side: THREE.DoubleSide }), 0, tc - 0.12, -0.015); cp.scale.set(tx * 1.14, ty * 1.3, tz * 1.3);
+    const rl = BK(new THREE.TorusGeometry(0.155, 0.032, 8, 22), toon(clasp), 0, cy + 0.005, 0, true); rl.rotation.x = Math.PI / 2;
+    BK(new THREE.SphereGeometry(0.03, 10, 8), gold, 0, cy - 0.02, 0.165);
+  };
+  if (GI.back === 'ry_back') cape(GL.back, 0xffffff);
+  else if (GI.back === 'hr_back') cape(GL.back, 0xffd23f);
+  else if (GI.back === 'nj_back') {   // wooden sword slung across the back
+    const sw = BK(new THREE.CapsuleGeometry(0.03, 0.5, 3, 8), toon(GL.back), 0, tc + 0.05, bz - 0.06, true); sw.rotation.z = -0.6 * h; sw.scale.z = 0.6;
+    const at = (k) => [Math.sin(0.6 * h) * k, tc + 0.05 + Math.cos(0.6) * k, bz - 0.06];
+    const gd = BK(new THREE.BoxGeometry(0.11, 0.022, 0.05), gold, ...at(0.27), true); gd.rotation.z = -0.6 * h;
+    const hd = BK(new THREE.CylinderGeometry(0.02, 0.02, 0.15, 8), toon(0x2b2f45), ...at(0.355)); hd.rotation.z = -0.6 * h;
+    const stp = BK(new THREE.TorusGeometry(0.266, 0.014, 6, 26), toon(0x2b2f45), 0, tc + 0.02, 0); stp.rotation.set(Math.PI / 2, 0.62 * h, 0); stp.scale.set(tx * 1.03, tz * 1.03, ty);
+  } else if (GI.back === 'as_back') {   // jetpack: two tanks, nozzles and flames
+    BK(new THREE.BoxGeometry(0.2, 0.2, 0.09), toon(GL.back), 0, tc + 0.04, bz - 0.05, true);
+    for (const sd of [-1, 1]) { BK(new THREE.CapsuleGeometry(0.062, 0.2, 4, 10), toon(0xf4f6fa), sd * 0.105, tc + 0.04, bz - 0.085, true);
+      BK(new THREE.CylinderGeometry(0.04, 0.058, 0.06, 10), toon(0x5a6478), sd * 0.105, tc - 0.15, bz - 0.085);
+      const fl = BK(new THREE.ConeGeometry(0.045, 0.16, 8), basic(0xff8a3d), sd * 0.105, tc - 0.26, bz - 0.085); fl.rotation.x = Math.PI; const f2 = BK(new THREE.ConeGeometry(0.024, 0.1, 8), basic(0xffe18a), sd * 0.105, tc - 0.235, bz - 0.085); f2.rotation.x = Math.PI; }
+    for (const sd of [-1, 1]) { const stp = BK(new THREE.TorusGeometry(0.272, 0.014, 6, 24), toon(0x5a6478), sd * 0.105, tc + 0.02, 0); stp.rotation.y = Math.PI / 2; stp.scale.set(tz * 1.02, ty * 0.96, 1); }
+  } else if (GI.back === 'pr_back') {   // treasure chest carried like a backpack
+    BK(new THREE.BoxGeometry(0.3, 0.17, 0.15), toon(GL.back), 0, tc - 0.005, bz - 0.075, true);
+    const lid = BK(new THREE.CylinderGeometry(0.076, 0.076, 0.3, 14, 1, false, 0, Math.PI), toon(shadeHex(GL.back, -0.18)), 0, tc + 0.08, bz - 0.075, true); lid.rotation.set(0, 0, Math.PI / 2); lid.rotation.order = 'ZXY'; lid.rotation.x = -Math.PI / 2;
+    for (const k of [-0.1, 0.1]) BK(new THREE.BoxGeometry(0.03, 0.26, 0.162), gold, k, tc + 0.03, bz - 0.075);
+    BK(new THREE.SphereGeometry(0.026, 8, 6), gold, 0, tc + 0.07, bz - 0.158);
+    for (const sd of [-1, 1]) { const stp = BK(new THREE.TorusGeometry(0.272, 0.014, 6, 24), toon(0x5a3d22), sd * 0.105, tc + 0.02, 0); stp.rotation.y = Math.PI / 2; stp.scale.set(tz * 1.02, ty * 0.96, 1); }
+  } else if (GI.back === 'bc_back') {   // swim ring round the waist
+    const ry = tc - 0.09, rr2 = 0.27 * Math.sqrt(Math.max(0.05, 1 - Math.pow((ry - tc) / (0.27 * ty), 2))) + 0.06;
+    const rg = BK(new THREE.TorusGeometry(rr2, 0.075, 10, 30), toon(GL.back), 0, ry, 0, true); rg.rotation.x = Math.PI / 2; rg.scale.set(tx, tz, 1);
+    for (let q = 0; q < 5; q++) { const wq = BK(new THREE.TorusGeometry(rr2, 0.078, 10, 6, 0.5), toon(0xffffff), 0, ry, 0); wq.rotation.set(Math.PI / 2, 0, q * Math.PI * 0.4 + 0.3); wq.scale.set(tx, tz, 1); }
+  }
+  const headGear = setHead ? buildHeadGear(setHead[0], GL.head, setHead[1], P, fy, V.gearAt) : GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
     : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
   const wristGear = [];
   // back / tails
@@ -1778,7 +1925,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   scene.add(root);
   const mdl = { root, body, head, arm, armEl: A.el, wrist, free, freeEl: F.el, freeWr: F.wr, feet, h, hips: hipsPv.p,
     rig: { hips: hipsPv.p, chest: chestPv.p, hipY, ankleY, legs },
-    gear: { headGear, wristGear, shoes: feet, neck: neckG, back: backG, torso, shorts } };   // detachable groups for the later gear system
+    gear: { headGear, wristGear, shoes: feet, neck: neckG, back: backG, face: faceG, torso, shorts } };   // detachable groups for the later gear system
   // dive clearance, measured once from this model's own meshes: how far the lying body has to be lifted for the torso
   // to rest on the floor, and how far the head tips back so the face / snout does not go through it
   {
@@ -2260,10 +2407,11 @@ function showSwapAsk(msg) {
 
 // ================================================================ gear / shop (the server owns items and gold; this shows them and sends requests)
 const myGear = () => (wallet && wallet.equip && wallet.items ? Object.values(wallet.equip).filter((id) => wallet.items.includes(id)) : []);
-let gearSlot = 'racket', gearTry = null;
+let gearSlot = 'racket', gearTry = null, gearTrySet = null;
 // what the stage character wears: my gear, with the item being looked at swapped into its slot
 function previewGear() {
   const worn = myGear(), g = gearTry && S.gearById(gearTry);
+  if (screen === 'shop' && gearSlot === 'sets' && gearTrySet) { const ps = S.GEAR.filter((x) => x.set === gearTrySet), sl = new Set(ps.map((x) => x.slot)); return worn.filter((id) => !sl.has(S.gearById(id).slot)).concat(ps.map((x) => x.id)); }
   return g ? worn.filter((id) => S.gearById(id).slot !== g.slot).concat(g.id) : worn;
 }
 const STAT_NAMES = { spd: 'Tốc độ', jmp: 'Bật nhảy', pow: 'Lực đập', rch: 'Tầm với', ctl: 'Khéo léo', sta: 'Thể lực' };
@@ -2277,7 +2425,61 @@ function renderGearStats(c, shown) {
 }
 // Wardrobe: wear what you already own. Slot tiles stand round the character; the panel lists the owned items of the chosen slot
 // and compares the picked one with what is worn now.
+// drag an owned item onto a slot tile or onto the character to wear it; drag a worn tile away to take it off.
+// Mouse: drag starts after a few pixels. Touch: press and hold (a plain swipe still scrolls the list).
+let wdDrag = null, wdDragEnd = 0;
+function wdDragInit() {
+  const clearHot = () => document.querySelectorAll('.wd-slot.hot').forEach((e) => e.classList.remove('hot'));
+  const target = (d, x, y) => {     // what dropping here would do: 'on', 'off' or null
+    const el = document.elementFromPoint(x, y); if (!el) return null;
+    const tile = el.closest && el.closest('.wd-slot'), inPanel = el.closest && el.closest('.panel');
+    if (d.from === 'inv') return tile || !inPanel ? 'on' : null;
+    return tile ? null : 'off';
+  };
+  const begin = (d, x, y) => {
+    const it = S.gearById(d.id); d.on = true;
+    d.ghost = document.createElement('div'); d.ghost.className = 'wd-ghost r' + it.rar; d.ghost.innerHTML = gearIconImg(d.id); document.body.appendChild(d.ghost);
+    document.body.classList.add('wd-dragging');
+    const tile = document.querySelector(`#wdSlots .wd-slot[data-slot="${it.slot}"]`); if (tile && d.from === 'inv') tile.classList.add('drop');
+    if (d.touch && navigator.vibrate) { try { navigator.vibrate(12); } catch (e) { /* not allowed */ } }
+    move(d, x, y);
+  };
+  const move = (d, x, y) => {
+    d.ghost.style.left = x + 'px'; d.ghost.style.top = y + 'px';
+    const act = target(d, x, y); clearHot(); d.ghost.classList.toggle('ok', !!act); d.ghost.classList.toggle('off', act === 'off');
+    if (act === 'on') { const tile = document.querySelector(`#wdSlots .wd-slot[data-slot="${S.gearById(d.id).slot}"]`); if (tile) tile.classList.add('hot'); }
+  };
+  const start = (ev, id, from) => {
+    if (ev.button > 0 || !id || screen !== 'gear') return;
+    if (wdDrag) clearTimeout(wdDrag.timer);
+    const d = wdDrag = { id, from, x0: ev.clientX, y0: ev.clientY, pid: ev.pointerId, on: false, touch: ev.pointerType === 'touch', ghost: null, timer: 0 };
+    if (d.touch) d.timer = setTimeout(() => { if (wdDrag === d && !d.on) begin(d, d.x0, d.y0); }, 260);
+  };
+  $('wdInv').addEventListener('pointerdown', (ev) => { const el = ev.target.closest('.wd-item'); if (el) start(ev, el.dataset.item, 'inv'); });
+  $('wdSlots').addEventListener('pointerdown', (ev) => { const el = ev.target.closest('.wd-slot'), it = el && S.gearSet(myGear())[el.dataset.slot]; if (it) start(ev, it.id, 'slot'); });
+  window.addEventListener('pointermove', (ev) => {
+    const d = wdDrag; if (!d || ev.pointerId !== d.pid) return;
+    if (!d.on) {
+      if (Math.hypot(ev.clientX - d.x0, ev.clientY - d.y0) < 9) return;
+      if (d.touch) { clearTimeout(d.timer); wdDrag = null; return; }     // a swipe: let the list scroll
+      begin(d, ev.clientX, ev.clientY);
+    } else move(d, ev.clientX, ev.clientY);
+  });
+  const end = (ev, cancelled) => {
+    const d = wdDrag; if (!d || ev.pointerId !== d.pid) return;
+    clearTimeout(d.timer); wdDrag = null; if (!d.on) return;
+    const act = cancelled ? null : target(d, ev.clientX, ev.clientY), it = S.gearById(d.id);
+    d.ghost.remove(); document.body.classList.remove('wd-dragging'); clearHot(); document.querySelectorAll('.wd-slot.drop').forEach((e) => e.classList.remove('drop'));
+    wdDragEnd = performance.now();
+    if (act) { Sound.boop(); gearTry = null; gearSlot = it.slot; Net.send({ t: 'equip', slot: it.slot, id: act === 'on' ? it.id : null }); showPreview(true); renderGear(); }
+  };
+  window.addEventListener('pointerup', (ev) => end(ev, false)); window.addEventListener('pointercancel', (ev) => end(ev, true));
+  window.addEventListener('touchmove', (ev) => { if (wdDrag && wdDrag.on && ev.cancelable) ev.preventDefault(); }, { passive: false });
+  window.addEventListener('contextmenu', (ev) => { if (wdDrag) ev.preventDefault(); });
+}
 function renderGear() {
+  if (gearSlot === 'sets') gearSlot = 'head';
+  if (!wdDragInit.done) { wdDragInit.done = true; wdDragInit(); }
   const c = charById(profile.char), worn = myGear(), set = S.gearSet(worn), shown = previewGear(), items = (wallet && wallet.items) || [];
   const slotName = (S.GEAR_SLOTS.find((s) => s[0] === gearSlot) || ['', ''])[1], cur = set[gearSlot] || null;
   $('wdSlots').innerHTML = S.GEAR_SLOTS.map(([k, n]) => { const it = set[k]; return `<button class="wd-slot${k === gearSlot ? ' on' : ''}${it ? ' r' + it.rar : ' empty'}" data-slot="${k}">${it ? gearIconImg(it.id) : '<i>+</i>'}<span>${n}</span></button>`; }).join('');
@@ -2287,7 +2489,8 @@ function renderGear() {
     : own.length ? own.map((it) => `<button class="wd-item r${it.rar}${cur && cur.id === it.id ? ' worn' : ''}${gearTry === it.id ? ' on' : ''}" data-item="${it.id}">${gearIconImg(it.id)}<span>${esc(it.name)}</span>${cur && cur.id === it.id ? '<em>Đang mặc</em>' : ''}</button>`).join('')
     : `<div class="wd-none"><p>Bạn chưa có món nào cho ô <b>${esc(slotName)}</b>.</p><button class="pill buy" id="wdToShop">Đến cửa hàng</button></div>`;
   const pick = gearTry && S.gearById(gearTry).slot === gearSlot ? S.gearById(gearTry) : cur;
-  if (!pick) $('wdDetail').innerHTML = '';
+  const setsHtml = S.setBonus(worn).map((b) => `<div class="wd-cmp wd-set"><small>Bộ <b>${esc(b.name)}</b> ${b.n}/5 · ${b.bonus ? 'đang cộng <b>+' + b.bonus + ' ' + STAT_NAMES[b.stat] + '</b>' : 'mặc 3 món để được cộng ' + STAT_NAMES[b.stat]}</small></div>`).join('');
+  if (!pick) $('wdDetail').innerHTML = setsHtml;
   else {
     const isWorn = !!cur && cur.id === pick.id;
     let cmp = '';
@@ -2297,17 +2500,17 @@ function renderGear() {
     } else if (!isWorn) cmp = '<div class="wd-cmp"><small>Ô này đang trống — mặc vào là được cộng nguyên chỉ số của món.</small></div>';
     $('wdDetail').innerHTML = `<div class="wd-card r${pick.rar}"><div class="wd-big">${gearIconImg(pick.id)}</div><div class="gi"><b>${esc(pick.name)}</b><span class="rar">${S.GEAR_RARITY[pick.rar]}</span>` +
       `<div class="mods">${gearModChips(pick.mods)}</div><small>${esc(pick.desc)}</small></div></div>${cmp}` +
-      `<button class="cta" id="wdAct" data-act="${isWorn ? 'off' : 'on'}">${isWorn ? 'Tháo ra' : 'Mặc vào'}</button>`;
+      `<button class="cta" id="wdAct" data-act="${isWorn ? 'off' : 'on'}">${isWorn ? 'Tháo ra' : 'Mặc vào'}</button>` + setsHtml;
     $('wdAct').onclick = () => { Sound.boop(); Net.send({ t: 'equip', slot: pick.slot, id: isWorn ? null : pick.id }); gearTry = null; };
   }
   renderGearStats(c, shown);
   const trying = pick && !(cur && cur.id === pick.id);
   $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${trying ? ' · đang thử ' + esc(pick.name) : ''}</small>`;
   $('wdPower').textContent = 'Sức mạnh ' + S.powerOf(c.id, shown);
-  $('wdSlots').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderGear(); }; });
+  $('wdSlots').querySelectorAll('button').forEach((b) => { b.onclick = () => { if (performance.now() - wdDragEnd < 400) return; gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderGear(); }; });
   $('wdInv').querySelectorAll('.wd-item').forEach((b) => {
     const id = b.dataset.item;
-    b.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderGear(); };
+    b.onclick = () => { if (performance.now() - wdDragEnd < 400) return; gearTry = id; Sound.boop(); showPreview(true); renderGear(); };
     b.ondblclick = () => { Sound.boop(); gearTry = null; Net.send({ t: 'equip', slot: gearSlot, id }); };
   });
   if ($('wdToShop')) $('wdToShop').onclick = () => { Sound.boop(); const s = gearSlot; go('shop'); gearSlot = s; renderShop(); showPreview(true); };
@@ -2317,7 +2520,7 @@ function renderShop() {
   const c = charById(profile.char), shown = previewGear(), set = S.gearSet(myGear());
   const gold = wallet ? wallet.gold : 0, items = (wallet && wallet.items) || [];
   $('gearGold').textContent = wallet ? wallet.gold : '…';
-  $('gearTabs').innerHTML = S.GEAR_SLOTS.map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
+  $('gearTabs').innerHTML = [['sets', 'Bộ đồ']].concat(S.GEAR_SLOTS).map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
   $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR.filter((it) => it.slot === gearSlot).map((it) => {
     const own = items.includes(it.id), on = set[it.slot] && set[it.slot].id === it.id;
     const btn = own ? `<span class="own">${on ? 'Đang mặc' : 'Đã có'}</span>` : `<button class="pill buy" data-act="buy" ${gold >= it.price ? '' : 'disabled'}><i class="coin"></i>${it.price}</button>`;
@@ -2326,7 +2529,24 @@ function renderShop() {
   }).join('');
   const tryIt = gearTry && S.gearById(gearTry);
   $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${tryIt ? ' · đang thử ' + esc(tryIt.name) : ''}</small>`;
-  $('gearTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; Sound.boop(); showPreview(true); renderShop(); }; });
+  $('gearTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { gearSlot = b.dataset.slot; gearTry = null; gearTrySet = null; Sound.boop(); showPreview(true); renderShop(); }; });
+  if (gearSlot === 'sets') {   // outfit sets: try a whole set on, buy the missing pieces in one go
+    $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR_SETS.map((st) => {
+      const ps = S.GEAR.filter((g) => g.set === st.id), own = ps.filter((g) => items.includes(g.id)).length, cost = ps.filter((g) => !items.includes(g.id)).reduce((a, g) => a + g.price, 0);
+      return `<div class="gear-item set-row r${ps[0].rar}${gearTrySet === st.id ? ' try' : ''}" data-set="${st.id}"><div class="gi"><b>Bộ ${esc(st.name)}</b><span class="rar">${S.GEAR_RARITY[ps[0].rar]} · có ${own}/${ps.length}</span>` +
+        `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>Mặc 3 món: +0.25 ${STAT_NAMES[st.stat]} · đủ 5 món: +0.5 ${STAT_NAMES[st.stat]}</small></div>` +
+        (cost ? `<button class="pill buy" data-act="buyset" ${gold >= cost ? '' : 'disabled'}><i class="coin"></i>${cost}</button>` : '<span class="own">Đã đủ bộ</span>') + '</div>';
+    }).join('');
+    const ts = gearTrySet && S.GEAR_SETS.find((x) => x.id === gearTrySet);
+    $('stageName').innerHTML = `${esc(c.name)}<small>Sức mạnh ${S.powerOf(c.id, shown)}${ts ? ' · đang thử bộ ' + esc(ts.name) : ''}</small>`;
+    $('gearList').querySelectorAll('.set-row').forEach((row) => {
+      const id = row.dataset.set;
+      row.onclick = () => { gearTrySet = id; Sound.boop(); showPreview(true); renderShop(); };
+      const b = row.querySelector('button');
+      if (b) b.onclick = (ev) => { ev.stopPropagation(); Sound.boop(); for (const g of S.GEAR) if (g.set === id && !wallet.items.includes(g.id)) Net.send({ t: 'buyGear', id: g.id }); };
+    });
+    return;
+  }
   $('gearList').querySelectorAll('.gear-item').forEach((row) => {
     const id = row.dataset.item;
     row.onclick = () => { gearTry = id; Sound.boop(); showPreview(true); renderShop(); };
@@ -3500,7 +3720,7 @@ function updateCamera(dt, t) {
     const lob = portrait && screen === 'home';   // lobby on a tall screen: the character stands just above the buttons, a little closer
     tx = side; ty = portrait ? 1.95 : 1.8; tz = 3.2 + (lob ? 6.3 : portrait ? 7.2 : 5.6); lx = side; ly = lob ? 0.35 : portrait ? -1.0 : 1.2; lz = 3.2;
     if (screen === 'gear' || screen === 'shop') {   // dressing room: move in on the part of the body being dressed ([look height, distance])
-      const f = gearSlot === 'head' ? [1.62, 4.4] : gearSlot === 'shoes' ? [0.62, 3.5] : gearSlot === 'racket' ? [1.4, 5.2] : gearSlot === 'shorts' ? [0.95, 3.7] : gearSlot === 'wrist' ? [1.1, 3.6] : [1.25, 3.9];
+      const f = gearSlot === 'head' ? [1.62, 4.4] : gearSlot === 'face' ? [1.56, 3.5] : gearSlot === 'neck' ? [1.3, 3.5] : gearSlot === 'sets' ? [1.05, 5.3] : gearSlot === 'shoes' ? [0.62, 3.5] : gearSlot === 'racket' ? [1.4, 5.2] : gearSlot === 'shorts' ? [0.95, 3.7] : gearSlot === 'wrist' ? [1.1, 3.6] : [1.25, 3.9];
       const d = f[1] * (portrait ? 1.5 : 1);
       tz = 3.2 + d; ty = f[0] + 0.4; ly = f[0] - (portrait ? 0.3 * d : 0); tx = lx = portrait ? 0 : 1.35 * d / 5.6;
     }

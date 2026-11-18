@@ -32,6 +32,26 @@ with sync_playwright() as p:
         pg.click('#wdAct');pg.wait_for_function("!__w().equip.head");pg.wait_for_timeout(800);r['afterOff']=pg.evaluate("()=>({equip:__w().equip.head||null,emptyTile:document.querySelector('#wdSlots .wd-slot[data-slot=\"head\"]').classList.contains('empty')})")
         pg.click('#wdInv .wd-item[data-item="h_band"]');pg.wait_for_timeout(600);r['cmpEmpty']=pg.evaluate("()=>(document.querySelector('.wd-cmp')||{}).innerText||''");pg.click('#wdAct');pg.wait_for_function("__w().equip.head==='h_band'")
         pg.click('#wdSlots .wd-slot[data-slot="back"]');pg.wait_for_timeout(2500);r['noneText']=pg.evaluate("()=>(document.querySelector('.wd-none')||{}).innerText||''");pg.screenshot(path=str(OUT/f'{name}-wardrobe-back-empty.png'))
+        # drag and drop: worn tile -> panel takes it off; owned item -> character puts it on
+        def drag(sel,tx,ty):
+            bb=pg.locator(sel).first.bounding_box();x=bb['x']+bb['width']/2;y=bb['y']+bb['height']/2
+            pg.mouse.move(x,y);pg.mouse.down();pg.mouse.move(x+6,y+14,steps=3);pg.mouse.move(tx,ty,steps=8);pg.wait_for_timeout(300);pg.screenshot(path=str(OUT/f'{name}-drag.png'));pg.mouse.up()
+        pg.click('#wdSlots .wd-slot[data-slot="head"]');pg.wait_for_timeout(1500)
+        pb=pg.locator('#wdDetail').bounding_box();drag('#wdSlots .wd-slot[data-slot="head"]',pb['x']+pb['width']/2,pb['y']+20)
+        try: pg.wait_for_function("!__w().equip.head",timeout=8000);r['dragOff']=True
+        except Exception: r['dragOff']=False
+        pg.wait_for_timeout(600);cv=pg.viewport_size
+        drag('#wdInv .wd-item[data-item="h_band"]',cv['width']*(0.3 if name=='desktop' else 0.5),cv['height']*(0.5 if name=='desktop' else 0.25))
+        try: pg.wait_for_function("__w().equip.head==='h_band'",timeout=8000);r['dragOn']=True
+        except Exception: r['dragOn']=False
+        # outfit sets in the shop
+        pg.evaluate("()=>__spDebug.go('shop')");pg.wait_for_timeout(1200);pg.click('#gearTabs button[data-slot="sets"]');pg.wait_for_timeout(600)
+        r['setRows']=pg.evaluate("()=>document.querySelectorAll('.set-row').length");pg.click('.set-row[data-set="ninja"]');pg.wait_for_timeout(3000);pg.screenshot(path=str(OUT/f'{name}-shop-set.png'))
+        r['goldBeforeSet']=pg.evaluate('()=>__w().gold');b2=pg.locator('.set-row[data-set="beach"] button')
+        if b2.count() and b2.is_enabled():
+            b2.click();pg.wait_for_function("__w().items.includes('bc_back')");pg.wait_for_timeout(800)
+            r['setBought']=pg.evaluate("()=>({gold:__w().gold,worn:Object.values(__w().equip).filter(i=>i.startsWith('bc_')).length})")
+            pg.evaluate("()=>__spDebug.go('gear')");pg.wait_for_timeout(2500);r['setLine']=pg.evaluate("()=>(document.querySelector('.wd-set')||{}).innerText||''");pg.screenshot(path=str(OUT/f'{name}-wardrobe-set.png'))
         res[name]=r;ctx.close()
     b.close()
 print(json.dumps({'results':res,'errors':errs},ensure_ascii=False,indent=1))

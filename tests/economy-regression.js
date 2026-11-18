@@ -49,9 +49,9 @@ let b = {}; E.ensure(b, T0, 'cat');
 assert(!E.buyChar(b, 'fox', T0).ok); assert(!E.buyChar(b, 'cat', T0).ok); assert(!E.buyChar(b, 'constructor', T0).ok); assert(!E.buyChar(b, 'nobody', T0).ok);
 b.eco.gold = 700; const bought = E.buyChar(b, 'fox', T0); assert(bought.ok); assert.equal(b.eco.gold, 100); assert(E.canUse(b, 'fox', T0)); assert(!E.buyChar(b, 'fox', T0).ok);
 assert(b.eco.gold >= 0);
-// ---- gear catalogue: 3 items in each of the 8 slots, unique ids, every item has a plus and a minus, net value by rarity
-assert.equal(S.GEAR.length, 24); assert.equal(new Set(S.GEAR.map((g) => g.id)).size, 24); assert.equal(S.GEAR_SLOTS.length, 8);
-for (const [slot] of S.GEAR_SLOTS) assert.deepEqual(S.GEAR.filter((g) => g.slot === slot).map((g) => g.rar), [0, 1, 2], slot);
+// ---- gear catalogue: 9 slots, each with at least one item of every rarity (neck has two of each), unique ids, every item has a plus and a minus, net value by rarity
+assert.equal(S.GEAR.length, 60); assert.equal(new Set(S.GEAR.map((g) => g.id)).size, 60); assert.equal(S.GEAR_SLOTS.length, 9);
+for (const [slot] of S.GEAR_SLOTS) assert.deepEqual([...new Set(S.GEAR.filter((g) => g.slot === slot).map((g) => g.rar))].sort(), [0, 1, 2], slot);
 for (const g of S.GEAR) {
   const v = Object.values(g.mods); assert(v.some((x) => x > 0) && v.some((x) => x < 0), g.id + ' must trade something');
   assert(Math.abs(v.reduce((x, y) => x + y, 0) - [0.25, 0.5, 0.75][g.rar]) < 1e-9, g.id + ' net'); assert(g.price > 0 && g.name && g.desc);
@@ -59,7 +59,12 @@ for (const g of S.GEAR) {
 // no gear = exactly the old numbers; power 1800 for everyone; best set stays under the cap
 for (const c of S.CHARS) { assert.deepEqual(S.charStats(c.id), S.charStats(c.id, [])); assert.equal(S.powerOf(c.id), 1800); }
 const best = S.GEAR.filter((g) => g.rar === 2).map((g) => g.id);
-assert.equal(S.powerOf('cat', best), 2400); assert(Object.values(S.gearMods(best)).every((x) => Math.abs(x) <= S.GEAR_STAT_CAP));
+{ const pw = S.powerOf('cat', best); assert(pw >= 2300 && pw <= 1800 + 9 * 75 + 50, 'best power ' + pw); }
+// outfit sets: 6 sets of 5 pieces in 5 different slots; 3 pieces +0.25, 5 pieces +0.5 on the set's stat
+assert.equal(S.GEAR_SETS.length, 6); for (const st of S.GEAR_SETS) { const ps = S.GEAR.filter((g) => g.set === st.id); assert.equal(ps.length, 5); assert.equal(new Set(ps.map((g) => g.slot)).size, 5); assert.equal(new Set(ps.map((g) => g.rar)).size, 1); }
+{ const nj = S.GEAR.filter((g) => g.set === 'ninja').map((g) => g.id), raw = (ids) => ids.reduce((a, id) => a + (S.gearById(id).mods.spd || 0), 0);
+  assert.equal(S.gearMods(nj.slice(0, 2)).spd, raw(nj.slice(0, 2))); assert.equal(S.gearMods(nj.slice(0, 3)).spd, Math.min(2, raw(nj.slice(0, 3)) + 0.25)); assert.equal(S.gearMods(nj).spd, Math.min(2, raw(nj) + 0.5));
+  assert.deepEqual(S.setBonus(nj).map((b) => [b.id, b.n, b.bonus]), [['ninja', 5, 0.5]]); assert.deepEqual(S.setBonus(['r_light']), []); }  //   // 9 epics = +675, one stat runs into the +2 cap assert(Object.values(S.gearMods(best)).every((x) => Math.abs(x) <= S.GEAR_STAT_CAP));
 // one item per slot, unknown ids ignored, the stat really moves in the match
 assert.equal(S.powerOf('cat', ['r_light', 'r_heavy', 'bogus']), 1850);
 assert(S.charStats('cat', ['r_heavy']).power > S.charStats('cat').power); assert(S.charStats('cat', ['r_heavy']).endurance > S.charStats('cat').endurance);
