@@ -1712,8 +1712,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (kind === 'e_pro') rod(new THREE.Vector3(-bx - 0.02, gy + R * sy * 0.62, gz + 0.012), new THREE.Vector3(bx + 0.02, gy + R * sy * 0.62, gz + 0.012), 0.006, frameM);
     if (kind === 'e_sport') {   // elastic strap round the back of the head
       const st = new THREE.Group(); st.position.y = gy; st.scale.set(sideX / 1.04, 0.34, AXz * sideX / (AXx * 1.04)); faceG.add(st);
-      const hl = FG(new THREE.TorusGeometry(0.995, 0.068, 6, 36, Math.PI * 2 - 1.3), OUTLINE, 0, 0, 0, st); hl.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hl.userData.isOutline = true;
-      const r = FG(new THREE.TorusGeometry(0.995, 0.045, 6, 36, Math.PI * 2 - 1.3), toon(shadeHex(GL.face, -0.25)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+      const hl = FG(new THREE.TorusGeometry(1.03, 0.1, 6, 40, Math.PI * 2 - 0.96), OUTLINE, 0, 0, 0, st); hl.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.48); hl.userData.isOutline = true;
+      const r = FG(new THREE.TorusGeometry(1.03, 0.075, 6, 40, Math.PI * 2 - 0.96), toon(shadeHex(GL.face, -0.25)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.48);   // a wide band standing proud of the head, running into both goggle cups
     }
   }
   const neckG = new THREE.Group(); neckG.name = 'neckGear'; up.add(neckG);
