@@ -1,4 +1,4 @@
-/* Shuttle Paws — game server: static files + WebSocket rooms/matchmaking, authoritative simulation. */
+/* Pawminton — game server: static files + WebSocket rooms/matchmaking, authoritative simulation. */
 'use strict';
 const http = require('http');
 const fs = require('fs');
@@ -477,4 +477,4 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => console.log(`Shuttle Paws server: http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Pawminton server: http://localhost:${PORT}`));

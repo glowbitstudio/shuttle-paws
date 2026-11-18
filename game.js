@@ -1,4 +1,4 @@
-/* Shuttle Paws — client: rendering, UI, local + online sessions. */
+/* Pawminton — client: rendering, UI, local + online sessions. */
 (() => {
 'use strict';
 const S = window.SPSim;
@@ -58,7 +58,7 @@ const ACH = [
   { id: 'venues',    ic: '🗺️', name: 'Đi khắp nơi', desc: 'Chơi ở cả 15 sân.', test: () => P.venues.length >= S.VENUES.length },
   { id: 'matches25', ic: '🏃', name: 'Vận động viên', desc: 'Chơi 25 trận.', test: () => P.matches >= 25 },
   { id: 'online1',   ic: '🌐', name: 'Ra mắt online', desc: 'Thắng một trận online.', test: (c) => c.won && c.kind === 'online' },
-  { id: 'champ',     ic: '🏆', name: 'Nhà vô địch', desc: 'Vô địch Giải đấu Shuttle Paws.', test: (c) => c.champ },
+  { id: 'champ',     ic: '🏆', name: 'Nhà vô địch', desc: 'Vô địch Giải đấu Pawminton.', test: (c) => c.champ },
   { id: 'bo3',       ic: '🎖️', name: 'Bản lĩnh 3 ván', desc: 'Thắng một trận 3 ván.', test: (c) => c.won && c.games > 1 },
 ];
 // wallet: last state the server sent (gold, owned characters, prices, login streak, quests); cached only for display

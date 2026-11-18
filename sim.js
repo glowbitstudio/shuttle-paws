@@ -1,4 +1,4 @@
-/* Shuttle Paws — shared match simulation (browser + Node). Pure logic, no rendering. */
+/* Pawminton — shared match simulation (browser + Node). Pure logic, no rendering. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.SPSim = factory();

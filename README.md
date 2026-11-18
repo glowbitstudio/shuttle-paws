@@ -1,4 +1,4 @@
-# Shuttle Paws — Cầu lông 3D
+# Pawminton — Cầu lông 3D
 
 Game cầu lông 3D dễ thương chạy trên trình duyệt: đấu bot (1v1 / 2v2) và chơi online (ghép trận, phòng bạn bè, xem trận, bảng xếp hạng).
 
