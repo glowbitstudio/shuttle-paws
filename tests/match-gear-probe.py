@@ -5,11 +5,11 @@ import json,sys
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1];PORT=sys.argv[1];OUT=ROOT/sys.argv[2];OUT.mkdir(exist_ok=True)
 HOOK="""window.__setG=(ids)=>{wallet=Object.assign({},wallet||{},{items:ids,equip:Object.fromEntries(ids.map(i=>[S.gearById(i).slot,i]))});};window.__ri=()=>{const r=renderer.info;const a=session.models.map(md=>{let n=0;md.model.root.traverse(o=>{if(o.isMesh)n++;});return n;});return {calls:r.render.calls,tris:r.render.triangles,athleteMeshes:a};};\n"""
-FULL=['hr_head','hr_shirt','hr_pants','hr_shoes','hr_back','e_shade','n_medal','w_pro','r_pro']
+FULL=['dm_head','dm_shirt','dm_pants','dm_shoes','dm_back','dm_racket','id_face','ic_neck','bx_wrist']
 out={};errs=[]
 with sync_playwright() as p:
     b=p.chromium.launch(headless=True,args=['--use-angle=swiftshader'])
-    for gfx in (0,1):
+    for gfx in (1,):
         for name,ids in (('none',[]),('full',FULL)):
             ctx=b.new_context(viewport={'width':960,'height':540});pg=ctx.new_page();pg.set_default_timeout(120000)
             ctx.add_init_script("localStorage.setItem('sp.settings',JSON.stringify({helpN:99,gfx:%d,gfxV:1,vol:0}));localStorage.setItem('sp.profile',JSON.stringify({name:'Thu',char:'cat',id:null,secret:null,named:true}));"%gfx)

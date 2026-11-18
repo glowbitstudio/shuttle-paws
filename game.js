@@ -1352,8 +1352,14 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   }
   if (kind === 'horns') {   // two curved horns and a dark circlet
     ring(0.5, 0.07, toon(0x23232b, { side: THREE.DoubleSide }), 1.04, 0.16);
-    for (const sd of [-1, 1]) { const hg = new THREE.Group(); hg.position.set(sd * 0.52, 0.78, 0.12); hg.rotation.z = -sd * 0.55; hg.scale.setScalar(1.45); fit.add(hg);
-      mk(new THREE.CylinderGeometry(0.13, 0.2, 0.36, 10), team, 0, 0.16, 0, hg, true); const tp = mk(new THREE.ConeGeometry(0.135, 0.5, 10), acc, sd * 0.07, 0.52, 0, hg, true); tp.rotation.z = sd * 0.55; }
+    for (const sd of [-1, 1]) {   // one curved horn per side: three tapering pieces, each bent a little further upward, set out past the ears
+      const g0 = new THREE.Group(); g0.position.set(sd * 0.8, 0.52, 0.05); g0.rotation.z = -sd * 1.05; fit.add(g0);
+      mk(new THREE.CylinderGeometry(0.17, 0.23, 0.34, 12), team, 0, 0.15, 0, g0, true);
+      const g1 = new THREE.Group(); g1.position.y = 0.3; g1.rotation.z = sd * 0.55; g0.add(g1);
+      mk(new THREE.SphereGeometry(0.172, 12, 8), team, 0, 0, 0, g1); mk(new THREE.CylinderGeometry(0.115, 0.17, 0.3, 12), team, 0, 0.14, 0, g1, true);
+      const g2 = new THREE.Group(); g2.position.y = 0.28; g2.rotation.z = sd * 0.55; g1.add(g2);
+      mk(new THREE.SphereGeometry(0.117, 12, 8), team, 0, 0, 0, g2); mk(new THREE.ConeGeometry(0.115, 0.36, 12), acc, 0, 0.17, 0, g2, true);
+    }
     return gr;
   }
   if (kind === 'antenna') {   // black band, two feelers with yellow tips
@@ -1395,6 +1401,26 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     mk(new THREE.CylinderGeometry(0.07, 0.12, 0.3, 8), acc, 0, 1.2, 0, pp, true).rotation.z = 0.25;
     for (const sd of [-1, 1]) mk(new THREE.CircleGeometry(0.15, 3), basic(0x2a1408), sd * 0.34, 0.62, 0.86, pp).rotation.set(-0.6, sd * 0.38, Math.PI / 2);
     for (let i = -2; i <= 2; i++) mk(new THREE.CircleGeometry(0.085, 3), basic(0x2a1408), i * 0.15, 0.36 + (i % 2 ? 0.035 : 0), 1.04 - Math.abs(i) * 0.02, pp).rotation.set(-0.3, i * 0.15, i % 2 ? Math.PI / 2 : -Math.PI / 2);
+    return gr;
+  }
+  if (kind === 'mirror') {   // doctor's head mirror on a band
+    ring(0.5, 0.09, team, 1.04, 0.16);
+    const md = mk(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 20), acc, 0.18, 0.6, 0.92, fit, true); md.rotation.set(Math.PI / 2 - 0.55, 0, 0); mk(new THREE.CircleGeometry(0.24, 20), basic(0xeaf6ff), 0.18, 0.62, 0.96, fit).rotation.x = -0.55; mk(new THREE.SphereGeometry(0.05, 8, 6), toon(0x3a4254), 0.18, 0.62, 0.975, fit);
+    return gr;
+  }
+  if (kind === 'pad') {   // boxing head guard: padded cap open on top, cheek pads
+    if (!fit.parent) gr.add(fit);
+    const pg = new THREE.Group(); pg.rotation.x = -0.2; fit.add(pg);
+    mk(new THREE.SphereGeometry(1.08, 28, 8, 0, Math.PI * 2, 0.5, Math.acos(0.16) - 0.5), team, 0, 0, 0, pg, true);
+    mk(new THREE.TorusGeometry(0.53, 0.09, 8, 24), acc, 0, 0.94, 0, pg).rotation.x = Math.PI / 2; mk(new THREE.TorusGeometry(1.07, 0.07, 8, 30), acc, 0, 0.18, 0, pg).rotation.x = Math.PI / 2;
+    for (const sd of [-1, 1]) mk(new THREE.SphereGeometry(0.34, 12, 10), team, sd * 0.95, -0.12, 0.42, fit, true).scale.set(0.5, 1.1, 0.9);
+    return gr;
+  }
+  if (kind === 'turban') {   // khăn đóng: stacked rolls of cloth, higher at the back
+    if (!fit.parent) gr.add(fit);
+    const tb = new THREE.Group(); tb.rotation.x = -0.22; fit.add(tb);
+    for (let i = 0; i < 4; i++) { const y = 0.36 + i * 0.13, r = Math.sqrt(1 - y * y) * 1.05; mk(new THREE.TorusGeometry(r, 0.09, 8, 30), i === 1 ? acc : team, 0, y, 0, tb, i === 0 || i === 3).rotation.x = Math.PI / 2; }
+    mk(new THREE.SphereGeometry(1.0, 20, 6, 0, Math.PI * 2, 0, Math.acos(0.72)), toon(shadeHex(teamColor, -0.2)), 0, 0, 0, tb);
     return gr;
   }
   if (kind === 'astro') {   // glass bubble with a collar ring and an antenna
@@ -1469,7 +1495,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const legMat = P.darkPaws ? pawMat : limbMat;
     add(new THREE.SphereGeometry(0.098, 14, 8), mShorts, 0, 0.0, 0, thigh);                 // hip ball: no gap under the shorts when the thigh swings
     // shorts leg. Default: to just above the knee, flared. Gear: p_light = short running cut, p_flex = tights over the knee, p_pro = long and baggy with a side stripe
-    const pk = ({ nj_pants: 'p_flex', hr_pants: 'p_flex', bc_pants: 'p_light', ry_pants: 'p_pro', as_pants: 'p_pro', pr_pants: 'p_pro', wz_pants: 'p_pro', cb_pants: 'p_pro', ch_pants: 'p_pro', wn_pants: 'p_flex', dv_pants: 'p_flex', rk_pants: 'p_flex', dt_pants: 'p_pro', rb_pants: 'p_pro', an_pants: 'p_pro', sm_pants: 'p_pro', dm_pants: 'p_flex', pk_pants: 'p_flex', be_pants: 'p_light', fa_pants: 'p_light', dn_pants: 'p_pro', po_pants: 'p_pro' })[GI.shorts] || GI.shorts, tight = pk === 'p_flex';
+    const pk = ({ nj_pants: 'p_flex', hr_pants: 'p_flex', bc_pants: 'p_light', ry_pants: 'p_pro', as_pants: 'p_pro', pr_pants: 'p_pro', wz_pants: 'p_pro', cb_pants: 'p_pro', ch_pants: 'p_pro', wn_pants: 'p_flex', dv_pants: 'p_flex', rk_pants: 'p_flex', dt_pants: 'p_pro', rb_pants: 'p_pro', an_pants: 'p_pro', sm_pants: 'p_pro', dm_pants: 'p_flex', pk_pants: 'p_flex', be_pants: 'p_light', fa_pants: 'p_light', dn_pants: 'p_pro', po_pants: 'p_pro', bx_pants: 'p_pro', fb_pants: 'p_light' })[GI.shorts] || GI.shorts, tight = pk === 'p_flex';
     const lgLen = 0.08 + (pk === 'p_light' ? Math.min(L1 * 0.4, 0.05) : Math.min(L1 * 0.9, 0.12)), lgR = tight ? 0.092 : pk === 'p_pro' ? 0.138 : pk === 'p_light' ? 0.116 : 0.122;
     const lg = add(new THREE.CylinderGeometry(tight ? 0.096 : 0.1, lgR, lgLen, 16), mShorts, 0, 0.08 - lgLen / 2, 0, thigh); lg.rotation.z = s * 0.08;
     if (!tight) { const lgHem = add(new THREE.TorusGeometry(lgR - 0.001, pk === 'p_pro' ? 0.013 : 0.009, 6, 20), pk === 'p_pro' ? toon(0x2a1f5a) : mTrim, 0, 0.08 - lgLen + 0.012, 0, thigh); lgHem.rotation.set(Math.PI / 2, s * 0.08, 0); noOL(lgHem); }
@@ -1481,7 +1507,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (tight) { const kr = add(new THREE.TorusGeometry(0.07, 0.011, 6, 18), toon(0x9fd0ff), 0, -0.05, -0.01, knee); kr.rotation.x = Math.PI / 2; noOL(kr); }
     add(new THREE.CapsuleGeometry(0.066, Math.max(0.01, L2 - 0.03), 4, 12), legMat, 0, -L2 / 2, -0.012, knee);    // shin, a little slimmer
     const ankle = new THREE.Group(); ankle.position.set(0, -L2, 0); knee.add(ankle); ankle.userData.side = s;
-    const sk = ({ bc_shoes: 's_run', nj_shoes: 's_run', as_shoes: 's_spring', pr_shoes: 's_pro', ry_shoes: 's_pro', hr_shoes: 's_pro', cb_shoes: 's_pro', wz_shoes: 's_run', ch_shoes: 's_run', wn_shoes: 's_spring', dv_shoes: 's_run', rk_shoes: 's_pro', dt_shoes: 's_run', rb_shoes: 's_spring', an_shoes: 's_run', sm_shoes: 's_run', dm_shoes: 's_pro', po_shoes: 's_pro', dn_shoes: 's_spring', be_shoes: 's_run', fa_shoes: 's_run', pk_shoes: 's_run' })[GI.shoes] || GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
+    const sk = ({ bc_shoes: 's_run', nj_shoes: 's_run', as_shoes: 's_spring', pr_shoes: 's_pro', ry_shoes: 's_pro', hr_shoes: 's_pro', cb_shoes: 's_pro', wz_shoes: 's_run', ch_shoes: 's_run', wn_shoes: 's_spring', dv_shoes: 's_run', rk_shoes: 's_pro', dt_shoes: 's_run', rb_shoes: 's_spring', an_shoes: 's_run', sm_shoes: 's_run', dm_shoes: 's_pro', po_shoes: 's_pro', dn_shoes: 's_spring', be_shoes: 's_run', fa_shoes: 's_run', pk_shoes: 's_run', kn_shoes: 's_pro', fb_shoes: 's_run' })[GI.shoes] || GI.shoes, wing = () => { for (const [y, r, l] of [[0.07, -0.5, 0.11], [0.045, -0.85, 0.085]]) { const w = add(new THREE.ConeGeometry(0.028, l, 5), toon(0xffffff), s * 0.088, y, -0.05, ankle); w.rotation.set(-1.25, 0, r * s * 0.4); w.scale.x = 0.45; noOL(w); } };
     if (P.webbed) {
       const shoe = add(new THREE.SphereGeometry(0.1, 14, 10), mOrange, 0, -0.04, 0.05, ankle); shoe.scale.set(1.25, 0.42, 1.7);
       for (const t of [-1, 0, 1]) add(new THREE.SphereGeometry(0.035, 8, 6), mOrange, t * 0.07, -0.05, 0.2, ankle).scale.set(1, 0.6, 1.2);
@@ -1818,14 +1844,14 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   // glasses: in head space, in front of the eyes (they follow the head)
   const faceG = new THREE.Group(); faceG.name = 'faceGear'; hs.add(faceG);
   if (GI.face && eyeAt.length === 2) {
-    const kind = GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + (GI.face === 'e_sport' ? 0.05 : GI.face === 'e_shade' ? 0.042 : 0.036);   // close to the face: seen from the side the lenses must not hang in the air
+    const kind = ({ st_face: 'e_pro', id_face: 'e_shade', th_face: 'e_sport' })[GI.face] || GI.face, ownCol = kind !== GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + (kind === 'e_sport' ? 0.05 : kind === 'e_shade' ? 0.042 : 0.036);   // close to the face: seen from the side the lenses must not hang in the air
     const sx = kind === 'e_sport' ? 1.12 : kind === 'e_shade' ? 1.18 : 1.04, sy = kind === 'e_sport' ? 0.88 : kind === 'e_shade' ? 0.86 : 1.08, tube = kind === 'e_shade' ? 0.016 : kind === 'e_sport' ? 0.02 : 0.009;
     const R = Math.min(eyeAt[0][3] * 1.2, (exA - 0.012) / (sx * 0.955));
     const FG = (geo, mat, x, y, z, par) => noOL(add(geo, mat, x, y, z, par || faceG));
     const rod = (a, b, r, mat) => { const d = new THREE.Vector3().subVectors(b, a), len = d.length(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); const hl = FG(new THREE.CylinderGeometry(r + 0.007, r + 0.007, len + 0.01, 6), OUTLINE, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); hl.quaternion.copy(q); hl.userData.isOutline = true;
       const m = FG(new THREE.CylinderGeometry(r, r, len, 6), mat, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); m.quaternion.copy(q); return m; };
-    const frameM = toon(kind === 'e_sport' ? GL.face : kind === 'e_shade' ? 0x1d1f27 : 0xf2c230);
-    const lensM = kind === 'e_sport' ? basic(0xbfeaff, { transparent: true, opacity: 0.36, depthWrite: false }) : kind === 'e_shade' ? basic(0x14161d) : basic(0xff9d3c, { transparent: true, opacity: 0.8, depthWrite: false });
+    const frameM = toon(ownCol || kind === 'e_sport' ? GL.face : kind === 'e_shade' ? 0x1d1f27 : 0xf2c230);
+    const lensM = GI.face === 'st_face' ? basic(0xeaf6ff, { transparent: true, opacity: 0.28, depthWrite: false }) : kind === 'e_sport' ? basic(0xbfeaff, { transparent: true, opacity: 0.36, depthWrite: false }) : kind === 'e_shade' ? basic(0x14161d) : basic(0xff9d3c, { transparent: true, opacity: 0.8, depthWrite: false });
     const shine = basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false });
     const AXx = 0.34 * P.sq[0], AXz = 0.34 * P.sq[2], sideX = AXx * 1.04 * Math.sqrt(Math.max(0.2, 1 - Math.pow(gy / (0.34 * P.sq[1]), 2)));   // head half-width at eye height
     for (const s of [-1, 1]) {
@@ -1835,8 +1861,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
         const cup = FG(new THREE.CylinderGeometry(R + tube * 0.6, R + tube + 0.004, dp, 24, 1, true), kind === 'e_sport' ? toon(shadeHex(GL.face, -0.18), { side: THREE.DoubleSide }) : toon(0x1d1f27, { side: THREE.DoubleSide }), 0, 0, -dp / 2, lg); cup.rotation.x = Math.PI / 2; cup.scale.set(sx, 1, sy); }
       { const hl = FG(new THREE.TorusGeometry(R, tube + 0.008, 6, 24), OUTLINE, 0, 0, 0, lg); hl.scale.set(sx, sy, 1); hl.userData.isOutline = true; }
       FG(new THREE.TorusGeometry(R, tube, 6, 24), frameM, 0, 0, 0.001, lg).scale.set(sx, sy, 1);
+      if (GI.face === 'th_face') { /* a mask: eye holes, no lenses */ } else {
       const ln = FG(new THREE.CircleGeometry(R, 24), lensM, 0, 0, 0.002, lg); ln.scale.set(sx, sy, 1); ln.renderOrder = 2;
-      const sh = FG(new THREE.PlaneGeometry(R * 0.62, R * 0.13), shine, -R * 0.22, R * 0.34, 0.007, lg); sh.rotation.z = 0.62; sh.renderOrder = 3;
+      const sh = FG(new THREE.PlaneGeometry(R * 0.62, R * 0.13), shine, -R * 0.22, R * 0.34, 0.007, lg); sh.rotation.z = 0.62; sh.renderOrder = 3; }
       if (kind !== 'e_sport') { const tr = kind === 'e_shade' ? 0.012 : 0.007, zm = gz * 0.6, a = new THREE.Vector3(s * (exA + R * sx * 0.93), gy + R * 0.25, gz - 0.035), m = new THREE.Vector3(s * (sideX * Math.sqrt(Math.max(0.1, 1 - Math.pow(zm / AXz, 2))) + 0.012), gy + 0.035, zm), b = new THREE.Vector3(s * (sideX + 0.006), gy + 0.03, -0.02); rod(a, m, tr, frameM); rod(m, b, tr, frameM); }
     }
     const bx = Math.max(0.004, exA - R * sx * 0.9);
@@ -1883,7 +1910,18 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const pb = lace(0, 0.05, 0.075); NK(new THREE.SphereGeometry(0.062, 14, 10), toon(0xf2c230), pb.x, pb.y - 0.05, pb.z, true);
     NK(new THREE.BoxGeometry(0.012, 0.05, 0.014), toon(0x5a3d12), pb.x, pb.y - 0.075, pb.z + 0.056); NK(new THREE.SphereGeometry(0.016, 8, 6), toon(0x5a3d12), pb.x, pb.y - 0.047, pb.z + 0.06);
     NK(new THREE.TorusGeometry(0.063, 0.006, 5, 20), toon(0xffe9a8), pb.x, pb.y - 0.05, pb.z).rotation.x = Math.PI / 2;
-  } else if (GI.neck === 'n_bow') {     // big bow tie under the chin on a white collar
+  } else if (GI.neck === 'dc_neck') {   // stethoscope
+    laceTube(0.012, toon(GL.neck), 0.15); const pb = lace(0, 0.03, 0.15); NK(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 16), toon(0xc9d2e0), pb.x, pb.y - 0.04, pb.z + 0.004, true).rotation.x = Math.PI / 2;
+    for (const sd of [-1, 1]) { const q = lace(sd, 0.02, 0.15); NK(new THREE.SphereGeometry(0.02, 8, 6), toon(0xc9d2e0), q.x, q.y + 0.01, q.z); }
+  } else if (GI.neck === 'tt_neck') {   // red envelope on a gold cord
+    laceTube(0.008, toon(0xf2c230), 0.12); const pb = lace(0, 0.03, 0.12); NK(new THREE.BoxGeometry(0.085, 0.12, 0.016), toon(GL.neck), pb.x, pb.y - 0.06, pb.z + 0.004, true); NK(new THREE.CircleGeometry(0.024, 14), basic(0xf2c230), pb.x, pb.y - 0.065, pb.z + 0.014); NK(new THREE.BoxGeometry(0.085, 0.022, 0.018), toon(0xf2c230), pb.x, pb.y - 0.012, pb.z + 0.005);
+  } else if (GI.neck === 'st_neck') {   // red scarf tied in front
+    const rd = toon(GL.neck, DS); for (const sd of [-1, 1]) strip(sd * 0.16 * tx, cy - 0.04, 0, cy - 0.12, 0.075, 0.014, rd);
+    for (const sd of [-1, 1]) strip(0, cy - 0.12, sd * 0.045, cy - 0.23, 0.05, 0.02, rd); NK(new THREE.SphereGeometry(0.028, 10, 8), toon(shadeHex(GL.neck, -0.2)), 0, cy - 0.12, chestZ(0, cy - 0.12) + 0.03, true);
+  } else if (GI.neck === 'ic_neck') {   // snowflake on a silver chain
+    laceTube(0.008, toon(0xdfe5ee), 0.13); const pb = lace(0, 0.03, 0.13);
+    for (let k = 0; k < 3; k++) { const b = NK(new THREE.BoxGeometry(0.014, 0.13, 0.012), toon(0xffffff), pb.x, pb.y - 0.06, pb.z + 0.004); b.rotation.z = k * Math.PI / 3; } NK(new THREE.OctahedronGeometry(0.028), toon(GL.neck), pb.x, pb.y - 0.06, pb.z + 0.012, true);
+  } else if (GI.neck === 'n_bow' || GI.neck === 'id_neck') {     // big bow tie under the chin on a white collar
     laceTube(0.014, toon(0xffffff), 0.05, 0.17);
     const pb = lace(0, 0.045, 0.085), dk = toon(shadeHex(GL.neck, -0.28));
     for (const sd of [-1, 1]) { const lb = NK(new THREE.ConeGeometry(0.075, 0.13, 4), toon(GL.neck), sd * 0.08, pb.y, pb.z, true); lb.rotation.z = sd * Math.PI / 2; lb.scale.z = 0.42;
@@ -1919,7 +1957,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       const rt = add(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff), sd * 0.03, 0, 0, wg2); rt.scale.set(1, 1.1, 0.5); noOL(rt);
     }
   }
-  const setHead = { nj_head: ['ninja', 0xc22a3a], bc_head: ['straw', 0xe0303a], pr_head: ['tricorn', 0xf2c230], as_head: ['astro', 0x4f8fe8], ry_head: ['royal', 0xfff3c4], hr_head: ['hero', 0xffd23f], wz_head: ['wizard', 0xf2c230], cb_head: ['cowboy', 0x3a2a1a], wn_head: ['beanie', 0xffffff], ch_head: ['chef', 0xdfe5ee], dv_head: ['diver', 0xff8a3d], rk_head: ['mohawk', 0x7dff9a], dt_head: ['deer', 0x5a3d22], rb_head: ['robot', 0xffd23f], an_head: ['halo', 0xffe18a], sm_head: ['kabuto', 0xf2c230], dm_head: ['horns', 0xffb84d], be_head: ['antenna', 0xffd23f], dn_head: ['dino', 0xffd23f], po_head: ['police', 0xf2c230], fa_head: ['flowers', 0xffffff], pk_head: ['pumpkin', 0x4f8f3a] }[GI.head];
+  const setHead = { nj_head: ['ninja', 0xc22a3a], bc_head: ['straw', 0xe0303a], pr_head: ['tricorn', 0xf2c230], as_head: ['astro', 0x4f8fe8], ry_head: ['royal', 0xfff3c4], hr_head: ['hero', 0xffd23f], wz_head: ['wizard', 0xf2c230], cb_head: ['cowboy', 0x3a2a1a], wn_head: ['beanie', 0xffffff], ch_head: ['chef', 0xdfe5ee], dv_head: ['diver', 0xff8a3d], rk_head: ['mohawk', 0x7dff9a], dt_head: ['deer', 0x5a3d22], rb_head: ['robot', 0xffd23f], an_head: ['halo', 0xffe18a], sm_head: ['kabuto', 0xf2c230], dm_head: ['horns', 0xffe9c4], be_head: ['antenna', 0xffd23f], dn_head: ['dino', 0xffd23f], po_head: ['police', 0xf2c230], fa_head: ['flowers', 0xffffff], pk_head: ['pumpkin', 0x4f8f3a], dc_head: ['mirror', 0xc9d2e0], bx_head: ['pad', 0xffffff], tt_head: ['turban', 0xf2c230], kn_head: ['hero', 0xc22a3a], ic_head: ['crown', 0xffffff], hu_head: ['cowboy', 0x5a3d22] }[GI.head];
   // ---- outfit sets: shirt details and back pieces
   const decal = (geo, mat, x, y, lift, par) => { const z = chestZ(x, y), n = new THREE.Vector3(x / Math.pow(0.27 * tx, 2), (y - tc) / Math.pow(0.27 * ty, 2), z / Math.pow(0.27 * tz, 2)).normalize();
     const m = add(geo, mat, x + n.x * lift, y + n.y * lift, z + n.z * lift, par || up); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); return noOL(m); };
@@ -2060,6 +2098,37 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const bg2 = new THREE.Group(); bg2.position.set(0, tc + 0.04, bz - 0.06); bg2.rotation.z = -0.6 * h; backG.add(bg2);
     add(new THREE.CylinderGeometry(0.014, 0.014, 0.62, 6), toon(GL.back), 0, 0.06, 0, bg2); add(new THREE.ConeGeometry(0.085, 0.24, 10), toon(0xe0b84a), 0, -0.33, 0, bg2).rotation.x = 0; noOL(add(new THREE.CylinderGeometry(0.045, 0.05, 0.035, 10), toon(0xc22a3a), 0, -0.24, 0, bg2)); strapX(0x5a3d22);
   }
+  // ---- smaller sets: thief, doctor, boxer, knight, Tet, football, student, ice, hunter, idol
+  const boxAt = (w, hh, col, x, y, lift) => decal(new THREE.BoxGeometry(w, hh, 0.012), toon(col), x, y, lift);
+  if (GI.shirt === 'th_shirt') { const bk = toon(0x23232b); for (const dy of [0.17, 0.09, 0.01, -0.07]) hoop(tc + dy, 0.026, bk); }
+  else if (GI.shirt === 'dc_shirt') { boxAt(0.035, 0.1, 0xe0303a, 0.12 * tx * -h, tc + 0.09, 0.006); boxAt(0.1, 0.035, 0xe0303a, 0.12 * tx * -h, tc + 0.09, 0.007); boxAt(0.09, 0.07, 0xdfe5ee, 0.12 * tx * h, tc - 0.04, 0.006); seam(0, cy - 0.04, 0, tc - 0.11, 0.006, toon(0xc9d2e0)); for (const dy of [0.1, 0.03, -0.04]) decal(new THREE.SphereGeometry(0.014, 8, 6), toon(0x9aa5b8), 0.03 * tx, tc + dy, 0.004); }
+  else if (GI.shirt === 'kn_shirt') { const dk4 = toon(0x6a7386); hoop(tc + 0.19, 0.016, dk4); hoop(tc - 0.11, 0.022, dk4); boxAt(0.045, 0.19, 0x3f6fd9, 0, tc + 0.04, 0.006); boxAt(0.15, 0.045, 0x3f6fd9, 0, tc + 0.075, 0.007); for (const sd of [-1, 1]) { const sp = U(new THREE.SphereGeometry(0.085, 12, 8), toon(GL.shirt), sd * 0.215 * tx, tc + 0.19, 0); sp.scale.set(1.15, 0.6, 1.15); } }
+  else if (GI.shirt === 'tt_shirt') { for (const [x, dy] of [[-0.12, 0.1], [0.13, 0.05], [-0.04, 0.0], [0.08, -0.06], [-0.16, -0.05], [0.2, 0.13], [-0.21, 0.07]]) { decal(new THREE.CircleGeometry(0.034, 16), basic(0xf2c230), x * tx, tc + dy, 0.006); decal(new THREE.PlaneGeometry(0.016, 0.016), basic(0xc22a3a), x * tx, tc + dy, 0.009); }
+    seam(-0.02 * tx, cy - 0.03, 0.13 * tx * -h, tc + 0.12, 0.008, gold); for (const k of [0, 1, 2]) decal(new THREE.SphereGeometry(0.016, 8, 6), gold, (0.02 + k * 0.045) * tx * -h, cy - 0.05 - k * 0.045, 0.006); hoop(tc - 0.115, 0.014, gold); }
+  else if (GI.shirt === 'fb_shirt') { const wh = toon(0xffffff); for (const x of [-0.19, -0.095, 0, 0.095, 0.19]) seam(x * tx, cy - 0.01 - Math.abs(x) * 0.25, x * tx * 0.95, tc - 0.11, 0.016, wh); hoop(tc + 0.2, 0.014, wh); }
+  else if (GI.shirt === 'st_shirt') { boxAt(0.08, 0.075, 0xe6ecf5, 0.12 * tx * h, tc + 0.07, 0.005); boxAt(0.05, 0.05, 0x3f6fd9, 0.12 * tx * h, tc + 0.075, 0.009); seam(0, cy - 0.04, 0, tc - 0.11, 0.006, toon(0xc9d2e0)); for (const dy of [0.09, 0.02, -0.05]) decal(new THREE.SphereGeometry(0.013, 8, 6), toon(0x9aa5b8), 0, tc + dy, 0.006); hoop(tc - 0.115, 0.012, toon(0x3f6fd9)); }
+  else if (GI.shirt === 'ic_shirt') { for (const [x, dy, r] of [[-0.11, 0.11, 0.04], [0.11, 0.06, 0.05], [-0.02, -0.02, 0.036], [0.19, -0.04, 0.03], [-0.19, -0.03, 0.036]]) { decal(new THREE.CircleGeometry(r, 6), basic(0xffffff), x * tx, tc + dy, 0.006); decal(new THREE.CircleGeometry(r * 0.45, 6), basic(0x7fe3ff), x * tx, tc + dy, 0.009).rotateZ(Math.PI / 6); } hoop(tc - 0.115, 0.016, toon(0x7fe3ff)); hoop(tc + 0.2, 0.014, toon(0xffffff)); }
+  if (GI.back === 'th_back') {   // sack over the shoulder
+    BK(new THREE.SphereGeometry(0.17, 14, 12), toon(GL.back), 0.03 * h, tc - 0.01, bz - 0.1, true).scale.set(1, 1.15, 0.85); BK(new THREE.CylinderGeometry(0.03, 0.06, 0.08, 8), toon(GL.back), 0.03 * h, tc + 0.2, bz - 0.09, true); BK(new THREE.TorusGeometry(0.05, 0.012, 5, 14), toon(0x7a5230), 0.03 * h, tc + 0.165, bz - 0.09).rotation.x = Math.PI / 2;
+    BK(new THREE.CylinderGeometry(0.045, 0.045, 0.012, 14), gold, 0.03 * h, tc + 0.0, bz - 0.245).rotation.x = Math.PI / 2; strapX(0x7a5230);
+  } else if (GI.back === 'kn_back') {   // round shield with a rim and a cross
+    const sh2 = BK(new THREE.CylinderGeometry(0.2, 0.2, 0.035, 26), toon(GL.back), 0, tc + 0.04, bz - 0.06, true); sh2.rotation.x = Math.PI / 2;
+    BK(new THREE.TorusGeometry(0.2, 0.018, 6, 28), toon(0xc9d2e0), 0, tc + 0.04, bz - 0.07); BK(new THREE.BoxGeometry(0.04, 0.3, 0.012), toon(0xffffff), 0, tc + 0.04, bz - 0.082); BK(new THREE.BoxGeometry(0.3, 0.04, 0.012), toon(0xffffff), 0, tc + 0.06, bz - 0.083); BK(new THREE.SphereGeometry(0.03, 10, 8), gold, 0, tc + 0.06, bz - 0.09); strapX(0x5a3d22);
+  } else if (GI.back === 'tt_back') {   // peach-blossom branch
+    const br2 = new THREE.Group(); br2.position.set(0.05 * h, tc - 0.05, bz - 0.06); br2.rotation.set(-0.35, 0, -0.45 * h); backG.add(br2);
+    add(new THREE.CylinderGeometry(0.01, 0.018, 0.85, 6), toon(0x5a3d22), 0, 0.38, 0, br2); const tw = add(new THREE.CylinderGeometry(0.008, 0.012, 0.3, 5), toon(0x5a3d22), 0.08 * h, 0.52, 0, br2); tw.rotation.z = -0.7 * h; noOL(tw);
+    for (const [x, y] of [[0, 0.82], [0.03, 0.66], [-0.03, 0.52], [0.16, 0.62], [0.1, 0.5], [0.02, 0.36], [-0.03, 0.22]]) { noOL(add(new THREE.SphereGeometry(0.045, 8, 6), toon(GL.back), x * h, y, 0, br2)); noOL(add(new THREE.SphereGeometry(0.016, 6, 5), toon(0xffd23f), x * h, y, 0.04, br2)); noOL(add(new THREE.SphereGeometry(0.016, 6, 5), toon(0xffd23f), x * h, y, -0.04, br2)); }
+    strapX(0x8a1020);
+  } else if (GI.back === 'st_back') {   // school bag
+    BK(new THREE.BoxGeometry(0.3, 0.26, 0.12), toon(GL.back), 0, tc + 0.02, bz - 0.07, true); BK(new THREE.BoxGeometry(0.31, 0.11, 0.125), toon(shadeHex(GL.back, -0.25)), 0, tc + 0.1, bz - 0.072); BK(new THREE.BoxGeometry(0.05, 0.05, 0.02), toon(0xffd23f), 0, tc + 0.05, bz - 0.137);
+    for (const sd of [-1, 1]) { const stp = BK(new THREE.TorusGeometry(0.272, 0.014, 6, 24), toon(shadeHex(GL.back, -0.3)), sd * 0.105, tc + 0.02, 0); stp.rotation.y = Math.PI / 2; stp.scale.set(tz * 1.02, ty * 0.96, 1); }
+  } else if (GI.back === 'ic_back') { for (const sd of [-1, 1]) { const w = fan(GL.back, 0xffffff, sd, 5, 0.6, 0.085, 0.14); w.traverse((o) => { if (o.isMesh) { o.material = basic(o.material.color.getHex(), { transparent: true, opacity: 0.78, depthWrite: false, side: THREE.DoubleSide }); o.renderOrder = 3; } }); } }
+  else if (GI.back === 'hu_back') {   // quiver with three arrows
+    const qv = new THREE.Group(); qv.position.set(0, tc + 0.03, bz - 0.07); qv.rotation.z = -0.5 * h; backG.add(qv);
+    add(new THREE.CylinderGeometry(0.065, 0.05, 0.38, 12), toon(GL.back), 0, 0, 0, qv); noOL(add(new THREE.TorusGeometry(0.066, 0.01, 5, 14), gold, 0, 0.17, 0, qv)).rotation.x = Math.PI / 2;
+    for (const [x, z] of [[-0.03, 0], [0.03, 0.01], [0, -0.03]]) { noOL(add(new THREE.CylinderGeometry(0.006, 0.006, 0.26, 5), toon(0xe6d2a8), x, 0.3, z, qv)); noOL(add(new THREE.ConeGeometry(0.03, 0.09, 4), toon(0xd9483b), x, 0.4, z, qv)).scale.z = 0.3; }
+    strapX(0x5a3d22);
+  }
   const headGear = setHead ? buildHeadGear(setHead[0], GL.head, setHead[1], P, fy, V.gearAt) : GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
     : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
   const wristGear = [];
@@ -2135,13 +2204,14 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     add(new THREE.CapsuleGeometry(0.042, 0.085, 4, 12), P.darkPaws ? pawMat : limbMat, 0, -0.07, 0, el); // forearm
     if (P.armStripes) for (const y of [-0.03, -0.075]) { const r = add(new THREE.TorusGeometry(0.043, 0.01, 4, 12), mDark, 0, y, 0, el); r.rotation.x = Math.PI / 2; noOL(r); }
     const wg = new THREE.Group(); wg.name = 'wristGear'; el.add(wg); wristGear.push(wg);
-    if (GI.wrist === 'w_band') {          // thick terry band with a red stripe
+    const WK = ({ dc_wrist: 'w_band', bx_wrist: 'w_weight', hu_wrist: 'w_pro' })[GI.wrist] || GI.wrist;
+    if (WK === 'w_band') {          // thick terry band with a red stripe
       noOL(add(new THREE.CylinderGeometry(0.056, 0.056, 0.056, 16), mWristG, 0, -0.11, 0, wg)); noOL(add(new THREE.CylinderGeometry(0.0575, 0.0575, 0.012, 16), toon(0xe8503a), 0, -0.11, 0, wg));
-    } else if (GI.wrist === 'w_weight') {   // heavy training cuff with bolts
+    } else if (WK === 'w_weight') {   // heavy training cuff with bolts
       add(new THREE.CylinderGeometry(0.066, 0.066, 0.075, 16), mWristG, 0, -0.105, 0, wg);
       for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; noOL(add(new THREE.SphereGeometry(0.012, 6, 5), toon(0xffd23f), Math.sin(a) * 0.066, -0.105, Math.cos(a) * 0.066, wg)); }
       for (const y of [-0.07, -0.14]) { const r = add(new THREE.TorusGeometry(0.066, 0.008, 6, 18), toon(0x8a8fa8), 0, y, 0, wg); r.rotation.x = Math.PI / 2; noOL(r); }
-    } else if (GI.wrist === 'w_pro') {     // forearm sleeve with dark bands
+    } else if (WK === 'w_pro') {     // forearm sleeve with dark bands
       noOL(add(new THREE.CapsuleGeometry(0.047, 0.085, 4, 12), mWristG, 0, -0.07, 0, wg));
       for (const y of [-0.03, -0.125]) { const r = add(new THREE.TorusGeometry(0.048, 0.009, 6, 18), toon(0x2a1f5a), 0, y, 0, wg); r.rotation.x = Math.PI / 2; noOL(r); }
     } else if (V.wrist === 'double') for (const y of [-0.1, -0.128]) noOL(add(new THREE.CylinderGeometry(0.05, 0.05, 0.016, 14), mWristG || mKit, 0, y, 0, wg));
@@ -2160,7 +2230,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   add(new THREE.CylinderGeometry(0.011, 0.008, 0.34, 8), toon(0x3a3a46), 0, -0.34, 0, wrist);   // shaft
   const throat = add(new THREE.ConeGeometry(0.032, 0.09, 8), mJersey, 0, -0.53, 0, wrist); noOL(throat); // T-joint
   // racket head. Gear: r_light = slim teardrop, r_heavy = thick frame with weights at the top, r_pro = black and gold with tinted strings
-  const rkS = ({ bc_racket: ['r_light', 'rings', 0xffffff], wn_racket: ['r_light', 'rings', 0xffffff], dv_racket: ['r_light', 'leaf', 0xff7a9a], be_racket: ['r_light', 'rings', 0x23232b], nj_racket: ['r_light', 'guard', 0xc22a3a], pr_racket: ['r_heavy', 'gem', 0xf2c230], cb_racket: ['r_heavy', 'star', 0xf2c230], ch_racket: ['r_heavy', 'rings', 0xc9d2e0], rk_racket: ['r_heavy', 'spikes', 0xc9d2e0], dt_racket: ['r_light', 'guard', 0x5a3d22], po_racket: ['r_heavy', 'star', 0xf2c230], pk_racket: ['r_heavy', 'leaf', 0x4f8f3a], as_racket: ['r_heavy', 'flame', 0xff8a3d], ry_racket: ['r_pro', 'gem', 0xc22a3a], hr_racket: ['r_heavy', 'star', 0xffd23f], wz_racket: ['r_light', 'star', 0xffe18a], rb_racket: ['r_heavy', 'cog', 0x5ad1ff], dn_racket: ['r_heavy', 'teeth', 0xffffff], fa_racket: ['r_light', 'bow', 0xffffff], an_racket: ['r_light', 'wings', 0xffe18a], sm_racket: ['r_pro', 'guard', 0xf2c230], dm_racket: ['r_pro', 'horns', 0xffb84d] })[GI.racket];   // set rackets: [frame shape, ornament, accent colour]
+  const rkS = ({ bc_racket: ['r_light', 'rings', 0xffffff], wn_racket: ['r_light', 'rings', 0xffffff], dv_racket: ['r_light', 'leaf', 0xff7a9a], be_racket: ['r_light', 'rings', 0x23232b], nj_racket: ['r_light', 'guard', 0xc22a3a], pr_racket: ['r_heavy', 'gem', 0xf2c230], cb_racket: ['r_heavy', 'star', 0xf2c230], ch_racket: ['r_heavy', 'rings', 0xc9d2e0], rk_racket: ['r_heavy', 'spikes', 0xc9d2e0], dt_racket: ['r_light', 'guard', 0x5a3d22], po_racket: ['r_heavy', 'star', 0xf2c230], pk_racket: ['r_heavy', 'leaf', 0x4f8f3a], as_racket: ['r_heavy', 'flame', 0xff8a3d], ry_racket: ['r_pro', 'gem', 0xc22a3a], hr_racket: ['r_heavy', 'star', 0xffd23f], wz_racket: ['r_light', 'star', 0xffe18a], rb_racket: ['r_heavy', 'cog', 0x5ad1ff], dn_racket: ['r_heavy', 'teeth', 0xffffff], fa_racket: ['r_light', 'bow', 0xffffff], an_racket: ['r_light', 'wings', 0xffe18a], sm_racket: ['r_pro', 'guard', 0xf2c230], dm_racket: ['r_pro', 'horns', 0xffb84d], kn_racket: ['r_pro', 'guard', 0x3f6fd9], ic_racket: ['r_light', 'gem', 0xffffff] })[GI.racket];   // set rackets: [frame shape, ornament, accent colour]
   const rk = rkS ? rkS[0] : GI.racket, fTube = rk === 'r_light' ? 0.011 : rk === 'r_heavy' ? 0.025 : rk === 'r_pro' ? 0.018 : 0.016, fSx = rk === 'r_light' ? 0.72 : rk === 'r_heavy' ? 0.86 : 0.8, fSy = rk === 'r_light' ? 1.2 : rk === 'r_heavy' ? 1.08 : 1.12;
   const frame = add(new THREE.TorusGeometry(0.15, fTube, 8, 32), toon(rk === 'r_pro' ? 0x23202e : GL.racket !== undefined ? GL.racket : 0x2f2f3a), 0, -0.71, 0, wrist); frame.scale.set(fSx, fSy, 1);   // string face looks forward (toward the net) like a forehand grip
   const paint = add(new THREE.TorusGeometry(0.15, rk === 'r_pro' ? 0.011 : 0.007, 6, 32, Math.PI * (rk === 'r_pro' ? 1.25 : 0.9)), rk === 'r_pro' ? toon(GL.racket) : rk ? mTrim : mJersey, 0, -0.71, 0, wrist); paint.scale.set(fSx * 1.05, fSy * 1.035, 1.12); paint.rotation.set(0, 0, Math.PI * (rk === 'r_pro' ? 0.875 : 1.05)); noOL(paint);
@@ -2755,7 +2825,7 @@ function renderGear() {
     : own.length ? own.map((it) => `<button class="wd-item r${it.rar}${cur && cur.id === it.id ? ' worn' : ''}${gearTry === it.id ? ' on' : ''}" data-item="${it.id}">${gearIconImg(it.id)}<span>${esc(it.name)}</span>${cur && cur.id === it.id ? '<em>Đang mặc</em>' : ''}</button>`).join('')
     : `<div class="wd-none"><p>Bạn chưa có món nào cho ô <b>${esc(slotName)}</b>.</p><button class="pill buy" id="wdToShop">Đến cửa hàng</button></div>`;
   const pick = gearTry && S.gearById(gearTry).slot === gearSlot ? S.gearById(gearTry) : cur;
-  const setsHtml = S.setBonus(worn).map((b) => `<div class="wd-cmp wd-set"><small>Bộ <b>${esc(b.name)}</b> ${b.n}/6 · ${b.bonus ? 'đang cộng <b>+' + b.bonus + ' ' + STAT_NAMES[b.stat] + '</b>' : 'mặc 3 món để được cộng ' + STAT_NAMES[b.stat]}</small></div>`).join('');
+  const setsHtml = S.setBonus(worn).map((b) => `<div class="wd-cmp wd-set"><small>Bộ <b>${esc(b.name)}</b> ${b.n}/${b.size} · ${b.bonus ? 'đang cộng <b>+' + b.bonus + ' ' + STAT_NAMES[b.stat] + '</b>' : 'mặc ' + S.setTiers(b.id)[0][0] + ' món để được cộng ' + STAT_NAMES[b.stat]}</small></div>`).join('');
   if (!pick) $('wdDetail').innerHTML = setsHtml;
   else {
     const isWorn = !!cur && cur.id === pick.id;
@@ -2821,7 +2891,7 @@ function renderShop() {
     $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR_SETS.map((st) => {
       const ps = S.GEAR.filter((g) => g.set === st.id), own = ps.filter((g) => items.includes(g.id)).length, cost = Math.ceil((((wallet.rules || {}).setGems) || [60, 150, 320])[ps[0].rar] * (ps.length - own) / ps.length), myGems = wallet.gems || 0;
       return `<div class="gear-item set-row r${ps[0].rar}${gearTrySet === st.id ? ' try' : ''}" data-set="${st.id}"><div class="gi"><b>Bộ ${esc(st.name)}</b><span class="rar">${S.GEAR_RARITY[ps[0].rar]} · có ${own}/${ps.length}</span>` +
-        `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>${STAT_NAMES[st.stat]}: mặc 3 món +0.25 · 5 món +0.5 · đủ ${ps.length} món +0.75</small></div>` +
+        `<div class="set-ics">${ps.map((g) => `<span class="ic${items.includes(g.id) ? ' has' : ''}">${gearIconImg(g.id)}</span>`).join('')}</div><small>${STAT_NAMES[st.stat]}: ${S.setTiers(st.id).map((t) => 'mặc ' + t[0] + ' món +' + t[1]).join(' · ')}</small></div>` +
         (cost ? `<button class="pill buy gemb" data-act="buyset" ${myGems >= cost ? '' : 'disabled'}><i class="gem"></i>${cost}</button>` : '<span class="own">Đã đủ bộ</span>') + '</div>';
     }).join('');
     const ts = gearTrySet && S.GEAR_SETS.find((x) => x.id === gearTrySet);

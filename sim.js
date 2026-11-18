@@ -207,6 +207,42 @@ const GEAR = [
   { id: 'an_racket', slot: 'racket', set: 'angel', rar: 3, price: 5000, col: 0xfffaf0, name: 'Vợt thiên sứ', mods: { ctl: 1, rch: 0.5, pow: -0.5 }, desc: 'Mỗi cú đánh đều được dẫn lối; không nỡ đập mạnh.' },
   { id: 'sm_racket', slot: 'racket', set: 'samurai', rar: 3, price: 5000, col: 0xa3242f, name: 'Vợt katana', mods: { pow: 1, ctl: 0.5, sta: -0.5 }, desc: 'Một nhát dứt điểm, sắc và chuẩn; dồn sức nên mau mệt.' },
   { id: 'dm_racket', slot: 'racket', set: 'demon', rar: 3, price: 5000, col: 0x8a1020, name: 'Vợt địa ngục', mods: { pow: 1, rch: 0.5, ctl: -0.5 }, desc: 'Rực lửa mỗi cú đập; hung bạo khó kiểm soát.' },
+  { id: 'fb_shirt', slot: 'shirt', set: 'football', rar: 0, price: 300, col: 0x2f8f6a, name: 'Áo đấu sọc', mods: { spd: 0.75, ctl: -0.5 }, desc: 'Chạy cánh không biết mỏi; vội nên kém chuẩn.' },
+  { id: 'fb_pants', slot: 'shorts', set: 'football', rar: 0, price: 300, col: 0xffffff, name: 'Quần đá bóng', mods: { jmp: 0.75, sta: -0.5 }, desc: 'Bật đánh đầu rất cao; tốn sức.' },
+  { id: 'fb_shoes', slot: 'shoes', set: 'football', rar: 0, price: 300, col: 0x23232b, name: 'Giày đinh', mods: { spd: 0.75, jmp: -0.5 }, desc: 'Bám sân, bứt tốc; đinh cứng nên bật kém.' },
+  { id: 'st_face', slot: 'face', set: 'student', rar: 0, price: 300, col: 0x23232b, name: 'Kính cận', mods: { ctl: 0.75, rch: -0.5 }, desc: 'Nhìn rõ từng sợi lông cầu; ngại với xa.' },
+  { id: 'st_shirt', slot: 'shirt', set: 'student', rar: 0, price: 300, col: 0xffffff, name: 'Áo đồng phục', mods: { sta: 0.75, pow: -0.5 }, desc: 'Gọn gàng, bền bỉ; hiền nên đập nhẹ.' },
+  { id: 'st_neck', slot: 'neck', set: 'student', rar: 0, price: 300, col: 0xe0303a, name: 'Khăn quàng đỏ', mods: { ctl: 0.75, spd: -0.5 }, desc: 'Chăm ngoan, đánh chuẩn; không chạy nhảy lung tung.' },
+  { id: 'st_back', slot: 'back', set: 'student', rar: 0, price: 300, col: 0x3f6fd9, name: 'Cặp sách', mods: { sta: 0.75, jmp: -0.5 }, desc: 'Đeo quen nên lưng khỏe; nặng nên khó bật.' },
+  { id: 'th_face', slot: 'face', set: 'thief', rar: 1, price: 900, col: 0x23232b, name: 'Mặt nạ đạo chích', mods: { spd: 1, ctl: -0.5 }, desc: 'Thoắt ẩn thoắt hiện; che mắt nên kém chuẩn.' },
+  { id: 'th_shirt', slot: 'shirt', set: 'thief', rar: 1, price: 900, col: 0xf4f6fa, name: 'Áo sọc kẻ trộm', mods: { spd: 0.5, jmp: 0.5, pow: -0.5 }, desc: 'Nhẹ nhàng leo trèo; không quen dùng sức.' },
+  { id: 'th_back', slot: 'back', set: 'thief', rar: 1, price: 900, col: 0xc9a66b, name: 'Bao chiến lợi phẩm', mods: { rch: 1, spd: -0.5 }, desc: 'Tay dài quen với đồ; vác nặng nên chậm.' },
+  { id: 'dc_head', slot: 'head', set: 'doctor', rar: 1, price: 900, col: 0xc9d2e0, name: 'Gương khám bệnh', mods: { ctl: 1, pow: -0.5 }, desc: 'Soi kỹ từng đường cầu; nhẹ tay.' },
+  { id: 'dc_shirt', slot: 'shirt', set: 'doctor', rar: 1, price: 900, col: 0xffffff, name: 'Áo blouse', mods: { sta: 1, spd: -0.5 }, desc: 'Trực đêm quen rồi, rất bền; áo dài nên chậm.' },
+  { id: 'dc_neck', slot: 'neck', set: 'doctor', rar: 1, price: 900, col: 0x3a4254, name: 'Ống nghe', mods: { ctl: 0.5, rch: 0.5, pow: -0.5 }, desc: 'Nghe được nhịp cầu; không dùng sức.' },
+  { id: 'dc_wrist', slot: 'wrist', set: 'doctor', rar: 1, price: 900, col: 0xffffff, name: 'Đồng hồ bác sĩ', mods: { ctl: 1, jmp: -0.5 }, desc: 'Đúng từng giây; cẩn thận nên ít bật.' },
+  { id: 'bx_head', slot: 'head', set: 'boxer', rar: 1, price: 900, col: 0xd9483b, name: 'Mũ bảo hộ quyền anh', mods: { sta: 1, ctl: -0.5 }, desc: 'Chịu đòn tốt; che tai mắt nên kém khéo.' },
+  { id: 'bx_wrist', slot: 'wrist', set: 'boxer', rar: 1, price: 900, col: 0xd9483b, name: 'Găng đấm bốc', mods: { pow: 1, ctl: -0.5 }, desc: 'Mỗi cú đập như một cú đấm; to nên vụng.' },
+  { id: 'bx_pants', slot: 'shorts', set: 'boxer', rar: 1, price: 900, col: 0xd9483b, name: 'Quần đấm bốc', mods: { pow: 0.5, spd: 0.5, jmp: -0.5 }, desc: 'Di chuyển lắt léo, trụ khỏe; rộng nên khó bật.' },
+  { id: 'hu_head', slot: 'head', set: 'hunter', rar: 1, price: 900, col: 0x3d7a3a, name: 'Mũ thợ săn', mods: { rch: 1, pow: -0.5 }, desc: 'Mắt tinh như cú, với xa; nhẹ tay.' },
+  { id: 'hu_back', slot: 'back', set: 'hunter', rar: 1, price: 900, col: 0x7a5230, name: 'Ống tên', mods: { rch: 0.5, ctl: 0.5, spd: -0.5 }, desc: 'Ngắm là trúng; vướng lưng nên chậm.' },
+  { id: 'hu_wrist', slot: 'wrist', set: 'hunter', rar: 1, price: 900, col: 0x7a5230, name: 'Bao tay da', mods: { ctl: 1, pow: -0.5 }, desc: 'Tay vững như kéo cung; không đập mạnh.' },
+  { id: 'kn_head', slot: 'head', set: 'knight', rar: 2, price: 2200, col: 0xc9d2e0, name: 'Mũ giáp hiệp sĩ', mods: { sta: 1, pow: 0.25, spd: -0.5 }, desc: 'Không gì làm nao núng; nặng nên chậm.' },
+  { id: 'kn_shirt', slot: 'shirt', set: 'knight', rar: 2, price: 2200, col: 0xb8c2d4, name: 'Giáp bạc', mods: { sta: 1, ctl: 0.25, jmp: -0.5 }, desc: 'Vững như thành; giáp nặng khó bật.' },
+  { id: 'kn_shoes', slot: 'shoes', set: 'knight', rar: 2, price: 2200, col: 0x9aa5b8, name: 'Giày sắt', mods: { pow: 1, sta: 0.25, spd: -0.5 }, desc: 'Trụ cực chắc; bước nặng nề.' },
+  { id: 'kn_back', slot: 'back', set: 'knight', rar: 2, price: 2200, col: 0x3f6fd9, name: 'Khiên tròn', mods: { sta: 1, rch: 0.25, spd: -0.5 }, desc: 'Che chắn phía sau; vác khiên nên chậm.' },
+  { id: 'kn_racket', slot: 'racket', set: 'knight', rar: 2, price: 2200, col: 0xc9d2e0, name: 'Vợt kiếm bạc', mods: { pow: 1, ctl: 0.25, sta: -0.5 }, desc: 'Chém cầu như chém gió; mau mỏi tay.' },
+  { id: 'tt_head', slot: 'head', set: 'tet', rar: 2, price: 2200, col: 0xc22a3a, name: 'Khăn đóng đỏ', mods: { ctl: 1, sta: 0.25, jmp: -0.5 }, desc: 'Trang trọng, điềm tĩnh; không tiện bật nhảy.' },
+  { id: 'tt_shirt', slot: 'shirt', set: 'tet', rar: 2, price: 2200, col: 0xc22a3a, name: 'Áo dài gấm', mods: { ctl: 1, rch: 0.25, pow: -0.5 }, desc: 'Thướt tha mà chuẩn xác; không dùng sức.' },
+  { id: 'tt_neck', slot: 'neck', set: 'tet', rar: 2, price: 2200, col: 0xc22a3a, name: 'Bao lì xì', mods: { sta: 1, ctl: 0.25, spd: -0.5 }, desc: 'Có lộc nên khỏe cả năm; giữ kỹ nên đi chậm.' },
+  { id: 'tt_back', slot: 'back', set: 'tet', rar: 2, price: 2200, col: 0xff9fb8, name: 'Cành đào', mods: { jmp: 1, ctl: 0.25, pow: -0.5 }, desc: 'Xuân về, lòng nhẹ bẫng; sợ rụng hoa nên đập nhẹ.' },
+  { id: 'id_face', slot: 'face', set: 'idol', rar: 2, price: 2200, col: 0xff3d9a, name: 'Kính ngôi sao', mods: { spd: 1, jmp: 0.25, ctl: -0.5 }, desc: 'Tỏa sáng trên sân; chói nên kém chuẩn.' },
+  { id: 'id_neck', slot: 'neck', set: 'idol', rar: 2, price: 2200, col: 0xff3d9a, name: 'Nơ sân khấu', mods: { jmp: 1, ctl: 0.25, pow: -0.5 }, desc: 'Nhảy như trên sân khấu; không quen đập mạnh.' },
+  { id: 'ic_head', slot: 'head', set: 'ice', rar: 3, price: 5000, col: 0x7fe3ff, name: 'Vương miện băng', mods: { ctl: 1, rch: 0.5, spd: -0.5 }, desc: 'Lạnh lùng, chính xác tuyệt đối; lạnh nên chậm.' },
+  { id: 'ic_shirt', slot: 'shirt', set: 'ice', rar: 3, price: 5000, col: 0xcfeeff, name: 'Áo băng tuyết', mods: { sta: 1, ctl: 0.5, pow: -0.5 }, desc: 'Không bao giờ đổ mồ hôi; giòn nên đập nhẹ.' },
+  { id: 'ic_neck', slot: 'neck', set: 'ice', rar: 3, price: 5000, col: 0xbfeaff, name: 'Mặt dây bông tuyết', mods: { rch: 1, ctl: 0.5, jmp: -0.5 }, desc: 'Đóng băng đường cầu từ xa; nặng nên bật kém.' },
+  { id: 'ic_back', slot: 'back', set: 'ice', rar: 3, price: 5000, col: 0x9fe0ff, name: 'Cánh pha lê băng', mods: { jmp: 1, sta: 0.5, pow: -0.5 }, desc: 'Lướt trên gió lạnh; mỏng nên thiếu lực.' },
+  { id: 'ic_racket', slot: 'racket', set: 'ice', rar: 3, price: 5000, col: 0x7fe3ff, name: 'Vợt băng', mods: { ctl: 1, pow: 0.5, sta: -0.5 }, desc: 'Sắc như băng nhọn; lạnh tay nên mau mỏi.' },
 ];
 // outfit sets: wearing 3 pieces of one set adds +0.25 to the set's stat, all 5 pieces +0.5 (inside the same +-2 cap)
 const GEAR_SETS = [{ id: 'beach', name: 'Mùa hè', stat: 'sta' }, { id: 'ninja', name: 'Ninja', stat: 'spd' }, { id: 'pirate', name: 'Hải tặc', stat: 'pow' },
@@ -215,10 +251,16 @@ const GEAR_SETS = [{ id: 'beach', name: 'Mùa hè', stat: 'sta' }, { id: 'ninja'
   { id: 'diver', name: 'Thợ lặn', stat: 'sta' }, { id: 'rock', name: 'Rock', stat: 'pow' }, { id: 'detective', name: 'Thám tử', stat: 'ctl' }, { id: 'robot', name: 'Rô-bốt', stat: 'sta' },
   { id: 'angel', name: 'Thiên thần', stat: 'jmp' }, { id: 'samurai', name: 'Samurai', stat: 'pow' },
   { id: 'bee', name: 'Ong chăm chỉ', stat: 'spd' }, { id: 'police', name: 'Cảnh sát', stat: 'ctl' }, { id: 'pumpkin', name: 'Bí ngô', stat: 'rch' }, { id: 'dino', name: 'Khủng long', stat: 'pow' },
-  { id: 'fairy', name: 'Tiên bướm', stat: 'jmp' }, { id: 'demon', name: 'Ác quỷ', stat: 'pow' }];
+  { id: 'fairy', name: 'Tiên bướm', stat: 'jmp' }, { id: 'demon', name: 'Ác quỷ', stat: 'pow' },
+  { id: 'football', name: 'Cầu thủ', stat: 'spd' }, { id: 'student', name: 'Học sinh', stat: 'ctl' }, { id: 'thief', name: 'Đạo chích', stat: 'spd' }, { id: 'doctor', name: 'Bác sĩ', stat: 'ctl' },
+  { id: 'boxer', name: 'Võ sĩ', stat: 'pow' }, { id: 'hunter', name: 'Thợ săn', stat: 'rch' }, { id: 'knight', name: 'Hiệp sĩ', stat: 'sta' }, { id: 'tet', name: 'Tết', stat: 'ctl' },
+  { id: 'idol', name: 'Thần tượng', stat: 'jmp' }, { id: 'ice', name: 'Băng giá', stat: 'ctl' }];
+// bonus tiers by the size of the set: [pieces worn, bonus]
+const SET_TIERS = { 2: [[2, 0.25]], 3: [[2, 0.25], [3, 0.5]], 4: [[2, 0.25], [4, 0.5]], 5: [[3, 0.25], [5, 0.5]], 6: [[3, 0.25], [5, 0.5], [6, 0.75]] };
+const setSize = (id) => GEAR.filter((g) => g.set === id).length, setTiers = (id) => SET_TIERS[setSize(id)] || [];
 function setBonus(ids) {
   const set = gearSet(ids), n = {}; for (const k in set) if (set[k].set) n[set[k].set] = (n[set[k].set] || 0) + 1;
-  return GEAR_SETS.filter((s) => n[s.id]).map((s) => ({ id: s.id, name: s.name, stat: s.stat, n: n[s.id], bonus: n[s.id] >= 6 ? 0.75 : n[s.id] >= 5 ? 0.5 : n[s.id] >= 3 ? 0.25 : 0 }));
+  return GEAR_SETS.filter((s) => n[s.id]).map((s) => ({ id: s.id, name: s.name, stat: s.stat, n: n[s.id], size: setSize(s.id), bonus: setTiers(s.id).reduce((b, t) => (n[s.id] >= t[0] ? t[1] : b), 0) }));
 }
 const GEAR_STAT_CAP = 2;                                   // gear can move one stat by at most +-2 points in total
 const STAT_KEYS = ['spd', 'jmp', 'pow', 'rch', 'ctl', 'sta'];
@@ -1175,7 +1217,7 @@ function applyAthleteSnap(a, v) {
 return {
   DT, G, DRAG, NET_H, HALF_L, HALF_W, DBL_W, SHORT_LINE, LONG_SERVE, SERVE_CLOCK,
   CHARS, DIFF, VENUES, SHOTS, charStats, fatigue,
-  GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
+  GEAR, GEAR_SLOTS, GEAR_SETS, setBonus, setTiers, setSize, GEAR_MAX_LV, gearBase, gearLv, gearAtLv, GEAR_RARITY, GEAR_STAT_CAP, gearById, gearSet, gearMods, effStats, powerOf,
   stepShuttle, simLand, solveShot, inReachAt, sgn,
   createMatch, step, snapshot, applyAthleteSnap,
   clamp, lerp, damp, rand, randn, predictSelf, moveAthlete,
