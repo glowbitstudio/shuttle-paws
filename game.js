@@ -1235,7 +1235,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     mk(new THREE.CylinderGeometry(1.035, 1.05, 0.09, 32, 1, true), dk, 0, 0.3, 0, cap);
     mk(new THREE.SphereGeometry(0.1, 10, 8), acc, 0, 1.07, 0, cap);
     const front = mk(new THREE.SphereGeometry(1.075, 14, 8, -0.5, 1.0, 0.5, 0.72), acc, 0, 0, 0, cap); front.rotation.y = 0;
-    const brim = mk(new THREE.CylinderGeometry(0.86, 0.86, 0.1, 28, 1, false, -1.0, 2.0), dk, 0, 0.27, 0.42, cap, true); brim.rotation.x = 0.36; brim.scale.z = 1.12;
+    const brim = mk(new THREE.CylinderGeometry(0.9, 0.9, 0.11, 28, 1, false, -1.05, 2.1), dk, 0, 0.375, 0.44, cap, true); brim.rotation.x = 0.2; brim.scale.z = 1.1;   // leaves the dome at its front edge (no strip of forehead between cap and brim)
     return gr;
   }
   if (kind === 'ninja') {   // hood over the top and back of the head, headband with a metal plate, two tails
