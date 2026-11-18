@@ -608,7 +608,12 @@ function doHit(m, a, shotName, target, q, label, pw) {
   // where, and where the other player stood and whether they were down. [who, x, z, shot, aim x, aim z, other x, other z, other down]
   if (m.dareOn === undefined) m.dareOn = m.athletes.some((x) => x.ctrl === 'bot' && x.diff >= 4);
   if (m.dareOn) { const o = m.athletes.find((x) => x.team !== a.team), r1 = (v) => Math.round(v * 10) / 10, cur = m.dareCur || (m.dareCur = []);
-    if (cur.length < 40) cur.push([a.ctrl === 'bot' ? 'B' : 'P', r1(a.x), r1(a.z), shotName, r1(target.x), r1(target.z), r1(o.x), r1(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0]); }
+    // ... then: match clock, seconds since the previous hit (how rushed), contact point of the shuttle x z y (= where the previous shot really
+    // arrived), jump height, hit quality 0..1, stamina of the hitter and of the other player, where this shot will really go x z, forced error
+    const r2 = (v) => Math.round(v * 100) / 100, dt = s.hitClock === undefined ? 0 : m.clock - s.hitClock;
+    if (cur.length < 80) cur.push([a.ctrl === 'bot' ? 'B' : 'P', r1(a.x), r1(a.z), shotName, r1(target.x), r1(target.z), r1(o.x), r1(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0,
+      r2(m.clock), r2(dt), r1(from.x), r1(from.z), r1(from.y), r2(a.jumpY || 0), r2(q), r2(a.sta), r2(o.sta), r1(t.x), r1(t.z), blunder]); }
+  a.dareDt = s.hitClock === undefined ? 1.5 : Math.min(3, m.clock - s.hitClock); s.hitClock = m.clock;   // the time this player had for the shot
   m.shuttle.lastShotName = shotName;   // what kind of shot is in the air (the challenger's situation uses the incoming one)
   const botPow = a.ctrl === 'bot' && (shotName === 'smash' || shotName === 'drive') ? [0.85, 0.92, 0.97, 1.04, 1.06][a.diff] : a.ctrl === 'human' && shotName === 'smash' ? 1.12 : 1;
   useStamina(m, a, shotName === 'smash' ? 0.014 : shotName === 'serveHigh' || shotName === 'serveShort' ? 0.002 : shotName === 'drive' || shotName === 'clear' || shotName === 'lift' ? 0.004 : 0.003);
@@ -798,18 +803,19 @@ function dareCell(L, k, n) { const T = L.T || (L.T = {}); return T[k] || (T[k] =
 // (x seen from the bot's own end, depth = distance from the net; reply = where the answer to that shot came back, -9 = unknown).
 // A decision looks up the records closest to the present moment and asks what happened there.
 function dareCtx(m, b) { let o = null; for (const x of m.athletes) if (x.team !== b.team && (!o || Math.abs(x.z) < Math.abs(o.z))) o = x; const sg = sgn(b.team), inc = m.shuttle.lastShotName;
-  return [b.x * sg, Math.abs(b.z), o.x * sg, Math.abs(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0, inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1]; }
+  const c = [b.x * sg, Math.abs(b.z), o.x * sg, Math.abs(o.z), o.diveT >= 0 || o.recoverT > 0 ? 1 : 0, inc === 'smash' || inc === 'drive' ? 2 : inc === 'drop' || inc === 'net' ? 0 : 1]; c.dt = Math.round(Math.min(3, m.clock - (m.shuttle.hitClock === undefined ? m.clock - 1.5 : m.shuttle.hitClock)) * 100) / 100; c.sta = Math.round(b.sta * 100) / 100; return c; }
 function dareNear(L, c, fn) { const M = L.mem; if (!M) return;
-  for (const r of M) { const d = Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[2] - c[2], 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0); if (d < 2.5) fn(r, r[9] * Math.exp(-d)); } }
+  const cd = c.length > 13 ? c[13] : c.dt, cs = c.length > 13 ? c[14] : c.sta;   // how rushed it is and how tired: only compared when both moments know them
+  for (const r of M) { let d = (r.length > 13 && cd !== undefined ? Math.pow((r[13] - cd) / 0.9, 2) + Math.pow((r[14] - cs) / 0.6, 2) : 0) + Math.pow((r[0] - c[0]) / 1.2, 2) + Math.pow((r[1] - c[1]) / 1.2, 2) + Math.pow(r[2] - c[2], 2) + Math.pow(r[3] - c[3], 2) + (r[4] !== c[4] ? 4 : 0) + (r[5] !== c[5] ? 1.5 : 0); if (d < 2.5) fn(r, r[9] * Math.exp(-d)); } }
 // When the memory is full the oldest record is not thrown away: it is folded into the most similar record still kept (same shot, same
 // result, same opponent state and incoming class, everything within ~0.7 m), which moves to their weighted middle and grows heavier.
 // So a moment met a hundred times stays as one heavy record; only an old one-off with nothing like it is forgotten.
 function dareCompact(M, max) {
-  const P = [0, 1, 2, 3, 7, 8];
+  const P = [0, 1, 2, 3, 7, 8, 13, 14];
   let spare = 2 * max;   // a heavy record with nothing like it left goes back to the end instead of being dropped (a bounded number of times)
   while (M.length > max) { const r = M.shift(); let best = null, bd = 1;
-    for (const q of M) { if (q[6] !== r[6] || q[4] !== r[4] || q[5] !== r[5] || q[10] !== r[10]) continue; let d = 0; for (const i of P) d = Math.max(d, Math.abs(q[i] - r[i]) / 0.7); if (d < bd) { bd = d; best = q; } }
-    if (!best) { if (r[9] > 1.5 && spare-- > 0) M.push(r); continue; } const w = r[9], W = best[9], t = w + W; for (const i of P) best[i] = Math.round((best[i] * W + r[i] * w) / t * 100) / 100;
+    for (const q of M) { if (q[6] !== r[6] || q[4] !== r[4] || q[5] !== r[5] || q[10] !== r[10] || q.length !== r.length) continue; let d = 0; for (const i of P) if (i < r.length) d = Math.max(d, Math.abs(q[i] - r[i]) / 0.7); if (d < bd) { bd = d; best = q; } }
+    if (!best) { if (r[9] > 1.5 && spare-- > 0) M.push(r); continue; } const w = r[9], W = best[9], t = w + W; for (const i of P) if (i < r.length) best[i] = Math.round((best[i] * W + r[i] * w) / t * 100) / 100;
     if (r[11] > -8) { if (best[11] < -8) { best[11] = r[11]; best[12] = r[12]; } else if (Math.abs(best[11] - r[11]) < 1 && Math.abs(best[12] - r[12]) < 1) { best[11] = Math.round((best[11] * W + r[11] * w) / t * 100) / 100; best[12] = Math.round((best[12] * W + r[12] * w) / t * 100) / 100; } }
     best[9] = Math.min(Math.round(t * 100) / 100, 40); }
   return M; }
@@ -834,7 +840,7 @@ function botChooseShot(m, b) {
     if (Math.random() < 0.05) { const any = DARE_SHOTS.filter(ok); if (any.length) shot = any[Math.floor(Math.random() * any.length)]; }   // now and then something else, so untried shots get a chance
     b.prevShot = b.lastShot || null; b.prevKey = b.lastKey || null; b.lastShot = shot; b.lastKey = key;
     { const H = b.hist || (b.hist = []), pv = H[H.length - 1]; if (pv && pv[3]) { pv[3][11] = ctx[0]; pv[3][12] = ctx[1]; }   // the reply to its previous shot came back to exactly here
-      H.push([key, shot, undefined, ctx.concat([DARE_SHOTS.indexOf(shot), 0, 0, 0, 0, -9, -9])]); if (H.length > 6) H.shift(); }   // its shots of this rally, oldest first
+      H.push([key, shot, undefined, ctx.concat([DARE_SHOTS.indexOf(shot), 0, 0, 0, 0, -9, -9, ctx.dt, ctx.sta])]); if (H.length > 6) H.shift(); }   // its shots of this rally, oldest first
   }
   return shot;
 }
@@ -867,7 +873,7 @@ function dareAim(m, b, shot, t) {
   return t;
 }
 function botLearn(m, winner) {
-  if (m.dareOn) { const s0 = m.shuttle.p, r1 = (v) => Math.round(v * 10) / 10, log = m.dareLog || (m.dareLog = []); log.push({ w: winner, last: m.shuttle.lastTeam, land: [r1(s0.x), r1(s0.z)], ev: m.dareCur || [] }); if (log.length > 60) log.shift(); m.dareCur = []; }
+  if (m.dareOn) { const s0 = m.shuttle.p, r1 = (v) => Math.round(v * 10) / 10, log = m.dareLog || (m.dareLog = []); log.push({ w: winner, last: m.shuttle.lastTeam, land: [r1(s0.x), r1(s0.z)], sc: m.score.slice(0, 2), t: Math.round(m.clock * 10) / 10, why: m.lastReason || "", ev: m.dareCur || [] }); if (log.length > 60) log.shift(); m.dareCur = []; }
   for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) {
     const L = b.learn || (b.learn = { front: 0, bad: {} }), sg = sgn(b.team), s = m.shuttle.p, sz = Math.abs(s.z), bz = Math.abs(b.z), won = winner === b.team, own = m.shuttle.lastTeam === b.team;
     const rec = (key, shot, wt) => { if (key && shot) { const c = dareCell(L, 'c|' + key + '|' + shot, 2); c[0] += wt; if (won) c[1] += wt; } };
@@ -1261,7 +1267,7 @@ function judge(m, inside) {
 function changeEnds(m) { m.windBase += Math.PI; m.wind.x = -m.wind.x; m.wind.z = -m.wind.z; emit(m, { type: 'ends' }); }
 
 function awardPoint(m, winner, why) {
-  botLearn(m, winner);
+  m.lastReason = why || ""; botLearn(m, winner);
   m.state = 'point'; m.stateT = 0;
   restAll(m, POINT_REST, POINT_REST_DEEP);  // brief point rest; cannot refund a typical rally while fresh
   const wasServing = m.serverTeam === winner;

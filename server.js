@@ -337,9 +337,9 @@ const handlers = {
       for (let i = 0; i < cell.length; i++) cell[i] = Math.min(300, Math.round((cell[i] * 0.98 + num(msg.T[k][i], 0, 40)) * 100) / 100);
     }
     // the full rally record of that match (every hit, positions, result) is kept for study: the last 300 rallies of all players
-    if (Array.isArray(msg.log) && JSON.stringify(msg.log).length < 120000) data.dareLog = (data.dareLog || []).concat(msg.log.slice(-60).map((r) => ({ p: c.id.slice(0, 6), at: now, w: r && r.w, last: r && r.last, land: r && r.land, ev: r && Array.isArray(r.ev) ? r.ev.slice(0, 40) : [] }))).slice(-300);
+    if (Array.isArray(msg.log) && JSON.stringify(msg.log).length < 320000) data.dareLog = (data.dareLog || []).concat(msg.log.slice(-60).map((r) => ({ p: c.id.slice(0, 6), at: now, w: r && r.w, last: r && r.last, land: r && r.land, sc: r && r.sc, t: r && r.t, why: r && typeof r.why === 'string' ? r.why.slice(0, 60) : '', ev: r && Array.isArray(r.ev) ? r.ev.slice(0, 80) : [] }))).slice(-400);
     // concrete memories: one record per shot the challenger played in that match (13 numbers); the newest 700 of all players are kept
-    if (Array.isArray(msg.mem)) { const okm = msg.mem.slice(-250).filter((r) => Array.isArray(r) && r.length === 13 && r.every((x) => typeof x === 'number' && isFinite(x) && Math.abs(x) < 20) && r[6] >= 0 && r[6] <= 5 && r[9] > 0 && r[9] <= 1 && (r[10] === 0 || r[10] === 1)); G.mem = Sim.dareCompact((G.mem || []).concat(okm), 700); }
+    if (Array.isArray(msg.mem)) { const okm = msg.mem.slice(-250).filter((r) => Array.isArray(r) && (r.length === 13 || r.length === 15) && r.every((x) => typeof x === 'number' && isFinite(x) && Math.abs(x) < 20) && r[6] >= 0 && r[6] <= 5 && r[9] > 0 && r[9] <= 1 && (r[10] === 0 || r[10] === 1)); G.mem = Sim.dareCompact((G.mem || []).concat(okm), 700); }
     G.n = Math.min(G.n + 1, 1e6); save();
   },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
