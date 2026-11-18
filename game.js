@@ -2194,7 +2194,13 @@ function startLocal(opts) {
   if (opts.mode === '2v2') slots.push({ name: names[2], char: pick(), ctrl: 'bot', diff: d, hand: botHand(), gear: dare() });
   const venueIdx = opts.venue < 0 ? Math.floor(Math.random() * S.VENUES.length) : opts.venue;
   const m = S.createMatch({ mode: opts.mode, points: opts.points, games: opts.games || 1, venue: venueIdx, slots, hitStop: settings.hitStop, autoSplit: settings.autoSplit, moveAssist: d >= 4 ? false : undefined, autoSave: d >= 4 ? false : undefined });   // challenger matches play by the online rules: no auto-run, no auto-return, no auto-save
-  if (d >= 4) { const mem = store.get('sp.dare', null); if (mem) for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) b.learn = { front: +mem.front || 0, bad: Object.assign({}, mem.bad || {}) }; }
+  if (d >= 4) {   // the challenger starts from the shared memory (60% of it) plus what it remembers about this player
+    const G = store.get('sp.dareG', null) || { front: 0, bad: {} }, mem = store.get('sp.dare', null) || { front: 0, bad: {} }, bad = {};
+    for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift']) bad[k] = 0.6 * (+(G.bad || {})[k] || 0) + (+(mem.bad || {})[k] || 0);
+    const start = { front: S.clamp(0.6 * (+G.front || 0) + (+mem.front || 0), -0.8, 1.25), bad };
+    for (const b of m.athletes) if (b.ctrl === 'bot' && b.diff >= 4) { b.learn = { front: start.front, bad: Object.assign({}, bad) }; b.home.z = S.sgn(b.team) * S.clamp(Math.abs(b.home.z) - start.front * 0.8, 2.5, 4.5); b.tz = b.home.z; }
+    m.dare0 = { g: { front: 0.6 * (+G.front || 0), bad: Object.fromEntries(Object.keys(bad).map((k) => [k, 0.6 * (+(G.bad || {})[k] || 0)])) }, mem };
+  }
   beginSession('local', m, 0, { localOpts: opts, snapCam: true, tourRound: opts.tourRound });
 }
 
@@ -2753,7 +2759,11 @@ function finishMatch(res) {
   if (tourMsg) $('rematchInfo').innerHTML = tourMsg;
   if (me >= 0) {
     if (won) Sound.win(); else Sound.lose();
-    if (session.kind === 'local') { const cb = m.athletes.find((b) => b.ctrl === 'bot' && b.diff >= 4 && b.learn); if (cb) { const bad = {}; for (const k in cb.learn.bad) bad[k] = Math.round(cb.learn.bad[k] * 50) / 100; store.set('sp.dare', { front: Math.round(cb.learn.front * 70) / 100, bad }); } }
+    if (session.kind === 'local') { const cb = m.athletes.find((b) => b.ctrl === 'bot' && b.diff >= 4 && b.learn), d0 = m.dare0;
+      if (cb && d0) { const own = {}, rep = {}, r2 = (v) => Math.round(v * 100) / 100;   // own = half of what is not the shared part; rep = everything except this player's old memory
+        for (const k in cb.learn.bad) { own[k] = r2(Math.max(0, cb.learn.bad[k] - (d0.g.bad[k] || 0)) * 0.5); rep[k] = r2(Math.max(0, cb.learn.bad[k] - (+(d0.mem.bad || {})[k] || 0))); }
+        store.set('sp.dare', { front: r2((cb.learn.front - d0.g.front) * 0.7), bad: own });
+        if ((m.clock || 0) > 40) Net.send({ t: 'dareLearn', front: r2(cb.learn.front - (+d0.mem.front || 0)), bad: rep }); } }
     if (session.kind === 'local') Net.send({ t: 'localResult', win: won, champ: !!champ, diff: session.localOpts ? session.localOpts.diff : 0, dur: Math.round(m.clock || 0) });   // the server decides the gold
     P.matches++; if (won) { P.wins++; P.streak++; P.bestStreak = Math.max(P.bestStreak, P.streak); } else P.streak = 0;
     P.perfect += st.perfect || 0; P.smash += st.smash || 0; P.diveSaves += st.diveSaves || 0; P.hits += st.hits || 0;
@@ -4465,6 +4475,7 @@ const Net = {
       case 'swapAsk': if (screen === 'room' && !session) showSwapAsk(msg); else this.send({ t: 'swapReply', from: msg.from, ok: false }); break;
       case 'backup': store.set('sp.backup', msg.v); break;
       case 'welcome':
+        if (msg.dare) store.set('sp.dareG', msg.dare);   // what challenger bots have learned from everyone
         this.ok = true; profile.id = msg.id; profile.secret = msg.secret; saveAll();
         this.status(`● Online · ${msg.online} người`, true);
         this.send({ t: 'lobby' });

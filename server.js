@@ -263,7 +263,7 @@ const handlers = {
     c.char = ownedChar(c, msg.char); c.hand = msg.hand === 'L' ? 'L' : 'R';
     c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     data.players[id].name = c.name;
-    send(c, { t: 'welcome', id, secret, online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
+    send(c, { t: 'welcome', id, secret, dare: data.dare || null, online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
     send(c, Eco.view(data.players[id], Date.now())); save();
     rejoinOffer(c);
   },
@@ -289,6 +289,15 @@ const handlers = {
   localResult(c, msg) { const p = data.players[c.id], grant = Eco.grantLocal(p, msg, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimLogin(c) { const p = data.players[c.id], grant = Eco.claimLogin(p, Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
   claimQuest(c, msg) { const p = data.players[c.id], grant = Eco.claimQuest(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { grant })); },
+  // What challenger bots learned in one match on a player's machine, folded into a shared memory every challenger match starts from.
+  // Reports come from clients, so each one is clamped, a player can send one a minute, and a single report moves the average by 2% at most.
+  dareLearn(c, msg) {
+    const now = Date.now(), p = data.players[c.id]; if (!p || now - (p.dareAt || 0) < 60000) return; p.dareAt = now;   // per player, not per connection
+    const G = data.dare || (data.dare = { n: 0, front: 0, bad: {} }), a = Math.max(0.02, 1 / (G.n + 1)), num = (v, lo, hi) => Sim.clamp(+v || 0, lo, hi);
+    G.front = Math.round(((1 - a) * G.front + a * num(msg.front, -0.8, 1.25)) * 1000) / 1000;
+    for (const k of ['smash', 'clear', 'drop', 'drive', 'net', 'lift']) G.bad[k] = Math.round(((1 - a) * (G.bad[k] || 0) + a * num(msg.bad && msg.bad[k], 0, 6)) * 1000) / 1000;
+    G.n = Math.min(G.n + 1, 1e6); save();
+  },
   buySet(c, msg) { const p = data.players[c.id], note = Eco.buySet(p, clean(msg.id, 12), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
   craftGear(c, msg) { const p = data.players[c.id], note = Eco.craftGear(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
   upgradeGear(c, msg) { const p = data.players[c.id], note = Eco.upgradeGear(p, clean(msg.id, 20), Date.now()); save(); send(c, Object.assign(Eco.view(p, Date.now()), { note })); },
