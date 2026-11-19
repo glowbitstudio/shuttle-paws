@@ -943,14 +943,14 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   }
   if (kind === 'diver') {   // dive mask over the eyes (two big lenses in one dark frame, strap round the head), snorkel from the mouth up past the ear
     if (!fit.parent) gr.add(fit);
-    const dk = toon(0x23232b, { side: THREE.DoubleSide }), ey = 0.06, hull = (m) => { m.userData.isOutline = true; return m; };
-    for (const sd of [-1, 1]) { const lg = new THREE.Group(); lg.position.set(sd * 0.34, ey, 0.99); lg.rotation.y = sd * 0.38; fit.add(lg);
+    const fg = P.eye === 'frog', dk = toon(0x23232b, { side: THREE.DoubleSide }), ey = fg ? 0.86 : 0.06, lx = fg ? 0.5 : 0.34, lz = fg ? 0.78 : 0.99, sr = fg ? 0.66 : 1.03, hull = (m) => { m.userData.isOutline = true; return m; };
+    for (const sd of [-1, 1]) { const lg = new THREE.Group(); lg.position.set(sd * lx, ey, lz); lg.rotation.y = sd * 0.38; fit.add(lg);
       hull(mk(new THREE.CylinderGeometry(0.4, 0.42, 0.2, 24, 1, true), OUTLINE, 0, 0, -0.1, lg)).rotation.x = Math.PI / 2; mk(new THREE.CylinderGeometry(0.36, 0.38, 0.2, 24, 1, true), dk, 0, 0, -0.1, lg).rotation.x = Math.PI / 2;
       hull(mk(new THREE.TorusGeometry(0.33, 0.085, 6, 24), OUTLINE, 0, 0, 0, lg)); mk(new THREE.TorusGeometry(0.33, 0.06, 6, 24), team, 0, 0, 0.004, lg);
       const ln = mk(new THREE.CircleGeometry(0.33, 24), basic(0x8fe9ff, { transparent: true, opacity: 0.34, depthWrite: false }), 0, 0, 0.006, lg); ln.renderOrder = 2;
       const sh = mk(new THREE.PlaneGeometry(0.22, 0.045), basic(0xffffff, { transparent: true, opacity: 0.75, depthWrite: false }), -0.08, 0.13, 0.02, lg); sh.rotation.z = 0.6; sh.renderOrder = 3; }
-    mk(new THREE.BoxGeometry(0.2, 0.2, 0.12), dk, 0, ey - 0.14, 1.06, fit, true);   // nose pocket joining the two lenses
-    const st = mk(new THREE.TorusGeometry(1.03, 0.075, 6, 40, Math.PI * 2 - 1.3), dk, 0, ey, 0, fit); st.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hull(mk(new THREE.TorusGeometry(1.03, 0.1, 6, 40, Math.PI * 2 - 1.3), OUTLINE, 0, ey, 0, fit)).rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+    mk(new THREE.BoxGeometry(0.2, 0.2, 0.12), dk, 0, ey - 0.14, lz + 0.07, fit, true);   // nose pocket joining the two lenses
+    const st = mk(new THREE.TorusGeometry(sr, 0.075, 6, 40, Math.PI * 2 - 1.3), dk, 0, ey, 0, fit); st.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hull(mk(new THREE.TorusGeometry(sr, 0.1, 6, 40, Math.PI * 2 - 1.3), OUTLINE, 0, ey, 0, fit)).rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
     const cv = new THREE.CatmullRomCurve3([[0.1, -0.4, 1.03], [0.5, -0.4, 0.95], [0.95, -0.22, 0.45], [1.1, 0.3, 0.12], [1.1, 0.9, 0.05], [1.08, 1.3, 0.05]].map((q) => new THREE.Vector3(q[0], q[1], q[2])));
     hull(mk(new THREE.TubeGeometry(cv, 30, 0.1, 8), OUTLINE, 0, 0, 0, fit)); mk(new THREE.TubeGeometry(cv, 30, 0.075, 8), acc, 0, 0, 0, fit);
     mk(new THREE.SphereGeometry(0.11, 10, 8), dk, 0.08, -0.4, 1.03, fit, true).scale.set(1.4, 0.8, 0.8); mk(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 10), toon(0xffffff), 1.09, 1.12, 0.05, fit);
@@ -1075,6 +1075,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     const gl = mk(new THREE.SphereGeometry(1.5, 28, 18), basic(0xbfe6ff, { transparent: true, opacity: 0.32, depthWrite: false }), 0, 0.12, 0.04, fit); gl.renderOrder = 4;
     const sh = mk(new THREE.SphereGeometry(1.51, 12, 6, 0.9, 0.5, 0.75, 0.55), basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false }), 0, 0.12, 0.04, fit); sh.renderOrder = 5;
     const s2 = mk(new THREE.SphereGeometry(1.51, 8, 4, 2.0, 0.22, 1.0, 0.3), basic(0xffffff, { transparent: true, opacity: 0.7, depthWrite: false }), 0, 0.12, 0.04, fit); s2.renderOrder = 5;
+    for (const b of [gl, sh, s2]) b.scale.y = Math.max(1, 1.12 / P.sq[1]);   // a flat head (frog) squashes the bubble: keep it tall enough to clear eyes that sit on top
     mk(new THREE.TorusGeometry(0.92, 0.17, 8, 28), team, 0, -0.98, 0, fit, true).rotation.x = Math.PI / 2;
     mk(new THREE.TorusGeometry(0.92, 0.06, 6, 28), acc, 0, -0.84, 0, fit).rotation.x = Math.PI / 2;
     mk(new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6), toon(0x8a93a6), 0.75, 1.55, 0, fit); mk(new THREE.SphereGeometry(0.09, 10, 8), toon(0xff5e5e), 0.75, 1.84, 0, fit);
@@ -1416,7 +1417,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const frog = P.eye === 'frog';
     const fxe = V.eyeX || 0.17;
     // a frog in a hat: its eyes ride higher and further forward on bigger bumps, so they stand clear above the hat or band instead of being cut by it
-    const fUp = frog && GI.head && GI.head !== 'dv_head' ? 1 : 0;
+    const fUp = frog && GI.head && GI.head !== 'dv_head' && GI.head !== 'as_head' ? 1 : 0;   // not under the glass bubble (its top would cut the raised eyes) and not with the dive mask (it is worn over the eyes)
     const ex = frog ? s * fxe : s * (V.eyeX2 || 0.125), ey = frog ? 0.25 + fUp * 0.085 : 0.02, ez = (frog ? 0.19 : 0.29) + (frog ? 0.05 + fUp * 0.035 : 0) + (V.eyeZ || 0);
     if (frog) { H(new THREE.SphereGeometry(0.115 + fUp * 0.012, 14, 10), mBody, s * fxe, 0.23 + fUp * 0.085, 0.1 + fUp * 0.035); if (fUp) H(new THREE.CylinderGeometry(0.1, 0.115, 0.12, 14), mBody, s * fxe, 0.2, 0.11); }   // eye bump (no white ball behind the eye: it showed from the side)
     // house-style eye (v3): big round eye - dark rim, large coloured iris, big pupil, the shared wedge highlight plus a
@@ -1515,7 +1516,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   // glasses: in head space, in front of the eyes (they follow the head)
   const faceG = new THREE.Group(); faceG.name = 'faceGear'; hs.add(faceG);
   if (GI.face && eyeAt.length === 2) {
-    const kind = ({ st_face: 'e_pro', id_face: 'e_shade', th_face: 'e_sport' })[GI.face] || GI.face, ownCol = kind !== GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + (kind === 'e_sport' ? 0.05 : kind === 'e_shade' ? 0.042 : 0.036);   // close to the face: seen from the side the lenses must not hang in the air
+    const kind = ({ st_face: 'e_pro', id_face: 'e_shade', th_face: 'e_sport' })[GI.face] || GI.face, ownCol = kind !== GI.face, exA = Math.abs(eyeAt[0][0]) * fx, gy = eyeAt[0][1] * fy, gz = eyeAt[0][2] * fz + (kind === 'e_sport' ? 0.05 : kind === 'e_shade' ? 0.042 : 0.036) - (P.eye === 'frog' ? 0.012 : 0);   // close to the face: seen from the side the lenses must not hang in the air
     const sx = kind === 'e_sport' ? 1.12 : kind === 'e_shade' ? 1.18 : 1.04, sy = kind === 'e_sport' ? 0.88 : kind === 'e_shade' ? 0.86 : 1.08, tube = kind === 'e_shade' ? 0.016 : kind === 'e_sport' ? 0.02 : 0.009;
     const R = Math.min(eyeAt[0][3] * 1.2, (exA - 0.012) / (sx * 0.955));
     const FG = (geo, mat, x, y, z, par) => noOL(add(geo, mat, x, y, z, par || faceG));
@@ -1535,7 +1536,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       if (GI.face === 'th_face') { /* a mask: eye holes, no lenses */ } else {
       const ln = FG(new THREE.CircleGeometry(R, 24), lensM, 0, 0, 0.002, lg); ln.scale.set(sx, sy, 1); ln.renderOrder = 2;
       const sh = FG(new THREE.PlaneGeometry(R * 0.62, R * 0.13), shine, -R * 0.22, R * 0.34, 0.007, lg); sh.rotation.z = 0.62; sh.renderOrder = 3; }
-      if (kind !== 'e_sport') { const tr = kind === 'e_shade' ? 0.012 : 0.007, zm = gz * 0.6, a = new THREE.Vector3(s * (exA + R * sx * 0.93), gy + R * 0.25, gz - 0.035), m = new THREE.Vector3(s * (sideX * Math.sqrt(Math.max(0.1, 1 - Math.pow(zm / AXz, 2))) + 0.012), gy + 0.035, zm), b = new THREE.Vector3(s * (sideX + 0.006), gy + 0.03, -0.02); rod(a, m, tr, frameM); rod(m, b, tr, frameM); }
+      if (kind !== 'e_sport' && P.eye !== 'frog') { const tr = kind === 'e_shade' ? 0.012 : 0.007, zm = gz * 0.6, a = new THREE.Vector3(s * (exA + R * sx * 0.93), gy + R * 0.25, gz - 0.035), m = new THREE.Vector3(s * (sideX * Math.sqrt(Math.max(0.1, 1 - Math.pow(zm / AXz, 2))) + 0.012), gy + 0.035, zm), b = new THREE.Vector3(s * (sideX + 0.006), gy + 0.03, -0.02); rod(a, m, tr, frameM); rod(m, b, tr, frameM); }
     }
     const bx = Math.max(0.004, exA - R * sx * 0.9);
     rod(new THREE.Vector3(-bx, gy + R * sy * 0.2, gz + 0.022), new THREE.Vector3(bx, gy + R * sy * 0.2, gz + 0.022), kind === 'e_pro' ? 0.007 : tube * 0.8, frameM);
@@ -2341,6 +2342,7 @@ canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 function setHint(t) {
   const el = $('hint'); if (el.textContent === t) return;
   el.textContent = t;
+  el.classList.toggle('keep', /giao/i.test(t));   // waiting for a serve: the prompt stays until the serve (on phones it used to fade and leave nothing)
   if (isTouch) { el.classList.remove('show'); if (t) { void el.offsetWidth; el.classList.add('show'); } }   // touch HUD declutter: show briefly, then fade
 }
 let lastScore = '';
@@ -2379,11 +2381,12 @@ function updateScore(bump) {
 const tmpV = new THREE.Vector3();
 function popup(text, cls, pos) {
   const el = document.createElement('div'); el.className = 'pop ' + (cls || ''); el.textContent = text;
-  if (isTouch && !pos && session && session.me >= 0) { const me = session.m.athletes[session.me]; pos = { x: me.x, y: 1.7 + (me.jumpY || 0), z: me.z }; }
+  const big = /(point|gp)/.test(cls || '');   // who won the point: in the middle of the screen and long enough to read, on phones too
+  if (isTouch && !big && !pos && session && session.me >= 0) { const me = session.m.athletes[session.me]; pos = { x: me.x, y: 1.7 + (me.jumpY || 0), z: me.z }; }
   let x = viewW / 2, y = viewH * 0.36;
   if (pos) { tmpV.set(pos.x, pos.y, pos.z).project(camera); x = (tmpV.x + 1) / 2 * viewW; y = (1 - tmpV.y) / 2 * viewH; }
   el.style.left = clamp(x, 60, viewW - 60) + 'px'; el.style.top = clamp(y, 60, viewH - 60) + 'px';
-  $('popups').appendChild(el); setTimeout(() => el.remove(), isTouch ? 520 : 1000);
+  $('popups').appendChild(el); setTimeout(() => el.remove(), isTouch && !big ? 520 : 1100);
 }
 // Money shown in the top bars: whole up to 99 999, then 100K … 999K, 1.23M, 4.5B (cut, never rounded up: it must not show more than you have).
 function fmtN(n) {

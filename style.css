@@ -1260,3 +1260,27 @@ body:not(.dev) .only-dev{display:none!important}
 @media (max-width:520px){#onTabs button{white-space:nowrap;font-size:13px;padding:8px 9px}#onTabs{gap:2px}}
 /* gear screen: the slot title is not tucked under the title bar */
 #s-gear .panel-body{padding-top:6px}
+/* ---- fixes from the match-frame review ---- */
+/* serve prompt stays readable while the game waits for a serve */
+.touchui #hint.keep{animation:none!important;opacity:1!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;text-align:center;max-width:min(72vw,380px)!important;font-size:12.5px!important;background:rgba(18,63,67,.92)!important}
+/* who won the point */
+.touchui .pop.point{font-size:30px;-webkit-text-stroke:3px #2a1f5a;text-shadow:0 3px 0 #2a1f5a;animation:pop 1.1s forwards}
+.touchui .pop.gp{font-size:20px;animation:pop 1.1s forwards}
+.touchui .pop{font-size:16px}.touchui .pop.perfect{font-size:18px}
+/* phone upright: the prompt sits under the score, the timing bar under the prompt - both off the court */
+@media (orientation:portrait){
+  .touchui #hint{top:calc(54px + env(safe-area-inset-top))!important}
+  body.touchui #tmeter{top:calc(92px + env(safe-area-inset-top))!important;bottom:auto!important}
+  .touchui #serveClock{top:calc(54px + env(safe-area-inset-top))!important}
+}
+/* phone on its side: room for a short name in the score */
+@media (orientation:landscape) and (max-height:480px){
+  .touchui #score{max-width:260px!important}.touchui #score .side span{max-width:74px!important}
+  .touchui #score .sta{height:4px}
+}
+/* end of match: title on top, buttons at the bottom, only the middle scrolls (nothing is dragged along) */
+#over .panel{display:flex!important;flex-direction:column;overflow:hidden!important}
+#over .panel>h2,#over .over-btns,#over #rematchInfo{flex:none}
+#over .over-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 calc(-1 * var(--px,22px));padding:0 var(--px,22px) 4px}
+#over #overAch{max-height:none;overflow:visible}
+#over .over-btns{position:static!important;margin:10px 0 0!important;padding:0!important;background:none!important}

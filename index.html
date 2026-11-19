@@ -100,7 +100,7 @@
   <div id="stick"><div id="knob"></div></div>
   <!-- touch controls v2: buttons are placed on an arc around the thumb (style.css, end of file) -->
   <div id="tbtns">
-    <button data-k="hit" class="tb big" id="hitBtn"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19C7 8 15 5 20 9M20 9l-5-.6M20 9l-1.6 4.6"/></svg><span>PHÔNG</span><small id="hitSub">đánh cao</small></button>
+    <button data-k="hit" class="tb big" id="hitBtn"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19C6 7 15 4 20 12M20 12l.3-5M20 12l-4.6-2"/></svg><span>PHÔNG</span><small id="hitSub">đánh cao</small></button>
     <button data-k="smash" class="tb shot smash"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l13 13M18 17v-6M18 17h-6"/></svg><span>ĐẬP</span></button>
     <button data-k="drop" class="tb shot drop"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c3-8 9-8 12-1M16 14l-4.4-.3M16 14l.4-4.4"/></svg><span>BỎ NHỎ</span></button>
     <button data-k="jump" class="tb shot jump"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V6M12 6l-6 6M12 6l6 6"/></svg><span>NHẢY</span></button>
@@ -396,10 +396,12 @@
 <div id="over" class="panel-wrap hidden">
   <div class="panel small">
     <h2 id="overTitle">Bạn thắng!</h2>
+    <div class="over-body">
     <p id="overScore" class="big-score">11 – 7</p>
     <div id="overStats" class="over-stats"></div>
     <div id="overLevel" class="over-level"></div>
     <div id="overAch"></div>
+    </div>
     <div class="over-btns"><button id="toMenu" class="ghost">Về menu</button><button id="again" class="cta">Đấu lại</button></div>
     <p class="tiny" id="rematchInfo"></p>
   </div>
