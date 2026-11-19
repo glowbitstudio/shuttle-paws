@@ -1254,3 +1254,9 @@ body:has(#hud:not(.hidden)) #toasts{top:calc(max(12px,env(safe-area-inset-top)) 
 .venue .vlock{top:6px;bottom:auto}
 /* locked character names stay readable */
 .char.locked small{opacity:1;color:#d7ece8}
+/* developer-only settings stay out of the players' way */
+body:not(.dev) .only-dev{display:none!important}
+/* online tabs on a narrow phone: one line each */
+@media (max-width:520px){#onTabs button{white-space:nowrap;font-size:13px;padding:8px 9px}#onTabs{gap:2px}}
+/* gear screen: the slot title is not tucked under the title bar */
+#s-gear .panel-body{padding-top:6px}

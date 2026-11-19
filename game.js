@@ -1237,7 +1237,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; U(new THREE.SphereGeometry(0.07, 8, 6), toon(0xfdfbf7), Math.cos(a) * 0.17 * tx, tc + 0.27 * ty - 0.05, Math.sin(a) * 0.14 * tz); }
   }
 
-  const earJoints = [], earAll = [], hornParts = [];   // earAll / hornParts: so a hat that covers the crown can tuck them away
+  const earJoints = [], earAll = [], hornParts = [], maneTop = [];   // earAll / hornParts: so a hat that covers the crown can tuck them away
   // ---- head: features are placed on a skull of radius 0.34 squashed by P.sq
   const head = new THREE.Group(); head.position.y = tc + 0.27 * ty + 0.18 + P.headY; up.add(head);
   const hs = new THREE.Group(); hs.scale.setScalar(P.head); head.add(hs);
@@ -1415,8 +1415,10 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     // eyes
     const frog = P.eye === 'frog';
     const fxe = V.eyeX || 0.17;
-    const ex = frog ? s * fxe : s * (V.eyeX2 || 0.125), ey = frog ? 0.25 : 0.02, ez = (frog ? 0.19 : 0.29) + (frog ? 0.05 : 0) + (V.eyeZ || 0);
-    if (frog) H(new THREE.SphereGeometry(0.115, 14, 10), mBody, s * fxe, 0.23, 0.1);   // eye bump (no white ball behind the eye: it showed from the side)
+    // a frog in a hat: its eyes ride higher and further forward on bigger bumps, so they stand clear above the hat or band instead of being cut by it
+    const fUp = frog && GI.head && GI.head !== 'dv_head' ? 1 : 0;
+    const ex = frog ? s * fxe : s * (V.eyeX2 || 0.125), ey = frog ? 0.25 + fUp * 0.085 : 0.02, ez = (frog ? 0.19 : 0.29) + (frog ? 0.05 + fUp * 0.035 : 0) + (V.eyeZ || 0);
+    if (frog) { H(new THREE.SphereGeometry(0.115 + fUp * 0.012, 14, 10), mBody, s * fxe, 0.23 + fUp * 0.085, 0.1 + fUp * 0.035); if (fUp) H(new THREE.CylinderGeometry(0.1, 0.115, 0.12, 14), mBody, s * fxe, 0.2, 0.11); }   // eye bump (no white ball behind the eye: it showed from the side)
     // house-style eye (v3): big round eye - dark rim, large coloured iris, big pupil, the shared wedge highlight plus a
     // tiny second sparkle, and a soft curved upper lid. Both eyes are fused per material after the loop.
     const er = V.eyeR || (P.eye === 'dot' ? 0.062 : 0.074), wide = 0.94, tall = P.eye === 'fierce' ? 0.98 : 1.06; eyeAt.push([ex, ey, ez, er]);
@@ -1469,7 +1471,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
           const hn = H(new THREE.ConeGeometry(0.085, 0.42, 12), toon(0xffd23f), 0, 0.42, 0.27); hn.rotation.x = 0.45;   // thick horn rising from the forehead, in front of the mane
           for (const [rt, rb, hh, y] of [[0.014, 0.105, 0.365, 0.0525], [0.105, 0.087, 0.085, -0.1725]]) { const ho = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 12, 1, true), OUTLINE); ho.position.y = y; ho.userData.noOutline = true; ho.userData.isOutline = true; ho.userData.ownGeo = true; hn.add(ho); } noOL(hn); cutters.push(hn); hornParts.push(hn);   // constant-width outline (the stock hull vanished on the cone)
           for (const f of [0.42, 0.6, 0.78]) { const r = H(new THREE.TorusGeometry(0.085 * (1 - f) + 0.003, 0.009, 4, 12), toon(0xffb84d), 0, 0.231 + 0.378 * f, 0.179 + 0.183 * f); r.rotation.x = Math.PI / 2 + 0.45; noOL(r); hornParts.push(r); }
-          [0xff9fd6, 0x9fd8ff, 0xc5a3ff, 0xffe18a, 0x9ef0b8, 0xff9fd6].forEach((col, i) => H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012).scale.set(1.15, 1.35, 0.8));
+          [0xff9fd6, 0x9fd8ff, 0xc5a3ff, 0xffe18a, 0x9ef0b8, 0xff9fd6].forEach((col, i) => { const lk = H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012); lk.scale.set(1.15, 1.35, 0.8); if (i < 3) maneTop.push(lk); });
         }
         add(new THREE.SphereGeometry(0.075, 12, 10), mEar, 0, 0, 0, ear).scale.set(0.72, 1.6, 0.45); noOL(add(new THREE.SphereGeometry(0.05, 10, 8), mEarIn, 0, -0.005, 0.02, ear)).scale.set(0.6, 1.55, 0.4); ear.position.set(s * 0.23 * fx, 0.33 * fy, -0.03); ear.rotation.z = -s * 0.45;
         break;
@@ -1803,8 +1805,10 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   // a hat that covers the crown has short ears under it (they used to poke through its side); long ears and floppy ears stay out.
   // The unicorn's horn goes under the closed hats too, and keeps poking through the brimmed ones.
   if (setHead) { const hk = setHead[0];
+    if (P.eye === 'frog' && ['straw', 'tricorn', 'wizard', 'cowboy', 'police', 'kabuto'].includes(hk)) headGear.position.y -= 0.02;   // frog: a brim sits under the raised eyes, not across them
     if (['straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer'].includes(hk) && ['round', 'cat', 'koala', 'sheep', 'unicorn'].includes(c.ear)) for (const e of earAll) e.visible = false;
-    if (['chef', 'pumpkin', 'beanie', 'turban', 'dino'].includes(hk)) for (const h of hornParts) h.visible = false; }
+    if (['chef', 'pumpkin', 'beanie', 'turban', 'dino'].includes(hk)) for (const h of hornParts) h.visible = false;
+    if (['straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer', 'ninja'].includes(hk)) for (const m of maneTop) m.visible = false; }   // the top locks of the mane go under the hat
   const wristGear = [];
   // back / tails
   const back = -0.26 * tz;
@@ -1853,8 +1857,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     ], mBody);
   } else if (c.tail === 'long') {   // cat / dog / tiger: one smooth S-curve that sways
     const tipMat = c.id === 'dog' ? mBelly : mBody;
-    tailChain(0.38, back - 0.02, [
-      { len: 0.11, r0: 0.046, r1: 0.044, rx: -1.15 }, { len: 0.11, r0: 0.044, r1: 0.042, rx: 0.35 },
+    const lowT = GI.back ? 1 : 0;
+    tailChain(0.38 - lowT * 0.1, back - 0.02, [
+      { len: 0.11, r0: 0.046, r1: 0.044, rx: -1.15 - lowT * 0.8 }, { len: 0.11, r0: 0.044, r1: 0.042, rx: 0.35 - lowT * 0.1 },
       { len: 0.11, r0: 0.042, r1: 0.04, rx: 0.4 }, { len: 0.1, r0: 0.04, r1: 0.038, rx: 0.35 },
       { len: 0.085, r0: 0.038, r1: 0.032, rx: -0.15, mat: tipMat },
     ], mBody, c.stripes || V.tailRings ? (seg, i) => { if (i < 4) { const r = add(new THREE.TorusGeometry(seg.r0 + 0.003, 0.011, 6, 18), c.stripes ? mDark : toon(shadeHex(c.body, -0.45)), 0, seg.len * 0.55, 0, seg.g); r.rotation.x = Math.PI / 2; noOL(r); } } : null);
@@ -4812,6 +4817,7 @@ function syncCtrlUI() { $('hitSub').textContent = settings.ctrl === 'charge' ? '
 syncCtrlUI();
 document.documentElement.style.setProperty('--tscale', settings.touch);
 if (isTouch) document.body.classList.add('touchui');
+if (/[?&]dev/.test(location.search) || /^(localhost|127\.|10\.|192\.168\.)/.test(location.hostname)) document.body.classList.add('dev');   // developer-only settings (server address)
 document.body.classList.toggle('tswap', !!settings.touchSwap);   // touch controls v2: mirrored layout
 resize();
 const roomParam = new URLSearchParams(location.search).get('room');
