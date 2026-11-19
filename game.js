@@ -2618,7 +2618,7 @@ function chestPop(ch) {
 function onWallet(msg) {
   store.set('sp.level', msg.level || 1);
   wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {}, free: msg.freeChests || {}, levelRewards: msg.levelRewards || [] };
-  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
+  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.goldN').forEach((b) => { b.textContent = wallet.gold; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
   if (!isUnlocked(charById(profile.char))) { profile.char = 'cat'; saveAll(); Net.profile(); }
@@ -4401,6 +4401,14 @@ const backTarget = () => (charsBack === 'chars' || !charsBack ? 'home' : charsBa
 $('charsBack').onclick = () => { Sound.boop(); go(backTarget()); };
 $('charsDone').onclick = () => {
   Sound.boop();
+  const ic = charById(infoChar || profile.char), price = charPrice(ic.id);
+  if (!isUnlocked(ic)) {   // not owned: this button buys it
+    if (!price) return;
+    if (!wallet) toast('Chưa kết nối máy chủ', 'Cần có mạng để mua nhân vật', 'lock');
+    else if (wallet.gold < price) toast('Chưa đủ vàng', 'Còn thiếu ' + (price - wallet.gold) + ' vàng', 'lock');
+    else Net.send({ t: 'buyChar', id: ic.id });
+    return;
+  }
   if (charsBack === 'bot') { startLocal(Object.assign({}, botOpts)); return; }
   go(backTarget());
 };
@@ -4437,14 +4445,14 @@ function renderChars() {
   const bars = [['Tốc độ', 'spd'], ['Bật nhảy', 'jmp'], ['Lực đập', 'pow'], ['Tầm với', 'rch'], ['Khéo léo', 'ctl'], ['Thể lực', 'sta']]
     .map(([n, k]) => `<span>${n}</span><div class="bar"><i style="width:${c.stats[k] * 20}%"></i></div>`).join('');
   // the buy button sits under the character on the stage (not in the side panel, where it pushed the list into scrolling)
-  $('stageName').innerHTML = `${esc(c.name)}<small>${esc(c.kind)}${ok ? '' : ' · ' + icon('lock') + ' Chưa mở khoá'}</small>` +
-    (!ok && price ? `<button class="stage-buy" id="charBuy" ${wallet && wallet.gold >= price ? '' : 'disabled'}><i class="coin"></i>Mua · ${price} vàng</button><small class="need">Bạn có ${wallet ? wallet.gold : 0} vàng${wallet && wallet.gold < price ? ' · còn thiếu ' + (price - wallet.gold) : ''}</small>` : '');
-  $('charsDone').textContent = charsBack === 'bot' ? 'Chọn & vào trận' : charsBack === 'room' ? 'Chọn & về phòng' : 'Chọn';
-  $('charsDone').disabled = !ok;
+  $('stageName').innerHTML = `${esc(c.name)}<small>${esc(c.kind)}${ok ? '' : ' · ' + icon('lock') + ' Chưa mở khoá'}</small>`;
+  if (ok) $('charsDone').textContent = charsBack === 'bot' ? 'Chọn & vào trận' : charsBack === 'room' ? 'Chọn & về phòng' : 'Chọn';
+  else $('charsDone').innerHTML = price ? `Mua · <i class="coin"></i>${price}` : icon('lock') + 'Chưa mở khoá';
+  $('charsDone').disabled = !ok && !price; $('charsDone').classList.toggle('buy', !ok && !!price); $('charsDone').classList.toggle('short', !ok && !!price && !!wallet && wallet.gold < price);
+  document.querySelectorAll('.goldN').forEach((b) => { b.textContent = wallet ? wallet.gold : '…'; });
   $('charInfo').innerHTML = `<h3>${faceImg(c.id)}${esc(c.name)} <small style="color:var(--ink2)">· ${esc(c.kind)}</small></h3><p>${esc(c.desc)}</p>` +
     (ok ? '' : (req ? `<p>${icon('lock')} Mở khoá: <b>${esc(req.name)}</b>, ${esc(req.desc)}${price ? ' · hoặc mua bằng vàng' : ''}</p>` : '') +
       '') + `<div class="bars">${bars}</div>`;
-  if ($('charBuy')) $('charBuy').onclick = () => { Sound.boop(); Net.send({ t: 'buyChar', id: c.id }); };
 }
 $('nameInput').addEventListener('change', () => { profile.name = $('nameInput').value.trim().slice(0, 18) || randomName(); $('nameInput').value = profile.name; saveAll(); Net.profile(); });
 // first launch: ask for a name once. Players who already have a server identity are not asked again.

@@ -307,6 +307,7 @@ const handlers = {
     c.assist = Sim.clamp(msg.assist | 0, 0, 2);
     data.players[id].name = c.name;
     send(c, { t: 'welcome', id, secret, dareN: (data.dare && data.dare.n) || 0, dareLog: dareLogWant(), online: onlineCount(), wins: data.players[id].wins || 0, played: data.players[id].played || 0 });
+    if (!process.env.NO_TEST_GIFT) Eco.testGift(data.players[id], Date.now());   // temporary test money, see economy.js
     send(c, Eco.view(data.players[id], Date.now())); save();
     rejoinOffer(c);
   },

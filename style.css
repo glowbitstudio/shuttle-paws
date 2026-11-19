@@ -1194,3 +1194,13 @@ body.touchui .only-keys,body:not(.touchui) .only-touch{display:none}
 #s-shop header{top:calc(-1 * var(--pt,22px))!important}
 #s-shop #gearTabs{top:calc(var(--shopH,60px) - var(--pt,22px))!important}
 @media (max-width:520px){#s-shop header h2{display:none}#s-shop header{justify-content:space-between}#s-shop header .gold-chip:first-of-type{margin-left:auto!important}}
+/* round icon buttons: no button padding, so the icon sits in the exact middle */
+.round-btn{padding:0!important;line-height:0}.round-btn .ico{display:block;margin:0}
+/* character screen: gold and diamonds in the title bar; the pick button turns into the buy button for a character not owned yet */
+#s-chars header h2{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#s-chars header .gold-chip{flex:none;padding:4px 10px;font-size:14px;margin-left:4px;background:rgba(16,14,48,.75)}
+#charsDone.buy{background:linear-gradient(180deg,#ffe58a,#ffb21a)!important;color:#4a2c00!important;box-shadow:0 5px 0 #b97a00!important;text-shadow:none!important}
+#charsDone.buy .coin{width:18px;height:18px;margin:0 5px 0 2px;vertical-align:-3px}
+#charsDone.buy.short{filter:saturate(.55) brightness(.85)}
+#charsDone .ico{width:16px;height:16px;margin-right:6px;vertical-align:-2px}
+@media (max-width:520px){#s-chars header h2{font-size:17px}#s-chars header .gold-chip{padding:3px 7px;font-size:12px}}

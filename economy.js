@@ -125,6 +125,8 @@ function claimQuest(p, id, now) {
   e.quests.claimed.push(q.id); e.gold += q.reward;
   return { gold: q.reward, why: 'Nhiệm vụ: ' + q.name };
 }
+// TEMPORARY, for testing before release: every account gets 3000 gold once. Remove (with the call in server.js) before real players.
+function testGift(p, now) { const e = ensure(p, now); if (e.tg1) return false; e.tg1 = 1; e.gold += 3000; return true; }
 function buyChar(p, id, now) {
   const e = ensure(p, now), price = Object.prototype.hasOwnProperty.call(PRICES, id) ? PRICES[id] : null;
   if (price === null || e.owned.includes(id)) return { ok: false, why: 'Không mua được nhân vật này' };
@@ -194,4 +196,4 @@ function equip(p, slot, id, now) {
 // ids worn right now (only owned, known items)
 function equipped(p, now) { const e = ensure(p, now); return Object.values(e.equip).filter((id) => e.items.includes(id) && Sim.gearById(id)).map((id) => (e.lv[id] ? id + '+' + e.lv[id] : id)); }
 
-module.exports = { levelReward, levelOf, levelXp, XP_ONLINE, XP_LOCAL_WIN, XP_LOCAL_LOSS, buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_SP, UNI_RATE, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };
+module.exports = { testGift, levelReward, levelOf, levelXp, XP_ONLINE, XP_LOCAL_WIN, XP_LOCAL_LOSS, buySet, craftGear, upgradeGear, buyShards, setPrice, DUP_SHARDS, CRAFT_COST, UP_SP, UNI_RATE, SET_GEMS, SHARD_PACKS, openChest, CHESTS, GEM_ONLINE_WIN, GEM_CHAMP, GEM_STREAK7, buyGear, equip, equipped, ensure, view, grantOnline, grantLocal, claimLogin, claimQuest, buyChar, canUse, dayOf, PRICES, FREE_CHARS, MUST_OWN, QUESTS, LOGIN_REWARDS, LOCAL_DAILY_CAP, START_GOLD, LOCAL_WIN, LOCAL_LOSS, ONLINE_WIN, ONLINE_LOSS };
