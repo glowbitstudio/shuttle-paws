@@ -4347,6 +4347,7 @@ $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 // never be dragged, stretched or bounced away with the content (sticky bars did exactly that on real phones).
 document.querySelectorAll('.panel').forEach((p) => { const h = p.querySelector(':scope > header'); if (!h) return;
   const b = document.createElement('div'); b.className = 'panel-body'; while (h.nextSibling) b.appendChild(h.nextSibling); p.appendChild(b); p.classList.add('hasbody'); });
+document.querySelectorAll('.panel-body .cta.sticky').forEach((c) => { const f = document.createElement('div'); f.className = 'cta-foot'; c.parentNode.insertBefore(f, c); f.appendChild(c); });
 function pinHeaders() { document.querySelectorAll('.panel').forEach((p) => { const cs = getComputedStyle(p);
   p.style.setProperty('--pt', cs.paddingTop); p.style.setProperty('--px', cs.paddingLeft); p.style.setProperty('--pb', cs.paddingBottom); p.style.setProperty('--pr', cs.borderBottomRightRadius); }); }
 window.addEventListener('resize', pinHeaders); window.addEventListener('load', pinHeaders); setTimeout(pinHeaders, 0);
@@ -4493,7 +4494,7 @@ function renderStats() {
   const items = [['Trận đã chơi', P.matches], ['Trận thắng', P.wins], ['Tỉ lệ thắng', rate + '%'], ['Chuỗi thắng dài nhất', P.bestStreak], ['Cú Perfect', P.perfect], ['Cú đập', P.smash],
     ['Rally dài nhất', P.longest], ['Cứu cầu thành công', P.diveSaves], ['Thắng online', P.onlineWins], ['Trận online', P.onlinePlayed], ['Sân đã chơi', P.venues.length + '/' + S.VENUES.length], ['Thành tích', Object.keys(achieved).length + '/' + ACH.length]];
   $('statGrid').innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><small>${k}</small></div>`).join('');
-  $('historyList').innerHTML = history.length ? history.map((h) => `<div class="hist"><span class="r ${h.won ? 'w' : 'l'}">${h.won ? 'Thắng' : 'Thua'}</span><b>${h.s[0]}–${h.s[1]}</b><span>vs ${esc(h.opp)}</span><span>${h.kind === 'online' ? icon('globe') + ' Online' : icon('bot') + ' ' + (S.DIFF[h.diff] ? S.DIFF[h.diff].name : '')} · ${h.mode} · ${esc((S.VENUES[h.venue] || {}).name || '')}</span></div>`).join('') : '<div class="empty">Chưa có trận nào.</div>';
+  $('historyList').innerHTML = history.length ? history.map((h) => `<div class="hist"><span class="r ${h.won ? 'w' : 'l'}">${h.won ? 'Thắng' : 'Thua'}</span><b>${h.s[0]}–${h.s[1]}</b><span>vs ${esc(h.opp)}</span><span>${h.kind === 'online' ? icon('globe') + ' Online' : icon('bot') + ' ' + [S.DIFF[h.diff] ? S.DIFF[h.diff].name : '', h.mode, esc((S.VENUES[h.venue] || {}).name || '')].filter(Boolean).join(' · ')}</span></div>`).join('') : '<div class="empty">Chưa có trận nào.</div>';
 }
 
 // The player's own page (opened from the chip in the top left corner): name, level, a summary and the recent matches.

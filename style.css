@@ -1226,3 +1226,31 @@ body:has(#hud:not(.hidden)) #toasts{top:calc(max(12px,env(safe-area-inset-top)) 
 .panel-body{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   margin:0 calc(-1 * var(--px,22px)) calc(-1 * var(--pb,18px));padding:0 var(--px,22px) var(--pb,18px);border-radius:0 0 var(--pr,24px) var(--pr,24px)}
 #s-shop .panel.hasbody #gearTabs{top:0!important}
+/* ---- fixes from the screenshot review ---- */
+/* start button of a list: an opaque footer pinned to the bottom of the scrolling box */
+.cta-foot{position:sticky;bottom:calc(-1 * var(--pb,18px));z-index:3;margin:8px calc(-1 * var(--px,22px)) calc(-1 * var(--pb,18px));padding:10px var(--px,22px) var(--pb,18px);
+  background:linear-gradient(180deg,rgba(17,60,64,0) 0,#123f43 12px,#113c40 100%)}
+.cta-foot .cta.sticky{position:static;margin:0;width:100%}
+@media (orientation:landscape) and (max-height:480px){.cta-foot{padding-top:6px}.cta-foot .cta{min-height:40px;padding-top:6px;padding-bottom:6px;font-size:18px}}
+/* shop tabs: solid bar; on a short landscape screen one row that slides sideways */
+#s-shop #gearTabs{background:#123f43!important}
+#gearTabs button{white-space:nowrap}
+@media (max-width:520px){#gearTabs button{font-size:11.5px!important;letter-spacing:-.2px}}
+@media (orientation:landscape) and (max-height:480px){#s-shop #gearTabs{display:flex!important;overflow-x:auto;gap:6px;padding-top:6px!important;padding-bottom:6px!important}#s-shop #gearTabs button{flex:none;padding:7px 12px!important}}
+/* chest rows on a narrow phone: picture and text on the first line, the buttons full width under them */
+@media (max-width:520px){
+  .chest-row{flex-wrap:wrap}.chest-row .gi{flex:1 1 0;min-width:0}
+  .chest-row .chest-pay{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;gap:6px}.chest-row .chest-pay>*{flex:1 1 0;min-width:0;white-space:nowrap}
+}
+/* end of match on a short landscape screen: the two buttons stay in view while the rest scrolls */
+@media (orientation:landscape) and (max-height:480px){
+  #over .over-btns{position:sticky;bottom:calc(-1 * var(--pb,18px));z-index:3;margin:8px calc(-1 * var(--px,22px)) 0;padding:8px var(--px,22px) 10px;background:#113c40}
+  #over .over-btns .ghost,#over .over-btns .cta{min-height:42px}
+  #over .big-score{font-size:44px;margin:4px 0}
+}
+/* the hint pill disappears when it has nothing to say */
+#hint:empty{display:none!important}
+/* venue lock badge in the top corner, clear of the name */
+.venue .vlock{top:6px;bottom:auto}
+/* locked character names stay readable */
+.char.locked small{opacity:1;color:#d7ece8}
