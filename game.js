@@ -835,7 +835,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   const gr = new THREE.Group(); gr.name = 'headGear'; if (kind === 'none') return gr;
   const mk = (geo, mat, x, y, z, par, ol) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (!ol) m.userData.noOutline = true; (par || gr).add(m); return m; };
   const team = toon(teamColor, { side: THREE.DoubleSide }), acc = toon(accent, { side: THREE.DoubleSide });
-  const AX = [0.34 * P.sq[0], 0.34 * P.sq[1], 0.34 * P.sq[2]];
+  const wf = P.wool ? 1.2 : 1, AX = [0.34 * P.sq[0] * wf, 0.34 * P.sq[1] * wf, 0.34 * P.sq[2] * wf];   // a woolly head: gear is fitted over the wool, not over the skull under it
   const fit = new THREE.Group(); fit.scale.set(AX[0], AX[1], AX[2]);
   const ring = (d, w, mat, off = 1.035, tilt = 0.14) => {
     if (!fit.parent) gr.add(fit);
@@ -1238,7 +1238,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; U(new THREE.SphereGeometry(0.07, 8, 6), toon(0xfdfbf7), Math.cos(a) * 0.17 * tx, tc + 0.27 * ty - 0.05, Math.sin(a) * 0.14 * tz); }
   }
 
-  const earJoints = [], earAll = [], hornParts = [], maneTop = [];   // earAll / hornParts: so a hat that covers the crown can tuck them away
+  const earJoints = [], earAll = [], hornParts = [], maneTop = [], markTop = [];   // markTop: species features on the crown (tuft, crest, curl, sprig, forelock)   // earAll / hornParts: so a hat that covers the crown can tuck them away
   // ---- head: features are placed on a skull of radius 0.34 squashed by P.sq
   const head = new THREE.Group(); head.position.y = tc + 0.27 * ty + 0.18 + P.headY; up.add(head);
   const hs = new THREE.Group(); hs.scale.setScalar(P.head); head.add(hs);
@@ -1397,7 +1397,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const w = H(new THREE.CylinderGeometry(0.0045, 0.0025, WL, 4), mDark, s * 0.165 + dir.x * WL / 2, -0.12 - k * 0.03 + dir.y * WL / 2, 0.288 + dir.z * WL / 2); w.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); noOL(w);
   }
   if (P.pouches) for (const s of [-1, 1]) { const p = H(new THREE.SphereGeometry(0.16, 20, 14), mBody, s * 0.205, -0.135, 0.08); p.scale.set(1, 0.85, 0.9); softSkin.push([p, 0, 0.03]); }   // full cheeks: face colour, merged into the head silhouette (no own outline on the face)
-  if (P.tuft) for (let i = -1; i <= 1; i++) { const t = H(new THREE.ConeGeometry(0.03, 0.14, 6), mBody, i * 0.04, 0.36, 0.05); t.rotation.z = -i * 0.4; t.rotation.x = -0.3; }
+  if (P.tuft) for (let i = -1; i <= 1; i++) { const t = H(new THREE.ConeGeometry(0.03, 0.14, 6), mBody, i * 0.04, 0.36, 0.05); markTop.push(t); t.rotation.z = -i * 0.4; t.rotation.x = -0.3; }
 
   const dab = (x, y, z, r, mat, sx = 1, sy = 1) => { const d = H(new THREE.SphereGeometry(r, 10, 8), mat, x, y, z); d.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(x * fx, y * fy, z * fz).normalize()); d.scale.set(sx, sy, 0.35); noOL(d); return d; };
   // fuse static sibling meshes (same parent hs, same material) into one draw call
@@ -1407,7 +1407,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ge.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
     const out = new THREE.Mesh(ge, mat); hs.add(out); return noOL(out);
   };
-  if (V.marks) V.marks({ H, U, dab, fuse, patch, stripe, band, toon, basic, noOL, cut: (m) => { cutters.push(m); return m; }, mBody, mBelly, mDark, tc, ty, tz, h, col: c });
+  const Hm = (...a) => { const m = H(...a); if (m.position.y > 0.17) markTop.push(m); return m; };   // what the markings put on the crown is remembered, so a hat can cover it
+  const fuseM = (parts, mat) => { const top = parts.some((p) => markTop.includes(p)), o = fuse(parts, mat); if (top) markTop.push(o); return o; };
+  if (V.marks) V.marks({ H: Hm, U, dab, fuse: fuseM, patch, stripe, band, toon, basic, noOL, cut: (m) => { cutters.push(m); return m; }, mBody, mBelly, mDark, tc, ty, tz, h, col: c });
   const eyeAt = [];
   const eyeRim = [], eyeIris = [], eyePupil = [], eyeGlint = [], cheek = [], eyeLo = [];
   const mIris = toon(V.iris), mPupil = toon(0x1c1416), mLid = toon(0x2a1c1a);
@@ -1805,11 +1807,12 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
   // a hat that covers the crown has short ears under it (they used to poke through its side); long ears and floppy ears stay out.
   // The unicorn's horn goes under the closed hats too, and keeps poking through the brimmed ones.
-  if (setHead) { const hk = setHead[0];
+  if (GI.head) { const hk = setHead ? setHead[0] : GI.head === 'h_focus' ? 'visor' : GI.head === 'h_pro' ? 'crown' : 'bandana';
+    const cover = ['visor', 'ninja', 'straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer'].includes(hk);
     if (P.eye === 'frog' && ['straw', 'tricorn', 'wizard', 'cowboy', 'police', 'kabuto'].includes(hk)) headGear.position.y -= 0.02;   // frog: a brim sits under the raised eyes, not across them
-    if (['straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer'].includes(hk) && ['round', 'cat', 'koala', 'sheep', 'unicorn'].includes(c.ear)) for (const e of earAll) e.visible = false;
-    if (['chef', 'pumpkin', 'beanie', 'turban', 'dino'].includes(hk)) for (const h of hornParts) h.visible = false;
-    if (['straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer', 'ninja'].includes(hk)) for (const m of maneTop) m.visible = false; }   // the top locks of the mane go under the hat
+    if (cover && c.ear !== 'bunny' && c.ear !== 'floppy') for (const e of earAll) e.visible = false;   // ears and horns go under the hat (long and floppy ears stay out)
+    if (['chef', 'pumpkin', 'beanie', 'turban', 'dino', 'astro', 'visor', 'ninja', 'hero', 'robot', 'pad'].includes(hk)) for (const h of hornParts) h.visible = false;   // the unicorn's horn: under closed hats and inside the glass bubble
+    if (cover) for (const m of maneTop.concat(markTop)) m.visible = false; }   // top locks of the mane, hair tuft, crest, curl, leaf sprig: under the hat
   const wristGear = [];
   // back / tails
   const back = -0.26 * tz;
