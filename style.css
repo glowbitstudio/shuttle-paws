@@ -1164,3 +1164,33 @@ body .stage-name.ch{bottom:128px}
 @media (max-width:820px), (orientation:portrait){.venue{min-height:74px}}
 /* badges in the top corners so they never sit on the venue name */
 .venue .vlock{top:6px;right:8px;bottom:auto}.venue.on::after{top:6px;right:8px;bottom:auto}.venue .wind-tag{left:8px;right:auto}
+/* nothing stretches or bounces past its ends (a stretched panel dragged its pinned title bar and the scroll indicator along) */
+html,body{overscroll-behavior:none}
+.panel,.screen,.panel-wrap,.panel *{overscroll-behavior:contain}
+/* settings that only make sense with a keyboard or only with touch */
+body.touchui .only-keys,body:not(.touchui) .only-touch{display:none}
+/* shot label over the player: with one button per shot only the name is shown, in the colour of its button; the bar is for charging */
+#powerBar.simple .pb-track{display:none}
+#powerBar.simple{gap:0}
+.pb-label{font-family:var(--display);font-size:16px;padding:3px 12px;border:2px solid rgba(255,255,255,.9);background:#2a2350;text-shadow:0 1px 0 rgba(0,0,0,.45);box-shadow:0 3px 8px rgba(0,0,0,.35)}
+#powerBar[data-lv="lo"] .pb-label{background:#1f9d62}#powerBar[data-lv="mid"] .pb-label{background:#e8742c}#powerBar[data-lv="hi"] .pb-label{background:#d93a3a}
+#powerBar:not(.simple) .pb-track{width:20px;height:104px;background:#1b1736;border-color:#fff}
+#powerBar:not(.simple) .pb-fill{background-size:100% 104px}
+.touchui #powerBar .pb-label{font-size:18px;padding:4px 14px}
+/* home top bar on a narrow phone: name on the left, gold · diamonds · settings as one evenly spaced group on the right */
+@media (max-width:520px){
+  .lobby-top{justify-content:space-between;flex-wrap:nowrap}
+  .lobby-cash{flex:none;margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:6px}
+  .lobby-cash>*{margin:0!important;flex:none}
+}
+/* phone held upright: the score sits on the left so the three (online: four) round buttons on the right never cover it */
+@media (orientation:portrait){
+  .touchui #score{left:max(8px,env(safe-area-inset-left));right:auto;transform:none;max-width:calc(100vw - 138px)}
+  .touchui #topBtns{gap:5px}.touchui #topBtns .round{width:36px;height:36px}
+  .touchui #hud:has(#chatBtn:not(.hidden)) #score{max-width:calc(100vw - 178px)}
+  .touchui #hud:has(#chatBtn:not(.hidden)) #score .side span{max-width:46px}
+}
+/* shop: the pinned title bar and tab row follow the panel's real top padding (a fixed 22px/18px left a strip above the bar on some screens) */
+#s-shop header{top:calc(-1 * var(--pt,22px))!important}
+#s-shop #gearTabs{top:calc(var(--shopH,60px) - var(--pt,22px))!important}
+@media (max-width:520px){#s-shop header h2{display:none}#s-shop header{justify-content:space-between}#s-shop header .gold-chip:first-of-type{margin-left:auto!important}}

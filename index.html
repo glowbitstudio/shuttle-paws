@@ -83,6 +83,7 @@
   <div id="topBtns">
     <button id="emoteBtn" class="round" title="Biểu cảm"><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg></button>
     <button id="chatBtn" class="round hidden" title="Chat (Enter)"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg></button>
+    <button id="camQuick" class="round" title="Đổi góc nhìn (C)"><svg class="ico" aria-hidden="true"><use href="#i-camera"/></svg></button>
     <button id="pauseBtn" class="round" title="Tạm dừng (Esc)"><svg class="ico" aria-hidden="true"><use href="#i-pause"/></svg></button>
   </div>
   <div id="emoteWheel" class="hidden"></div>
@@ -253,7 +254,7 @@
       </div>
       <div class="set-group">
         <div class="label">Điều khiển</div>
-        <div class="set">Góc nhìn <small>Phím C để đổi nhanh trong trận</small><div class="seg sm" id="setCam"><button data-v="high">Trên cao</button><button data-v="mid">Vừa</button><button data-v="low">Thấp</button><button data-v="close">Sau lưng</button><button data-v="full">Toàn sân</button></div></div>
+        <div class="set">Góc nhìn <small id="camNote">Phím C để đổi nhanh trong trận</small><div class="seg sm" id="setCam"><button data-v="high">Trên cao</button><button data-v="mid">Vừa</button><button data-v="low">Thấp</button><button data-v="close">Sau lưng</button><button data-v="full">Toàn sân</button></div></div>
         <div class="set">Tay thuận <small>Tay cầm vợt của nhân vật bạn</small><div class="seg sm" id="setHand"><button data-v="R">Tay phải</button><button data-v="L">Tay trái</button></div></div>
         <div class="set">Kiểu đánh <small>3 nút: mỗi cú một nút · Nạp lực: một nút, giữ càng lâu càng mạnh</small><div class="seg sm" id="setCtrl"><button data-v="simple">3 nút</button><button data-v="charge">Nạp lực</button></div></div>
         <div class="set">Hỗ trợ đánh <small>Dễ: máy tự đánh, bạn chỉ chọn hướng · Thường: tự chạy tới cầu, bấm sớm vẫn tính · Chuyên: tự làm hết. <b>Chỉ có tác dụng khi đấu bot.</b></small><div class="seg sm" id="setAssist"><button data-v="0">Chuyên</button><button data-v="1">Thường</button><button data-v="2">Dễ</button></div></div>
@@ -271,13 +272,13 @@
         <label class="set">Khựng hình khi đập <small>Đứng hình rất ngắn khi đập Perfect</small><input type="checkbox" id="setHitStop"></label>
         <label class="set">Bước chuẩn bị tự động <small>Nhún chân lấy đà khi đối thủ đánh</small><input type="checkbox" id="setSplit"></label>
       </div>
-      <div class="set-group">
-        <div class="label">Nút cảm ứng (điện thoại)</div>
+      <div class="set-group only-touch">
+        <div class="label">Nút cảm ứng</div>
         <div class="set">Cỡ nút cảm ứng <small>Kéo thanh bên dưới để chỉnh mịn hơn</small><div class="seg sm" id="setTouchSize"><button data-v="0.85">Nhỏ</button><button data-v="1">Vừa</button><button data-v="1.2">Lớn</button></div></div>
         <label class="set">Cỡ nút (chỉnh mịn) <input type="range" id="setTouch" min="0.7" max="1.4" step="0.05"></label>
         <label class="set">Đổi bên nút cảm ứng <small>Cần di chuyển bên phải, nút đánh bên trái</small><input type="checkbox" id="setTouchSwap"></label>
       </div>
-      <div class="set-group">
+      <div class="set-group only-keys">
         <div class="label">Phím điều khiển <small>(bấm vào ô rồi nhấn phím mới)</small></div>
         <div id="keyList" class="key-list"></div>
         <button class="pill" id="resetKeys">Về mặc định</button>
@@ -294,18 +295,7 @@
   <section id="s-guide" class="screen hidden">
     <div class="panel wide">
       <header><button class="back" data-go="home">‹</button><h2>Cách chơi</h2></header>
-      <div class="guide">
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-run"/></svg>Di chuyển</b><p><kbd>W A S D</kbd> hoặc phím mũi tên. Đứng yên thì nhân vật <b>tự chạy tới cầu</b> và <b>tự về giữa sân</b> sau khi đánh (chế độ hỗ trợ Thường/Dễ). Cầu bay ra ngoài (vòng đánh dấu <b style="color:#e04848">đỏ</b>) thì nhân vật tự bỏ, không đỡ.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-shuttle"/></svg>Ba nút đánh</b><p>• <kbd>J</kbd> / chuột trái: <b>Phông cầu</b> — đánh cao sâu về cuối sân, an toàn nhất<br>• <kbd>K</kbd> / chuột phải: <b>Đập</b> khi cầu cao (tự nhảy), <b>tạt</b> nhanh khi cầu ngang người<br>• <kbd>L</kbd> / chuột giữa: <b>Bỏ nhỏ</b> rơi sát lưới — khi cầu thấp thì thành cú <b>bỏ lưới</b> nhẹ nhàng</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg>Bấm lúc nào?</b><p>Bấm <b>khi cầu đang bay về phía bạn</b> — cầu tới vợt là tự vung. Nhìn <b>thanh canh nhịp</b> dưới sân: bấm lúc chấm trắng ở vùng <b style="color:#2e9e62">xanh</b> = <b class="gold">Perfect</b> · <b class="gold">vàng</b> = Tốt · <b style="color:#e04848">đỏ</b> = lệch, dễ ra ngoài.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Đánh sang trái / phải</b><p>Sau khi bấm nút đánh, giữ <kbd>A</kbd> / <kbd>D</kbd> để chọn góc. Vòng ngắm hiện trên sân đối thủ: <b style="color:#2e9e62">xanh</b> bỏ nhỏ · <b class="gold">vàng</b> phông · <b style="color:#e04848">đỏ</b> đập. Không chọn hướng: tự đánh vào chỗ trống.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-bulb"/></svg>Mẹo thắng</b><p>Đối thủ đứng cuối sân → <b>bỏ nhỏ</b>. Đối thủ lên lưới → <b>phông</b> sâu. Cầu bổng cao bên sân mình → <b>đập</b>. Đập liên tục dễ hụt hơi, xen kẽ các cú mới khó đỡ.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg>Nhảy &amp; lao người</b><p><kbd>Space</kbd> nhảy — nhảy lên rồi bấm <kbd>K</kbd> để đập ở điểm cao nhất, cầu cắm xuống dốc và nhanh hơn · <kbd>Shift</kbd> lao theo hướng đang giữ để cứu cầu ngoài tầm. Sau khi lao cần chút thời gian đứng dậy. Muốn kiểu cũ (giữ nút nạp lực)? Vào <b>Cài đặt → Kiểu đánh</b>.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-court"/></svg>Giao cầu</b><p><kbd>J</kbd> = giao cao sâu, <kbd>L</kbd> = giao ngắn sát vạch. Có 25 giây để giao; hết giờ máy tự giao cao. Giao chéo sân theo điểm chẵn/lẻ.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-wind"/></svg>Gió</b><p>Sân ngoài trời có gió (mũi tên trên màn hình). Gió đẩy cầu bay lệch, nhất là cú phông cao.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-ruler"/></svg>Luật</b><p>Tính điểm từng pha (rally point). Chạm 11 hoặc 21, phải hơn 2 điểm. Có thể chơi <b>1 ván</b> hoặc <b>3 ván thắng 2</b>. Ai thắng pha thì giao tiếp. Đơn dùng biên dọc trong, đôi dùng biên dọc ngoài.</p></div>
-        <div class="g"><b><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg>Biểu cảm &amp; chat</b><p>Phím <kbd>1</kbd>–<kbd>8</kbd> để thả biểu cảm. Khi online bấm <kbd>Enter</kbd> để chat.</p></div>
-      </div>
+      <div class="guide" id="guideBox"></div>
     </div>
   </section>
 

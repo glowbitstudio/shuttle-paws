@@ -1364,7 +1364,6 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     }
     case 'hamster': {
       nose(0.025, -0.05, 0.342, 1.2, 0.9, toon(0xff8fa8)); mouthW(-0.09, 0.31);   // on the fur between the two pouches
-      for (const s of [-1, 1]) { const t = H(new THREE.BoxGeometry(0.026, 0.036, 0.012), toon(0xffffff), s * 0.015, -0.128, 0.308); t.rotation.x = 0.32; noOL(t); }   // thin and leaning with the chin, so from the side they lie on the fur instead of standing off it
       break;
     }
     case 'sheep': {
@@ -2152,10 +2151,10 @@ function beginSession(kind, m, me, extra) {
     const runTxt = kind === 'local' && settings.assist >= 1 ? 'chạy (đứng yên thì tự chạy tới cầu)' : kind === 'local' ? 'chạy tới dưới quả cầu' : 'chạy tới dưới quả cầu (online không tự chạy)';
     help.innerHTML = settings.ctrl === 'simple' ? (isTouch
       ? '<span>' + icon('stick') + 'Chạm bên trái</span><span>' + runTxt + '</span><span>' + icon('shuttle') + 'Nút cú đánh</span><span><b>PHÔNG</b> đánh cao · <b>ĐẬP</b> đập/tạt · <b>BỎ NHỎ</b> sát lưới · <b>NHẢY</b> rồi ĐẬP = đập trên cao</span><span>' + icon('clock') + 'Bấm sớm</span><span>cũng được — cầu tới vợt là tự vung</span><span>' + icon('target') + 'Kéo cần</span><span>sang trái/phải lúc đã bấm = đánh về góc đó</span>'
-      : '<span><kbd>W A S D</kbd></span><span>' + runTxt + '</span><span>' + K('hit') + ' / chuột trái</span><span><b>Phông cầu</b> (đánh cao, an toàn)</span><span>' + K('smash') + ' / chuột phải</span><span><b>Đập</b> khi cầu cao · <b>tạt</b> khi cầu ngang người</span><span>' + K('drop') + '</span><span><b>Bỏ nhỏ</b> sát lưới</span><span>' + K('jump') + '</span><span><b>Nhảy</b> — nhảy rồi bấm ' + K('smash') + ' = đập trên cao</span><span>' + icon('clock') + 'Bấm sớm</span><span>cũng được — cầu tới vợt là tự vung · <kbd>A</kbd>/<kbd>D</kbd> chọn góc</span>')
+      : '<span>' + K('up') + K('left') + K('down') + K('right') + '</span><span>' + runTxt + '</span><span>' + K('hit') + ' / chuột trái</span><span><b>Phông cầu</b> (đánh cao, an toàn)</span><span>' + K('smash') + ' / chuột phải</span><span><b>Đập</b> khi cầu cao · <b>tạt</b> khi cầu ngang người</span><span>' + K('drop') + '</span><span><b>Bỏ nhỏ</b> sát lưới</span><span>' + K('jump') + '</span><span><b>Nhảy</b> — nhảy rồi bấm ' + K('smash') + ' = đập trên cao</span><span>' + icon('clock') + 'Bấm sớm</span><span>cũng được — cầu tới vợt là tự vung · ' + K('left') + '/' + K('right') + ' chọn góc</span>')
       : isTouch
       ? '<span>' + icon('stick') + 'Chạm bên trái</span><span>' + runTxt + '</span><span>' + icon('shuttle') + 'Giữ <b>ĐÁNH</b></span><span>nạp lực, <b>thả ra để đánh</b></span><span>' + icon('bolt') + 'Lực</span><span><b>nhẹ</b> bỏ nhỏ · <b>vừa</b> phông · <b>đầy</b> đập</span><span>' + icon('target') + 'Đang giữ</span><span>kéo cần <b>trái/phải</b> = đánh về góc đó</span>'
-      : '<span><kbd>W A S D</kbd></span><span>' + runTxt + '</span><span>Giữ <kbd>Space</kbd> / chuột</span><span>nạp lực, <b>thả ra để đánh</b></span><span>' + icon('bolt') + 'Lực</span><span><b>nhẹ</b> = bỏ nhỏ · <b>vừa</b> = phông cầu · <b>đầy</b> = đập</span><span>' + icon('target') + 'Đang giữ</span><span><kbd>A</kbd>/<kbd>D</kbd> = <b>đánh sang trái/phải</b></span><span>' + icon('sparkle') + 'Vòng xanh</span><span>lúc thả đẹp nhất · <kbd>C</kbd> đổi góc nhìn</span>';
+      : '<span>' + K('up') + K('left') + K('down') + K('right') + '</span><span>' + runTxt + '</span><span>Giữ ' + K('hit') + ' / chuột</span><span>nạp lực, <b>thả ra để đánh</b></span><span>' + icon('bolt') + 'Lực</span><span><b>nhẹ</b> = bỏ nhỏ · <b>vừa</b> = phông cầu · <b>đầy</b> = đập</span><span>' + icon('target') + 'Đang giữ</span><span>' + K('left') + '/' + K('right') + ' = <b>đánh sang trái/phải</b></span><span>' + icon('sparkle') + 'Vòng xanh</span><span>lúc thả đẹp nhất · <kbd>C</kbd> đổi góc nhìn</span>';
     // only for the first few matches; any key / tap closes it (the full guide is in the menu)
     if (settings.helpN < 4) {
       settings.helpN++; saveAll();
@@ -3667,6 +3666,7 @@ function updatePowerBar() {
   bar.style.left = ((tmpV.x + 1) / 2 * viewW) + 'px'; bar.style.top = ((1 - tmpV.y) / 2 * viewH) + 'px';
   bar.classList.remove('hidden');
   bar.classList.toggle('full', hold.on && v >= 1);
+  bar.classList.toggle('simple', settings.ctrl === 'simple'); bar.dataset.lv = v < 0.35 ? 'lo' : v < 0.72 ? 'mid' : 'hi';
   $('pbFill').style.height = (v * 100) + '%';
   const sh = session.m.shuttle.p;
   $('pbLabel').textContent = settings.ctrl === 'simple' && !hold.on
@@ -4266,6 +4266,7 @@ function cycleCam() {
   if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera');
 }
 $('camBtn').onclick = cycleCam;
+$('camQuick').onclick = (e) => { e.stopPropagation(); Sound.boop(); cycleCam(); };
 function bindCamSeg() { if (!CAM_NAMES[settings.cam]) settings.cam = 'high'; camSegSync = seg('setCam', () => settings.cam, (v) => { settings.cam = v; saveAll(); setCamBtn(); if (session) toast('Góc nhìn: ' + CAM_NAMES[settings.cam], '', 'camera'); }); }
 bindCamSeg();   // bound once at start, so the row works wherever Settings is opened from (lobby or the pause menu)
 const SCREENS = ['home', 'bot', 'tour', 'chars', 'gear', 'shop', 'rewards', 'ach', 'stats', 'profile', 'settings', 'guide', 'online', 'room'];
@@ -4282,7 +4283,7 @@ function go(name) {
   for (const s of SCREENS) $('s-' + s).classList.toggle('hidden', s !== name);
   $('searching').classList.add('hidden'); $('over').classList.add('hidden');
   showPreview(true);
-  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, profile: renderProfile, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
+  ({ home: renderHome, bot: renderBot, tour: renderTour, chars: renderChars, ach: renderAch, gear: renderGear, shop: renderShop, rewards: renderRewards, stats: renderStats, profile: renderProfile, guide: renderGuide, settings: renderSettings, online: enterOnline, room: renderRoom }[name] || (() => {}))();
 }
 // Back buttons lead to the screen the player came from (profile -> gear -> shop -> back -> gear -> back -> profile), not always to the menu.
 const navStack = [];
@@ -4341,8 +4342,11 @@ window.addEventListener('resize', pinHeaders); window.addEventListener('load', p
     // the track starts under whatever stays pinned at the top (title bar, tab rows), not over it
     let pin = sticky.get(el); if (!pin || performance.now() - pin.t > 1500) { const list = []; for (const c of el.children) { if (getComputedStyle(c).position === 'sticky') list.push(c); for (const d of c.children) if (getComputedStyle(d).position === 'sticky') list.push(d); } sticky.set(el, pin = { t: performance.now(), list }); }
     const r = el.getBoundingClientRect(); let top0 = r.top; for (const c of pin.list) { const q = c.getBoundingClientRect(); if (q.height && q.top < r.top + r.height * 0.5) top0 = Math.max(top0, q.bottom); }
-    const room = r.bottom - top0 - 12, h = Math.max(26, room * el.clientHeight / el.scrollHeight), p = el.scrollTop / (el.scrollHeight - el.clientHeight);
-    tip.style.height = h + 'px'; tip.style.top = (top0 + 6 + (room - h) * p) + 'px'; tip.style.left = (r.right - 8) + 'px'; tip.classList.add('on');
+    const cs = getComputedStyle(el), rad = (k) => Math.max(8, parseFloat(cs[k]) || 0), bw = parseFloat(cs.borderRightWidth) || 0;
+    const a = Math.max(0, top0 === r.top ? r.top + rad('borderTopRightRadius') : top0 + 6), b = Math.min(innerHeight, r.bottom) - rad('borderBottomRightRadius');   // the track: below the pinned bars, above the bottom corner
+    const room = b - a; if (room < 30) { tip.classList.remove('on'); return; }
+    const h = Math.max(22, room * el.clientHeight / el.scrollHeight), p = S.clamp(el.scrollTop / (el.scrollHeight - el.clientHeight), 0, 1);
+    tip.style.height = h + 'px'; tip.style.top = (a + (room - h) * p) + 'px'; tip.style.left = (Math.min(innerWidth, r.right) - bw - 7) + 'px'; tip.classList.add('on');
     clearTimeout(timer); timer = setTimeout(() => tip.classList.remove('on'), 700); }, true); })();
 const botOpts = Object.assign({ mode: '1v1', diff: 1, points: 11, games: 1, venue: 0 }, store.get('sp.botOpts', {}));
 // What challenger bots have learned from everyone: fetched over HTTP (gzip, cached, 304 when unchanged) only when this player is about
@@ -4482,7 +4486,43 @@ function renderProfile() {
   $('pfHistory').innerHTML = rows || '<p class="tiny">Chưa có trận nào. Đánh một trận rồi quay lại đây nhé.</p>';
 }
 
+// How to play: written for what this player really uses - the touch buttons on a phone, the keys as they are set now on a computer.
+function renderGuide() {
+  const K = (a) => '<kbd>' + esc(keyLabel(keymap[a])) + '</kbd>', T = (s) => '<kbd>' + s + '</kbd>', charge = settings.ctrl === 'charge';
+  const G = (ic, title, body) => `<div class="g"><b>${icon(ic)}${title}</b><p>${body}</p></div>`;
+  const green = '<b style="color:#2e9e62">xanh</b>', red = '<b style="color:#e04848">đỏ</b>', gold = '<b class="gold">vàng</b>';
+  const auto = ' Đứng yên thì nhân vật <b>tự chạy tới cầu</b> và <b>tự về giữa sân</b> sau khi đánh (chế độ hỗ trợ Thường/Dễ). Cầu bay ra ngoài (vòng đánh dấu ' + red + ') thì nhân vật tự bỏ, không đỡ.';
+  const rows = [];
+  if (isTouch) {
+    rows.push(G('run', 'Di chuyển', 'Đặt ngón tay ở <b>nửa bên trái</b> màn hình rồi kéo: cần điều khiển hiện ngay dưới ngón tay.' + auto));
+    rows.push(charge
+      ? G('shuttle', 'Nút đánh', 'Giữ nút ' + T('ĐÁNH') + ' để nạp lực, <b>thả ra để đánh</b>. Lực <b>nhẹ</b> = bỏ nhỏ · <b>vừa</b> = phông cầu · <b>đầy</b> = đập. Muốn mỗi cú một nút? Vào <b>Cài đặt → Kiểu đánh</b>.')
+      : G('shuttle', 'Ba nút đánh', '• ' + T('PHÔNG') + ': <b>Phông cầu</b> — đánh cao sâu về cuối sân, an toàn nhất<br>• ' + T('ĐẬP') + ': <b>Đập</b> khi cầu cao (tự nhảy), <b>tạt</b> nhanh khi cầu ngang người<br>• ' + T('BỎ NHỎ') + ': rơi sát lưới — khi cầu thấp thì thành cú <b>bỏ lưới</b> nhẹ nhàng'));
+    rows.push(G('clock', 'Bấm lúc nào?', 'Bấm <b>khi cầu đang bay về phía bạn</b> — cầu tới vợt là tự vung. Bấm sớm vẫn được.'));
+    rows.push(G('swap', 'Đánh sang trái / phải', 'Sau khi bấm nút đánh, <b>kéo cần sang trái hoặc phải</b> để chọn góc. Không chọn hướng: tự đánh vào chỗ trống.'));
+  } else {
+    rows.push(G('run', 'Di chuyển', K('up') + ' ' + K('left') + ' ' + K('down') + ' ' + K('right') + '.' + auto));
+    rows.push(charge
+      ? G('shuttle', 'Nút đánh', 'Giữ ' + K('hit') + ' hoặc chuột trái để nạp lực, <b>thả ra để đánh</b>. Lực <b>nhẹ</b> = bỏ nhỏ · <b>vừa</b> = phông cầu · <b>đầy</b> = đập. Muốn mỗi cú một phím? Vào <b>Cài đặt → Kiểu đánh</b>.')
+      : G('shuttle', 'Ba nút đánh', '• ' + K('hit') + ' / chuột trái: <b>Phông cầu</b> — đánh cao sâu về cuối sân, an toàn nhất<br>• ' + K('smash') + ' / chuột phải: <b>Đập</b> khi cầu cao (tự nhảy), <b>tạt</b> nhanh khi cầu ngang người<br>• ' + K('drop') + ' / chuột giữa: <b>Bỏ nhỏ</b> rơi sát lưới — khi cầu thấp thì thành cú <b>bỏ lưới</b> nhẹ nhàng'));
+    rows.push(G('clock', 'Bấm lúc nào?', 'Bấm <b>khi cầu đang bay về phía bạn</b> — cầu tới vợt là tự vung. Nhìn <b>thanh canh nhịp</b> dưới sân: bấm lúc chấm trắng ở vùng ' + green + ' = <b class="gold">Perfect</b> · ' + gold + ' = Tốt · ' + red + ' = lệch, dễ ra ngoài.'));
+    rows.push(G('swap', 'Đánh sang trái / phải', 'Sau khi bấm nút đánh, giữ ' + K('left') + ' / ' + K('right') + ' để chọn góc. Vòng ngắm hiện trên sân đối thủ: ' + green + ' bỏ nhỏ · ' + gold + ' phông · ' + red + ' đập. Không chọn hướng: tự đánh vào chỗ trống.'));
+  }
+  rows.push(G('bulb', 'Mẹo thắng', 'Đối thủ đứng cuối sân → <b>bỏ nhỏ</b>. Đối thủ lên lưới → <b>phông</b> sâu. Cầu bổng cao bên sân mình → <b>đập</b>. Đập liên tục dễ hụt hơi, xen kẽ các cú mới khó đỡ.'));
+  rows.push(isTouch
+    ? G('bolt', 'Nhảy &amp; lao người', T('NHẢY') + ' rồi bấm ' + T(charge ? 'ĐÁNH' : 'ĐẬP') + ' để đập ở điểm cao nhất, cầu cắm xuống dốc và nhanh hơn · ' + T('LAO') + ' lao theo hướng đang kéo cần để cứu cầu ngoài tầm. Sau khi lao cần chút thời gian đứng dậy.')
+    : G('bolt', 'Nhảy &amp; lao người', K('jump') + ' nhảy — nhảy lên rồi bấm ' + K(charge ? 'hit' : 'smash') + ' để đập ở điểm cao nhất, cầu cắm xuống dốc và nhanh hơn · ' + K('dive') + ' lao theo hướng đang giữ để cứu cầu ngoài tầm. Sau khi lao cần chút thời gian đứng dậy.'));
+  rows.push(G('court', 'Giao cầu', (isTouch ? (charge ? 'Chạm nhanh ' + T('ĐÁNH') + ' = giao ngắn, giữ rồi thả = giao cao.' : T('PHÔNG') + ' = giao cao sâu, ' + T('BỎ NHỎ') + ' = giao ngắn sát vạch.')
+    : (charge ? 'Bấm nhanh ' + K('hit') + ' = giao ngắn, giữ rồi thả = giao cao.' : K('hit') + ' = giao cao sâu, ' + K('drop') + ' = giao ngắn sát vạch.')) + ' Có 25 giây để giao; hết giờ máy tự giao cao. Giao chéo sân theo điểm chẵn/lẻ.'));
+  rows.push(G('camera', 'Góc nhìn', (isTouch ? 'Bấm nút máy quay ở góc trên bên phải trong trận' : 'Bấm <kbd>C</kbd> hoặc nút máy quay ở góc trên bên phải trong trận') + ' để đổi góc nhìn: Trên cao · Vừa · Thấp · Sau lưng · Toàn sân.'));
+  rows.push(G('wind', 'Gió', 'Sân ngoài trời có gió (mũi tên trên màn hình). Gió đẩy cầu bay lệch, nhất là cú phông cao.'));
+  rows.push(G('ruler', 'Luật', 'Tính điểm từng pha (rally point). Chạm 11 hoặc 21, phải hơn 2 điểm. Có thể chơi <b>1 ván</b> hoặc <b>3 ván thắng 2</b>. Ai thắng pha thì giao tiếp. Đơn dùng biên dọc trong, đôi dùng biên dọc ngoài.'));
+  rows.push(G('smile', 'Biểu cảm &amp; chat', isTouch ? 'Bấm nút mặt cười ở góc trên bên phải để thả biểu cảm. Khi online có thêm nút chat bên cạnh.' : 'Phím <kbd>1</kbd>–<kbd>8</kbd> hoặc ' + K('emote') + ' để thả biểu cảm. Khi online bấm ' + K('chat') + ' để chat.'));
+  $('guideBox').innerHTML = rows.join('');
+}
+
 function renderSettings() {
+  $('camNote').textContent = isTouch ? 'Trong trận bấm nút máy quay ở góc trên để đổi nhanh' : 'Phím C hoặc nút máy quay trong trận để đổi nhanh';
   $('setVol').value = settings.vol;
   $('setFps').checked = settings.fps; $('setMarker').checked = settings.marker; $('setMarkerOnline').checked = settings.markerOnline;
   for (const [id, key] of AID_TOGGLES) $(id).checked = settings[key]; $('setDropLine').checked = settings.dropLine; $('setRing').checked = settings.ring;
