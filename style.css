@@ -1220,3 +1220,9 @@ body.touchui .only-keys,body:not(.touchui) .only-touch{display:none}
 @keyframes toastin{0%{opacity:0;transform:translateY(-14px) scale(.96)}7%{opacity:1;transform:none}88%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
 /* during a match the notices sit under the score and the round buttons */
 body:has(#hud:not(.hidden)) #toasts{top:calc(max(12px,env(safe-area-inset-top)) + 50px)}
+/* panels with a title bar: the bar stands still, only the box under it scrolls */
+.panel.hasbody{display:flex!important;flex-direction:column;overflow:hidden!important}
+.panel.hasbody>header,#s-shop .panel.hasbody>header{position:relative!important;top:0!important;flex:none}
+.panel-body{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  margin:0 calc(-1 * var(--px,22px)) calc(-1 * var(--pb,18px));padding:0 var(--px,22px) var(--pb,18px);border-radius:0 0 var(--pr,24px) var(--pr,24px)}
+#s-shop .panel.hasbody #gearTabs{top:0!important}

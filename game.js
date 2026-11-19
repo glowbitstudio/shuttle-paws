@@ -4343,7 +4343,12 @@ $('tourReset').onclick = () => { tour.round = 0; saveAll(); renderTour(); Sound.
 $('tourChar').onclick = () => { Sound.boop(); go('chars'); };
 
 // pinned title bars need each panel's top padding (it differs per screen size)
-function pinHeaders() { document.querySelectorAll('.panel').forEach((p) => p.style.setProperty('--pt', getComputedStyle(p).paddingTop)); }
+// A panel with a title bar does not scroll itself: everything under the bar is moved into an inner box that scrolls, so the bar can
+// never be dragged, stretched or bounced away with the content (sticky bars did exactly that on real phones).
+document.querySelectorAll('.panel').forEach((p) => { const h = p.querySelector(':scope > header'); if (!h) return;
+  const b = document.createElement('div'); b.className = 'panel-body'; while (h.nextSibling) b.appendChild(h.nextSibling); p.appendChild(b); p.classList.add('hasbody'); });
+function pinHeaders() { document.querySelectorAll('.panel').forEach((p) => { const cs = getComputedStyle(p);
+  p.style.setProperty('--pt', cs.paddingTop); p.style.setProperty('--px', cs.paddingLeft); p.style.setProperty('--pb', cs.paddingBottom); p.style.setProperty('--pr', cs.borderBottomRightRadius); }); }
 window.addEventListener('resize', pinHeaders); window.addEventListener('load', pinHeaders); setTimeout(pinHeaders, 0);
 // Floating scroll indicator: shown at the right edge of whatever element is being scrolled, fades out when the scrolling stops.
 (function () { let tip = null, timer = 0; const sticky = new WeakMap();

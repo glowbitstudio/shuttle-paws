@@ -21,7 +21,7 @@ with sync_playwright() as p:
         pg.route('**/game.js',lambda r:r.fulfill(status=200,content_type='application/javascript',body=(ROOT/'game.js').read_bytes().decode('utf-8').replace('window.__spDebug = {',HOOK+'window.__spDebug = {',1)))
         pg.goto(f'http://127.0.0.1:{PORT}/',wait_until='domcontentloaded');pg.wait_for_function('typeof __spDebug === "object"');pg.wait_for_timeout(3000)
         r={};pg.screenshot(path=str(OUT/f'{name}-home.png'))
-        for scr in ('shop','rewards','guide','settings'):
+        for scr in ('shop','rewards','guide','settings','bot','online','profile','chars','gear','stats','ach','tour'):
             pg.evaluate("(s)=>__spDebug.go(s)",scr);pg.wait_for_timeout(900)
             r[scr]={'scrollers':pg.evaluate(SCR,scr)}
             for f,tag in ((0.5,'mid'),(1,'end')):
