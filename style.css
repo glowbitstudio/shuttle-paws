@@ -1204,3 +1204,19 @@ body.touchui .only-keys,body:not(.touchui) .only-touch{display:none}
 #charsDone.buy.short{filter:saturate(.55) brightness(.85)}
 #charsDone .ico{width:16px;height:16px;margin-right:6px;vertical-align:-2px}
 @media (max-width:520px){#s-chars header h2{font-size:17px}#s-chars header .gold-chip{padding:3px 7px;font-size:12px}}
+/* notices: one pill at the top centre - icon disc, title, quiet second line, amount chip on the right */
+#toasts{top:max(12px,env(safe-area-inset-top));left:0;right:0;align-items:center;gap:6px;z-index:70}
+#toasts .toast{display:flex;align-items:center;gap:10px;max-width:min(440px,calc(100vw - 24px));padding:7px 14px 7px 8px;border-radius:999px;
+  background:linear-gradient(180deg,#1f5f62,#123f43)!important;border:2px solid #f3cf86!important;box-shadow:0 6px 0 rgba(0,0,0,.28),0 10px 24px rgba(0,0,0,.25);color:#fff;
+  font-family:var(--display);font-size:15px;font-weight:800;line-height:1.15;animation:toastin 3.2s ease both}
+#toasts .t-ic{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#ffe58a,#ffbf2a);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+#toasts .t-ic .ico{width:17px;height:17px;margin:0;color:#3a2600;vertical-align:0}
+#toasts .t-tx{min-width:0;display:flex;flex-direction:column}
+#toasts .t-tx b{font-weight:800;overflow:hidden;text-overflow:ellipsis}
+#toasts .t-tx small{display:block;font-family:"Nunito",system-ui,sans-serif;font-size:12px;font-weight:700;color:#bfe6dc;line-height:1.2}
+#toasts .t-amt{flex:none;display:inline-flex;align-items:center;gap:4px;margin-left:4px;font-style:normal;font-size:14px;color:#ffd9d0;background:rgba(0,0,0,.32);border-radius:999px;padding:3px 8px 3px 10px;white-space:nowrap}
+#toasts .t-amt.plus{color:#bff5d6}
+#toasts .t-amt .coin,#toasts .t-amt .gem,#toasts .t-amt .shard{width:15px;height:15px;margin:0}
+@keyframes toastin{0%{opacity:0;transform:translateY(-14px) scale(.96)}7%{opacity:1;transform:none}88%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+/* during a match the notices sit under the score and the round buttons */
+body:has(#hud:not(.hidden)) #toasts{top:calc(max(12px,env(safe-area-inset-top)) + 50px)}

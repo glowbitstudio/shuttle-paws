@@ -2375,10 +2375,20 @@ function popup(text, cls, pos) {
   el.style.left = clamp(x, 60, viewW - 60) + 'px'; el.style.top = clamp(y, 60, viewH - 60) + 'px';
   $('popups').appendChild(el); setTimeout(() => el.remove(), isTouch ? 520 : 1000);
 }
+// Money shown in the top bars: whole up to 99 999, then 100K … 999K, 1.23M, 4.5B (cut, never rounded up: it must not show more than you have).
+function fmtN(n) {
+  n = Math.floor(+n || 0); if (n < 100000) return String(n);
+  const cut = (v, u) => { const d = v >= 100 ? 0 : v >= 10 ? 1 : 2, k = Math.pow(10, d); return String(Math.floor(v * k) / k) + u; };
+  return n < 1e6 ? Math.floor(n / 1000) + 'K' : n < 1e9 ? cut(n / 1e6, 'M') : cut(n / 1e9, 'B');
+}
+// A notice at the top of the screen: icon in a disc, title, a quiet second line; an amount ("−600 vàng") becomes a chip with its coin.
 function toast(title, sub, ic) {
   const el = document.createElement('div'); el.className = 'toast';
-  el.innerHTML = (ic ? icon(ic) : '') + esc(title) + (sub ? `<small>${esc(sub)}</small>` : '');
-  $('toasts').appendChild(el); setTimeout(() => el.remove(), 4000);
+  const m = /^([−+-])\s?(\d+)(?: (vàng|kim cương|mảnh))?$/.exec(sub || '');
+  const amt = m ? `<em class="t-amt${m[1] === '+' ? ' plus' : ''}">${m[1] === '+' ? '+' : '−'}${fmtN(m[2])}<i class="${m[3] === 'kim cương' ? 'gem' : m[3] === 'mảnh' ? 'shard' : 'coin'}"></i></em>` : '';
+  el.innerHTML = (ic ? `<i class="t-ic">${icon(ic)}</i>` : '') + `<span class="t-tx"><b>${esc(title)}</b>${sub && !m ? `<small>${esc(sub)}</small>` : ''}</span>` + amt;
+  $('toasts').appendChild(el); while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
+  setTimeout(() => el.remove(), 3200);
 }
 function chatLine(from, text) {
   const el = document.createElement('div');
@@ -2543,7 +2553,7 @@ function renderGear() {
 function renderShop() {
   const c = charById(profile.char), shown = previewGear(), set = S.gearSet(myGear());
   const gold = wallet ? wallet.gold : 0, items = (wallet && wallet.items) || [];
-  $('gearGold').textContent = wallet ? wallet.gold : '…';
+  $('gearGold').textContent = wallet ? fmtN(wallet.gold) : '…';
   { const hd = document.querySelector('#s-shop header'); if (hd && hd.offsetHeight) document.documentElement.style.setProperty('--shopH', (hd.offsetHeight - 1) + 'px'); }
   $('gearTabs').innerHTML = [['chests', 'Rương'], ['sets', 'Bộ đồ']].concat(S.GEAR_SLOTS).map(([k, n]) => `<button data-slot="${k}" class="${k === gearSlot ? 'on' : ''}">${n}</button>`).join('');
   $('gearList').innerHTML = !wallet ? '<p class="tiny">Đang kết nối máy chủ… Cửa hàng cần có mạng.</p>' : S.GEAR.filter((it) => it.slot === gearSlot).map((it) => {
@@ -2618,7 +2628,7 @@ function chestPop(ch) {
 function onWallet(msg) {
   store.set('sp.level', msg.level || 1);
   wallet = { gold: msg.gold, owned: msg.owned, prices: msg.prices, login: msg.login, quests: msg.quests, localLeft: msg.localLeft, items: msg.items || [], equip: msg.equip || {}, level: msg.level || 1, xp: msg.xp || 0, levelAt: msg.levelAt || 0, levelNext: msg.levelNext || 40, gems: msg.gems || 0, shards: msg.shards || 0, sh: msg.sh || {}, lv: msg.lv || {}, rules: msg.rules || {}, chests: msg.chests || [], gemRules: msg.gemRules || {}, free: msg.freeChests || {}, levelRewards: msg.levelRewards || [] };
-  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = wallet.gems; }); document.querySelectorAll('.goldN').forEach((b) => { b.textContent = wallet.gold; }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = wallet.shards; });
+  document.querySelectorAll('.gemN').forEach((b) => { b.textContent = fmtN(wallet.gems); }); document.querySelectorAll('.goldN').forEach((b) => { b.textContent = fmtN(wallet.gold); }); document.querySelectorAll('.shardN').forEach((b) => { b.textContent = fmtN(wallet.shards); });
   if (msg.note) { if (msg.note.ok) { Sound.ach(); toast(msg.note.why, msg.note.spent ? '−' + msg.note.spent : '', 'check'); } else toast(msg.note.why, '', 'lock'); }
   store.set('sp.wallet', wallet);
   if (!isUnlocked(charById(profile.char))) { profile.char = 'cat'; saveAll(); Net.profile(); }
@@ -2644,7 +2654,7 @@ function onWallet(msg) {
   renderWallet();
 }
 function renderWallet() {
-  $('homeGold').textContent = wallet ? wallet.gold : '…';
+  $('homeGold').textContent = wallet ? fmtN(wallet.gold) : '…';
   const n = wallet ? (wallet.login.can ? 1 : 0) + wallet.quests.filter((q) => q.prog >= q.goal && !q.claimed).length : 0;
   $('rewardDot').textContent = n; $('rewardDot').classList.toggle('hidden', !n); $('rewardsBtn').classList.toggle('can', !!n);
   if (screen === 'rewards') renderRewards();
@@ -4449,7 +4459,7 @@ function renderChars() {
   if (ok) $('charsDone').textContent = charsBack === 'bot' ? 'Chọn & vào trận' : charsBack === 'room' ? 'Chọn & về phòng' : 'Chọn';
   else $('charsDone').innerHTML = price ? `Mua · <i class="coin"></i>${price}` : icon('lock') + 'Chưa mở khoá';
   $('charsDone').disabled = !ok && !price; $('charsDone').classList.toggle('buy', !ok && !!price); $('charsDone').classList.toggle('short', !ok && !!price && !!wallet && wallet.gold < price);
-  document.querySelectorAll('.goldN').forEach((b) => { b.textContent = wallet ? wallet.gold : '…'; });
+  document.querySelectorAll('.goldN').forEach((b) => { b.textContent = wallet ? fmtN(wallet.gold) : '…'; });
   $('charInfo').innerHTML = `<h3>${faceImg(c.id)}${esc(c.name)} <small style="color:var(--ink2)">· ${esc(c.kind)}</small></h3><p>${esc(c.desc)}</p>` +
     (ok ? '' : (req ? `<p>${icon('lock')} Mở khoá: <b>${esc(req.name)}</b>, ${esc(req.desc)}${price ? ' · hoặc mua bằng vàng' : ''}</p>` : '') +
       '') + `<div class="bars">${bars}</div>`;
@@ -4798,7 +4808,7 @@ if (roomParam) { Net.pendingJoin = roomParam.toUpperCase(); go('online'); } else
 askName();
 Net.connect();   // the wallet (gold, owned characters, rewards) lives on the server, so connect from the start
 window.__sp = () => session && { kind: session.kind, state: session.m.state, score: session.m.score.slice(), me: session.me, last: session.m.shuttle.last, rally: session.m.rally, over: session.over };
-window.__spDebug = { Net, startLocal, go, contactFit: fitMatchRacket, matchClips: () => ({ enabled: matchClipsEnabled, clips: session ? session.models.map(md => md.matchClip || null) : [] }),
+window.__spDebug = { fmtN, toast, Net, startLocal, go, contactFit: fitMatchRacket, matchClips: () => ({ enabled: matchClipsEnabled, clips: session ? session.models.map(md => md.matchClip || null) : [] }),
   lab: { THREE, scene, buildCharacter, charById, setVenue, disposeTree, hideScreens, camera, setFree: (c) => { freeCam = c; }, chars: S.CHARS }, setCam: (o) => { camOverride = o; }, speed: (k) => { debugSpeed = k; }, pose: (p) => { debugPose = p; }, meter: () => (tm.shown ? tm.t : null),
   // camera placed in the player's own frame (x = its left, z = forward)
   camAt: (pos, look, fov) => { const r = session.models[session.me].model.root; r.updateMatrixWorld(true); const P = r.localToWorld(new THREE.Vector3(...pos)), L = r.localToWorld(new THREE.Vector3(...look)); freeCam = { pos: [P.x, P.y, P.z], look: [L.x, L.y, L.z], fov: fov || 40 }; },
