@@ -1028,7 +1028,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
     const pc = new THREE.Group(); pc.rotation.x = -0.18; fit.add(pc); const blk = toon(0x16181f, { side: THREE.DoubleSide });
     mk(new THREE.SphereGeometry(1.06, 28, 8, 0, Math.PI * 2, 0, Math.acos(0.42)), team, 0, 0, 0, pc, true);
     mk(new THREE.CylinderGeometry(1.2, 0.98, 0.3, 28), team, 0, 0.74, 0, pc, true); mk(new THREE.CylinderGeometry(1.0, 1.04, 0.15, 28, 1, true), blk, 0, 0.5, 0, pc);
-    const pk = mk(new THREE.CylinderGeometry(0.86, 0.86, 0.08, 24, 1, false, -0.85, 1.7), blk, 0, 0.42, 0.42, pc, true); pk.rotation.x = 0.26;
+    const pk = mk(new THREE.CylinderGeometry(0.86, 0.86, 0.08, 24, 1, false, -0.85, 1.7), blk, 0, 0.5, 0.36, pc, true); pk.rotation.x = 0.2;
     mk(new THREE.CircleGeometry(0.17, 6), basic(0xf2c230), 0, 0.72, 1.12, pc).rotation.x = -0.2;
     return gr;
   }
@@ -1052,7 +1052,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   }
   if (kind === 'mirror') {   // doctor's head mirror on a band
     ring(0.5, 0.09, team, 1.04, 0.16);
-    const md = mk(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 20), acc, 0.18, 0.6, 0.92, fit, true); md.rotation.set(Math.PI / 2 - 0.55, 0, 0); mk(new THREE.CircleGeometry(0.24, 20), basic(0xeaf6ff), 0.18, 0.62, 0.96, fit).rotation.x = -0.55; mk(new THREE.SphereGeometry(0.05, 8, 6), toon(0x3a4254), 0.18, 0.62, 0.975, fit);
+    const md = mk(new THREE.CylinderGeometry(0.19, 0.19, 0.05, 20), acc, 0.46, 0.7, 0.74, fit, true); md.rotation.order = 'YXZ'; md.rotation.set(Math.PI / 2 - 0.7, 0.55, 0); const mf = mk(new THREE.CircleGeometry(0.15, 20), basic(0xeaf6ff), 0.475, 0.722, 0.762, fit); mf.rotation.order = 'YXZ'; mf.rotation.set(-0.7, 0.55, 0);
     return gr;
   }
   if (kind === 'pad') {   // boxing head guard: padded cap open on top, cheek pads
@@ -1237,7 +1237,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; U(new THREE.SphereGeometry(0.07, 8, 6), toon(0xfdfbf7), Math.cos(a) * 0.17 * tx, tc + 0.27 * ty - 0.05, Math.sin(a) * 0.14 * tz); }
   }
 
-  const earJoints = [];
+  const earJoints = [], earAll = [], hornParts = [];   // earAll / hornParts: so a hat that covers the crown can tuck them away
   // ---- head: features are placed on a skull of radius 0.34 squashed by P.sq
   const head = new THREE.Group(); head.position.y = tc + 0.27 * ty + 0.18 + P.headY; up.add(head);
   const hs = new THREE.Group(); hs.scale.setScalar(P.head); head.add(hs);
@@ -1467,8 +1467,8 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       case 'unicorn':
         if (s > 0) {
           const hn = H(new THREE.ConeGeometry(0.085, 0.42, 12), toon(0xffd23f), 0, 0.42, 0.27); hn.rotation.x = 0.45;   // thick horn rising from the forehead, in front of the mane
-          for (const [rt, rb, hh, y] of [[0.014, 0.105, 0.365, 0.0525], [0.105, 0.087, 0.085, -0.1725]]) { const ho = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 12, 1, true), OUTLINE); ho.position.y = y; ho.userData.noOutline = true; ho.userData.isOutline = true; ho.userData.ownGeo = true; hn.add(ho); } noOL(hn); cutters.push(hn);   // constant-width outline (the stock hull vanished on the cone)
-          for (const f of [0.42, 0.6, 0.78]) { const r = H(new THREE.TorusGeometry(0.085 * (1 - f) + 0.003, 0.009, 4, 12), toon(0xffb84d), 0, 0.231 + 0.378 * f, 0.179 + 0.183 * f); r.rotation.x = Math.PI / 2 + 0.45; noOL(r); }
+          for (const [rt, rb, hh, y] of [[0.014, 0.105, 0.365, 0.0525], [0.105, 0.087, 0.085, -0.1725]]) { const ho = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 12, 1, true), OUTLINE); ho.position.y = y; ho.userData.noOutline = true; ho.userData.isOutline = true; ho.userData.ownGeo = true; hn.add(ho); } noOL(hn); cutters.push(hn); hornParts.push(hn);   // constant-width outline (the stock hull vanished on the cone)
+          for (const f of [0.42, 0.6, 0.78]) { const r = H(new THREE.TorusGeometry(0.085 * (1 - f) + 0.003, 0.009, 4, 12), toon(0xffb84d), 0, 0.231 + 0.378 * f, 0.179 + 0.183 * f); r.rotation.x = Math.PI / 2 + 0.45; noOL(r); hornParts.push(r); }
           [0xff9fd6, 0x9fd8ff, 0xc5a3ff, 0xffe18a, 0x9ef0b8, 0xff9fd6].forEach((col, i) => H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012).scale.set(1.15, 1.35, 0.8));
         }
         add(new THREE.SphereGeometry(0.075, 12, 10), mEar, 0, 0, 0, ear).scale.set(0.72, 1.6, 0.45); noOL(add(new THREE.SphereGeometry(0.05, 10, 8), mEarIn, 0, -0.005, 0.02, ear)).scale.set(0.6, 1.55, 0.4); ear.position.set(s * 0.23 * fx, 0.33 * fy, -0.03); ear.rotation.z = -s * 0.45;
@@ -1488,7 +1488,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       default: ear = null;
     }
     if (ear) {
-      hs.add(ear); if (c.ear !== 'floppy') ear.traverse((o) => { if (o.isMesh && !o.userData.noOutline) cutters.push(o); });
+      hs.add(ear); earAll.push(ear); if (c.ear !== 'floppy') ear.traverse((o) => { if (o.isMesh && !o.userData.noOutline) cutters.push(o); });
       // soft ears wobble more (long bunny ears, floppy dog ears, big koala ears); horns stay rigid
       const soft = { bunny: 1, floppy: 1.2, koala: 0.5, cat: 0.35, round: 0.3, sheep: 0.6, unicorn: 0.3 }[c.ear] || 0;
       if (soft) earJoints.push({ g: ear, rx: ear.rotation.x, rz: ear.rotation.z, s, soft });
@@ -1800,6 +1800,11 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
   }
   const headGear = setHead ? buildHeadGear(setHead[0], GL.head, setHead[1], P, fy, V.gearAt) : GI.head === 'h_band' ? buildHeadGear('bandana', GL.head, 0xffffff, P, fy, V.gearAt) : GI.head === 'h_focus' ? buildHeadGear('visor', GL.head, 0xffffff, P, fy, V.gearAt)
     : GI.head === 'h_pro' ? buildHeadGear('crown', GL.head, 0xfff3c4, P, fy, V.gearAt) : buildHeadGear(V.gear, teamColor, V.accent, P, fy, V.gearAt); hs.add(headGear);
+  // a hat that covers the crown has short ears under it (they used to poke through its side); long ears and floppy ears stay out.
+  // The unicorn's horn goes under the closed hats too, and keeps poking through the brimmed ones.
+  if (setHead) { const hk = setHead[0];
+    if (['straw', 'tricorn', 'wizard', 'cowboy', 'chef', 'beanie', 'kabuto', 'police', 'pumpkin', 'hero', 'turban', 'dino', 'pad', 'robot', 'deer'].includes(hk) && ['round', 'cat', 'koala', 'sheep', 'unicorn'].includes(c.ear)) for (const e of earAll) e.visible = false;
+    if (['chef', 'pumpkin', 'beanie', 'turban', 'dino'].includes(hk)) for (const h of hornParts) h.visible = false; }
   const wristGear = [];
   // back / tails
   const back = -0.26 * tz;
