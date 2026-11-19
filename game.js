@@ -18,12 +18,12 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } },
 };
 const profile = Object.assign({ name: randomName(), char: 'cat', id: null, secret: null }, store.get('sp.profile', {}));
-const settings = Object.assign({ hand: 'R', helpN: 0, ctrl: 'simple', cam: 'high', assist: 1, vol: 0.8, gfx: 1, fps: false, marker: true, markerOnline: true, showAim: false, showReach: false, showTrail: false, showServeBox: false, dropLine: true, ring: true, hitStop: true, autoSplit: true, chat: true, touch: 1, server: '' }, store.get('sp.settings', {}));
+const settings = Object.assign({ hand: 'R', helpN: 0, ctrl: 'simple', cam: 'high', assist: 1, vol: 0.8, gfx: 1, fps: false, marker: true, markerOnline: true, shotName: true, hitWords: true, showAim: false, showReach: false, showTrail: false, showServeBox: false, dropLine: true, ring: true, hitStop: true, autoSplit: true, chat: true, touch: 1, server: '' }, store.get('sp.settings', {}));
 // one-time: phones and tablets start at the low graphics level (it can be raised in Settings)
 if (settings.gfxV !== 1) { if (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) settings.gfx = 0; settings.gfxV = 1; }
 // one-time: the landing marker is now on by default online too (older saves had it off)
 if (settings.markerOnlineV !== 2) { settings.markerOnline = true; settings.markerOnlineV = 2; }
-const AID_TOGGLES = [['setShowAim', 'showAim'], ['setShowReach', 'showReach'], ['setShowTrail', 'showTrail'], ['setShowServeBox', 'showServeBox']];
+const AID_TOGGLES = [['setShotName', 'shotName'], ['setHitWords', 'hitWords'], ['setShowAim', 'showAim'], ['setShowReach', 'showReach'], ['setShowTrail', 'showTrail'], ['setShowServeBox', 'showServeBox']];
 const DEFAULT_KEYS = { up: 'w', down: 's', left: 'a', right: 'd', hit: 'j', smash: 'k', drop: 'l', jump: ' ', dive: 'shift', emote: 'e', chat: 'enter' };
 const KEY_NAMES = { up: 'Lên', down: 'Xuống', left: 'Trái', right: 'Phải', hit: 'Phông cầu (đánh cao)', smash: 'Đập / tạt', drop: 'Bỏ nhỏ', jump: 'Nhảy', dive: 'Lao người', emote: 'Bảng biểu cảm', chat: 'Chat' };
 // v2 layout (3 shot keys); old saved layouts used K/L for jump/dive, so they are not carried over
@@ -2384,7 +2384,8 @@ function updateScore(bump) {
 const tmpV = new THREE.Vector3();
 function popup(text, cls, pos) {
   const el = document.createElement('div'); el.className = 'pop ' + (cls || ''); el.textContent = text;
-  const big = /(point|gp)/.test(cls || '');   // who won the point: in the middle of the screen and long enough to read, on phones too
+  const big = /(point|gp)/.test(cls || '');
+  if (!big && !settings.hitWords) return;   // the words over the player (Tốt, Perfect, ĐẬP!...) can be switched off; who won the point always shows   // who won the point: in the middle of the screen and long enough to read, on phones too
   if (isTouch && !big && !pos && session && session.me >= 0) { const me = session.m.athletes[session.me]; pos = { x: me.x, y: 1.7 + (me.jumpY || 0), z: me.z }; }
   let x = viewW / 2, y = viewH * 0.36;
   if (pos) { tmpV.set(pos.x, pos.y, pos.z).project(camera); x = (tmpV.x + 1) / 2 * viewW; y = (1 - tmpV.y) / 2 * viewH; }
@@ -3686,7 +3687,7 @@ function updatePowerBar() {
   const show = session && session.me >= 0 && !session.over && (hold.on || now < hold.shownUntil);
   const v = hold.on ? chargeNow() : hold.last;
   if (btn) btn.style.setProperty('--p', hold.on ? v.toFixed(3) : 0);
-  if (!show) { bar.classList.add('hidden'); return; }
+  if (!show || (settings.ctrl === 'simple' && !settings.shotName)) { bar.classList.add('hidden'); return; }   // the shot name can be switched off in the settings
   const a = session.m.athletes[session.me];
   tmpV.set(a.x, 2.2 + a.jumpY, a.z).project(camera);
   bar.style.left = ((tmpV.x + 1) / 2 * viewW) + 'px'; bar.style.top = ((1 - tmpV.y) / 2 * viewH) + 'px';
