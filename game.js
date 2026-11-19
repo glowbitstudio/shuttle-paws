@@ -1000,7 +1000,7 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   if (kind === 'horns') {   // two curved horns and a dark circlet
     ring(0.5, 0.07, toon(0x23232b, { side: THREE.DoubleSide }), 1.04, 0.16);
     for (const sd of [-1, 1]) {   // one curved horn per side: three tapering pieces, each bent a little further upward, set out past the ears
-      const g0 = new THREE.Group(); g0.position.set(sd * 0.8, 0.52, 0.05); g0.rotation.z = -sd * 1.05; fit.add(g0);
+      const g0 = new THREE.Group(); if (P.snout === 'koala') { g0.position.set(sd * 0.48, 0.78, 0.36); g0.rotation.z = -sd * 0.6; } else { g0.position.set(sd * 0.8, 0.52, 0.05); g0.rotation.z = -sd * 1.05; } fit.add(g0);   // big ears: horns forward and up, in front of the ears
       mk(new THREE.CylinderGeometry(0.17, 0.23, 0.34, 12), team, 0, 0.15, 0, g0, true);
       const g1 = new THREE.Group(); g1.position.y = 0.3; g1.rotation.z = sd * 0.55; g0.add(g1);
       mk(new THREE.SphereGeometry(0.172, 12, 8), team, 0, 0, 0, g1); mk(new THREE.CylinderGeometry(0.115, 0.17, 0.3, 12), team, 0, 0.14, 0, g1, true);
@@ -1238,7 +1238,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; U(new THREE.SphereGeometry(0.07, 8, 6), toon(0xfdfbf7), Math.cos(a) * 0.17 * tx, tc + 0.27 * ty - 0.05, Math.sin(a) * 0.14 * tz); }
   }
 
-  const earJoints = [], earAll = [], hornParts = [], maneTop = [], markTop = [];   // markTop: species features on the crown (tuft, crest, curl, sprig, forelock)   // earAll / hornParts: so a hat that covers the crown can tuck them away
+  const earJoints = [], earAll = [], hornParts = [], maneTop = [], maneAll = [], markTop = [];   // markTop: species features on the crown (tuft, crest, curl, sprig, forelock)   // earAll / hornParts: so a hat that covers the crown can tuck them away
   // ---- head: features are placed on a skull of radius 0.34 squashed by P.sq
   const head = new THREE.Group(); head.position.y = tc + 0.27 * ty + 0.18 + P.headY; up.add(head);
   const hs = new THREE.Group(); hs.scale.setScalar(P.head); head.add(hs);
@@ -1474,7 +1474,7 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
           const hn = H(new THREE.ConeGeometry(0.085, 0.42, 12), toon(0xffd23f), 0, 0.42, 0.27); hn.rotation.x = 0.45;   // thick horn rising from the forehead, in front of the mane
           for (const [rt, rb, hh, y] of [[0.014, 0.105, 0.365, 0.0525], [0.105, 0.087, 0.085, -0.1725]]) { const ho = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 12, 1, true), OUTLINE); ho.position.y = y; ho.userData.noOutline = true; ho.userData.isOutline = true; ho.userData.ownGeo = true; hn.add(ho); } noOL(hn); cutters.push(hn); hornParts.push(hn);   // constant-width outline (the stock hull vanished on the cone)
           for (const f of [0.42, 0.6, 0.78]) { const r = H(new THREE.TorusGeometry(0.085 * (1 - f) + 0.003, 0.009, 4, 12), toon(0xffb84d), 0, 0.231 + 0.378 * f, 0.179 + 0.183 * f); r.rotation.x = Math.PI / 2 + 0.45; noOL(r); hornParts.push(r); }
-          [0xff9fd6, 0x9fd8ff, 0xc5a3ff, 0xffe18a, 0x9ef0b8, 0xff9fd6].forEach((col, i) => { const lk = H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012); lk.scale.set(1.15, 1.35, 0.8); if (i < 3) maneTop.push(lk); });
+          [0xff9fd6, 0x9fd8ff, 0xc5a3ff, 0xffe18a, 0x9ef0b8, 0xff9fd6].forEach((col, i) => { const lk = H(new THREE.SphereGeometry(0.085, 10, 8), toon(col), (i % 2 ? 0.035 : -0.035), 0.2 - i * 0.085, -0.3 - i * 0.012); lk.scale.set(1.15, 1.35, 0.8); maneAll.push(lk); if (i < 3) maneTop.push(lk); });
         }
         add(new THREE.SphereGeometry(0.075, 12, 10), mEar, 0, 0, 0, ear).scale.set(0.72, 1.6, 0.45); noOL(add(new THREE.SphereGeometry(0.05, 10, 8), mEarIn, 0, -0.005, 0.02, ear)).scale.set(0.6, 1.55, 0.4); ear.position.set(s * 0.23 * fx, 0.33 * fy, -0.03); ear.rotation.z = -s * 0.45;
         break;
@@ -1812,7 +1812,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     if (P.eye === 'frog' && ['straw', 'tricorn', 'wizard', 'cowboy', 'police', 'kabuto'].includes(hk)) headGear.position.y -= 0.02;   // frog: a brim sits under the raised eyes, not across them
     if (cover && c.ear !== 'bunny' && c.ear !== 'floppy') for (const e of earAll) e.visible = false;   // ears and horns go under the hat (long and floppy ears stay out)
     if (['chef', 'pumpkin', 'beanie', 'turban', 'dino', 'astro', 'visor', 'ninja', 'hero', 'robot', 'pad'].includes(hk)) for (const h of hornParts) h.visible = false;   // the unicorn's horn: under closed hats and inside the glass bubble
-    if (cover) for (const m of maneTop.concat(markTop)) m.visible = false; }   // top locks of the mane, hair tuft, crest, curl, leaf sprig: under the hat
+    if (cover) for (const m of maneTop.concat(markTop)) m.visible = false;
+    if (hk === 'crown' || hk === 'royal') { if (c.id === 'unicorn') { headGear.scale.set(1.5, 1.12, 1.5); headGear.position.z -= 0.03; } else if (P.eye === 'frog') { headGear.scale.set(0.8, 1.45, 0.8); } }   // crown: wide enough to ring the horn; tall and narrow between the frog's eyes
+    if (hk === 'mohawk') for (const m of maneAll) m.visible = false; }   // a mohawk takes the place of the mane down the back of the head   // top locks of the mane, hair tuft, crest, curl, leaf sprig: under the hat
   const wristGear = [];
   // back / tails
   const back = -0.26 * tz;
@@ -1850,8 +1852,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
       { len: 0.15, r0: 0.06, r1: 0.04, rx: 0.2 }, { len: 0.13, r0: 0.04, r1: 0.016, rx: 0.25, cone: true },
     ], mBody, (seg, i) => { const sp = add(new THREE.ConeGeometry(0.03 - i * 0.004, 0.075, 6), toon(V.fin || 0xffd23f), 0, seg.len * 0.5, -seg.r0 * 0.85, seg.g); sp.rotation.x = -0.5; });
   } else if (c.tail === 'fox') {   // big fluffy brush tail that swells, then a white tip
-    tailChain(0.4, back - 0.02, [
-      { len: 0.1, r0: 0.07, r1: 0.1, rx: -1.0, fluff: true }, { len: 0.12, r0: 0.11, r1: 0.13, rx: 0.3, fluff: true },
+    const lowF = GI.back ? 1 : 0;   // something on the back: the brush hangs low, under it
+    tailChain(0.4 - lowF * 0.16, back - 0.02, [
+      { len: 0.1, r0: 0.07, r1: 0.1, rx: -1.0 - lowF * 0.85, fluff: true }, { len: 0.12, r0: 0.11, r1: 0.13, rx: 0.3, fluff: true },
       { len: 0.12, r0: 0.13, r1: 0.11, rx: 0.3, fluff: true }, { len: 0.1, r0: 0.1, r1: 0.06, rx: 0.25, fluff: true, mat: mBelly },
     ], mBody);
   } else if (c.id === 'otter') {   // thick, flat rudder tail held low
