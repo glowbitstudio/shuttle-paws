@@ -943,14 +943,16 @@ function buildHeadGear(kind, teamColor, accent, P, fy, at) {
   }
   if (kind === 'diver') {   // dive mask over the eyes (two big lenses in one dark frame, strap round the head), snorkel from the mouth up past the ear
     if (!fit.parent) gr.add(fit);
-    const fg = P.eye === 'frog', dk = toon(0x23232b, { side: THREE.DoubleSide }), ey = fg ? 0.86 : 0.06, lx = fg ? 0.5 : 0.34, lz = fg ? 0.78 : 0.99, sr = fg ? 0.66 : 1.03, hull = (m) => { m.userData.isOutline = true; return m; };
+    const fg = P.eye === 'frog', dk = toon(0x23232b, { side: THREE.DoubleSide }), ey = fg ? 0.86 : 0.06, lx = fg ? 0.5 : 0.34, lz = fg ? 0.78 : 0.99, sr = fg ? 1.0 : 1.03, hull = (m) => { m.userData.isOutline = true; return m; };
     for (const sd of [-1, 1]) { const lg = new THREE.Group(); lg.position.set(sd * lx, ey, lz); lg.rotation.y = sd * 0.38; fit.add(lg);
       hull(mk(new THREE.CylinderGeometry(0.4, 0.42, 0.2, 24, 1, true), OUTLINE, 0, 0, -0.1, lg)).rotation.x = Math.PI / 2; mk(new THREE.CylinderGeometry(0.36, 0.38, 0.2, 24, 1, true), dk, 0, 0, -0.1, lg).rotation.x = Math.PI / 2;
       hull(mk(new THREE.TorusGeometry(0.33, 0.085, 6, 24), OUTLINE, 0, 0, 0, lg)); mk(new THREE.TorusGeometry(0.33, 0.06, 6, 24), team, 0, 0, 0.004, lg);
       const ln = mk(new THREE.CircleGeometry(0.33, 24), basic(0x8fe9ff, { transparent: true, opacity: 0.34, depthWrite: false }), 0, 0, 0.006, lg); ln.renderOrder = 2;
       const sh = mk(new THREE.PlaneGeometry(0.22, 0.045), basic(0xffffff, { transparent: true, opacity: 0.75, depthWrite: false }), -0.08, 0.13, 0.02, lg); sh.rotation.z = 0.6; sh.renderOrder = 3; }
     mk(new THREE.BoxGeometry(0.2, 0.2, 0.12), dk, 0, ey - 0.14, lz + 0.07, fit, true);   // nose pocket joining the two lenses
-    const st = mk(new THREE.TorusGeometry(sr, 0.075, 6, 40, Math.PI * 2 - 1.3), dk, 0, ey, 0, fit); st.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65); hull(mk(new THREE.TorusGeometry(sr, 0.1, 6, 40, Math.PI * 2 - 1.3), OUTLINE, 0, ey, 0, fit)).rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+    const sy = fg ? 0.26 : ey; const st = mk(new THREE.TorusGeometry(sr, 0.075, 6, 40, Math.PI * 2 - 1.3), dk, 0, sy, 0, fit); st.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
+    if (fg) for (const sd of [-1, 1]) { const a = new THREE.Vector3(sd * (lx + 0.3), ey - 0.22, lz - 0.2), b = new THREE.Vector3(sd * 0.8, sy, 0.62), d = new THREE.Vector3().subVectors(b, a), len = d.length(); const cn = mk(new THREE.CylinderGeometry(0.07, 0.07, len, 8), dk, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, fit, true); cn.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); }
+    hull(mk(new THREE.TorusGeometry(sr, 0.1, 6, 40, Math.PI * 2 - 1.3), OUTLINE, 0, sy, 0, fit)).rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.65);
     const cv = new THREE.CatmullRomCurve3([[0.1, -0.4, 1.03], [0.5, -0.4, 0.95], [0.95, -0.22, 0.45], [1.1, 0.3, 0.12], [1.1, 0.9, 0.05], [1.08, 1.3, 0.05]].map((q) => new THREE.Vector3(q[0], q[1], q[2])));
     hull(mk(new THREE.TubeGeometry(cv, 30, 0.1, 8), OUTLINE, 0, 0, 0, fit)); mk(new THREE.TubeGeometry(cv, 30, 0.075, 8), acc, 0, 0, 0, fit);
     mk(new THREE.SphereGeometry(0.11, 10, 8), dk, 0.08, -0.4, 1.03, fit, true).scale.set(1.4, 0.8, 0.8); mk(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 10), toon(0xffffff), 1.09, 1.12, 0.05, fit);
@@ -1544,7 +1546,9 @@ function buildCharacter(c, teamColor, scale, hand, gearIds) {
     rod(new THREE.Vector3(-bx, gy + R * sy * 0.2, gz + 0.022), new THREE.Vector3(bx, gy + R * sy * 0.2, gz + 0.022), kind === 'e_pro' ? 0.007 : tube * 0.8, frameM);
     if (kind === 'e_pro') rod(new THREE.Vector3(-bx - 0.02, gy + R * sy * 0.62, gz + 0.012), new THREE.Vector3(bx + 0.02, gy + R * sy * 0.62, gz + 0.012), 0.006, frameM);
     if (kind === 'e_sport') {   // elastic strap round the back of the head
-      const st = new THREE.Group(); st.position.y = gy; st.scale.set(sideX / 1.04, 0.34, AXz * sideX / (AXx * 1.04)); faceG.add(st);
+      const fgS = P.eye === 'frog', syS = fgS ? 0.075 : gy, sideS = fgS ? AXx * 1.04 * Math.sqrt(Math.max(0.2, 1 - Math.pow(syS / (0.34 * P.sq[1]), 2))) : sideX;   // frog: the elastic goes round the head below the eye bumps, where it can be seen
+      const st = new THREE.Group(); st.position.y = syS; st.scale.set(sideS / 1.04, 0.34, AXz * sideS / (AXx * 1.04)); faceG.add(st);
+      if (fgS) for (const s of [-1, 1]) rod(new THREE.Vector3(s * (exA + R * sx * 0.9), gy - R * 0.5, gz - 0.04), new THREE.Vector3(s * sideS * 0.86, syS + 0.01, AXz * 0.5), 0.016, toon(shadeHex(GL.face, -0.25)));
       const hl = FG(new THREE.TorusGeometry(1.03, 0.1, 6, 40, Math.PI * 2 - 0.96), OUTLINE, 0, 0, 0, st); hl.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.48); hl.userData.isOutline = true;
       const r = FG(new THREE.TorusGeometry(1.03, 0.075, 6, 40, Math.PI * 2 - 0.96), toon(shadeHex(GL.face, -0.25)), 0, 0, 0, st); r.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.48);   // a wide band standing proud of the head, running into both goggle cups
     }
